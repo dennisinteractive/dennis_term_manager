@@ -97,4 +97,35 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  */
 function dennis_term_manager_csv_import_validate($file_path) {
 
+  $row = 0;
+  // get the file content
+  if (($handle = fopen($file_path, "r")) !== FALSE) {
+    while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
+      $row++;
+      //skip the header row
+      if($row <= 1) {
+        continue 1;
+      }
+      //get the action column data
+      $command = $data[5];
+      switch ($command) {
+        case 'Delete':
+          //@todo : validate current row for Term Delete action
+          break;
+        case 'Rename':
+          //@todo: validate current row for Term Rename action
+          break;
+        case 'Merge':
+          //@todo: validate current row for Term Merge action
+          break;
+        case 'Move':
+          //@todo: vakudate current row for Term Move action
+          break;
+        case 'default':
+          //no command matched. record error
+          //@todo: add error in an array. so we can display on screen.
+      }
+    }
+    fclose($handle);
+  }
 }
