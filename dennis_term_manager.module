@@ -2,3 +2,30 @@
 /**
  * @file
  */
+
+/**
+ * Implement hook_permission().
+ */
+function dennis_term_manager_permission() {
+  return array(
+    'administer dennis term manager' => array(
+      'title' => t('Administer term manager'),
+      'description' => t('Manage Dennis taxonomy terms csv bulk operation'),
+    ),
+  );
+}
+
+/**
+ * Implement hook_menu().
+ */
+function dennis_term_manager_menu() {
+  $items = array();
+  $items['admin/structure/taxonomy/term_manager'] = array(
+    'title' => 'Term Manager',
+    'description' => 'Manage bulk taxonomy term operation via CSV file upload',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dennis_term_manager_form'),
+    'access arguments' => array('administer dennis term manager'),
+  );
+  return $items;
+}
