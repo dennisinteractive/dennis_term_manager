@@ -1,0 +1,5 @@
+name = Dennis Term Manager
+description = Tool to manage bulk taxonomy terms.
+core = 7.x
+package = package = ITPro
+dependencies[] = taxonomy
