@@ -67,3 +67,34 @@ function dennis_term_manager_form($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Implement hook_form_submit().
+ * @param unknown_type $form
+ * @param unknown_type $form_state
+ */
+function dennis_term_manager_form_submit(&$form, &$form_state) {
+  // Load the file.
+  $file = file_load($form_state['values']['csv_file']);
+  // Change status to permanent.
+  $file->status = FILE_STATUS_PERMANENT;
+  // Save.
+  $uploaded = file_save($file);
+  if ($uploaded == TRUE) {
+    drupal_set_message(t('The file has been uploaded.'));
+  }
+  else {
+    drupal_set_message(t('The file could not be uploaded. Please contact the site administrator.'), 'error');
+  }
+
+  $file_path = $file->uri;
+
+  //file content validation.
+  dennis_term_manager_csv_import_validate($file_path);
+}
+
+/**
+ * Process csv file and validate its content
+ */
+function dennis_term_manager_csv_import_validate($file_path) {
+
+}
