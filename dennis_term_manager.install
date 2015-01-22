@@ -2,3 +2,14 @@
 /**
  * @file
  */
+
+/**
+ * Implement hook_install()
+ *
+ */
+function dennis_term_manager_install() {
+  $dir_docs_created = drupal_mkdir('private://term_csv/');
+  if ($dir_docs_created === FALSE) {
+    drupal_set_message(st('The directory private://term_csv/ could not be created.'), 'warning');
+  }
+}
