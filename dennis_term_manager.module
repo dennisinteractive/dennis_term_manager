@@ -114,18 +114,24 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
 }
 
 /**
- * Process csv file and validate its content
+ * Process csv file and pass each row to cron queue.
  */
 function dennis_term_manager_csv_process($uri) {
   $file_path = drupal_realpath($uri);
 
+  // Get current logged in user
+  $user_id = $GLOBALS["user"]->uid ? $GLOBALS["user"]->uid : '';
+  // Get the que to handle the
+  $q = DrupalQueue::get('dennis_term_manager_queue');
+
+
   if (file_exists($file_path)) {
     $row = 0;
     $errors = array();
-    // get the file content
+    // Get the file content
     if (($handle = fopen($file_path, "r")) !== FALSE) {
       while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
-        //set variable for each column
+        // Set variable for each column
         $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
         $term_name = isset($data[1]) ? check_plain($data[1]) : "";
         $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
@@ -135,89 +141,147 @@ function dennis_term_manager_csv_process($uri) {
         $target = isset($data[6]) ? check_plain($data[6]) : "";
         $new_name = isset($data[7]) ? check_plain($data[7]) : "";
         $row++;
-        //skip the header row
+        // Skip the header row
         if($row <= 1) {
           continue 1;
         }
+
+        // Create array to be passed in Queue
+        $filtered_data = array(
+          'vocabulary_name' => $vocabulary_name,
+          'term_name' => $term_name,
+          'related_nodes' => $related_nodes,
+          'parent_term' => $parent_term,
+          'parent_vocabulary' => $parent_vocabulary,
+          'action' => $action,
+          'target' => $target,
+          'new_name' => $new_name,
+          'row_number' => $row,
+          'user_id' => $user_id,
+        );
+        // Queue terms for various action
+        $q->createItem($filtered_data);
+
         dpm($vocabulary_name, strtolower(trim($action)));
-        // Process each row against their action column and validate their data.
-        switch (strtolower(trim($action))) {
-          case ACTION_CREATE:
-            //@todo: create term
-            //check
-            break;
-          case ACTION_DELETE:
-            // Validate vocabulary column.
-            if (empty($vocabulary_name)) {
-              drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $row)));
-            }
-            // Validate term name.
-            if (empty($term_name)) {
-              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
-            }
-            // Check if related node doesnt exist
-            if ($related_nodes != 0) {
-              drupal_set_message(t("There are related nodes exists for @term actioned to be deleted in row @row", array('@term' => $term_name, '@row' => $row)));
-            }
-            break;
-          case ACTION_RENAME:
-            //check if vocab name exist
-            if (!isset($vocabulary_name)) {
-              drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
-            }
-            //check if term name exist
-            if (!isset($term_name)) {
-              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
-            }
-            //check if New term name exists
-            if (!isset($new_name)) {
-              drupal_set_message(t("New Name for term @term is not valid in row @row", array('@term' => $term_name, '@row' => $row)));
-            }
-            break;
-          case ACTION_MERGE:
-            $target_term = explode(">->", $target);
-            //check if target term exists.
-            if (count($target_term) <= 1) {
-              drupal_set_message(t("Target Term Name is not valid in row @row", array('@row' => $row)));
-            }
-            //check if vocab name exists.
-            if (!isset($vocabulary_name)) {
-              drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
-            }
-            //check if term name exists.
-            if (!isset($term_name)) {
-              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
-            }
-            break;
-          case ACTION_MOVE_PARENT:
-            //check if vocab name exists.
-            if (!isset($vocabulary_name)) {
-              drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
-            }
-            //check if term name exists.
-            if (!isset($term_name)) {
-              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
-            }
-            //check if parent term exists
-            if ( !isset($parent_term)) {
-              drupal_set_message(t("Parent Term is not valid in row @row", array('@row' => $row)));
-            }
-            //check if parent vocab exists.
-            if (  !isset($parent_vocabulary)) {
-              drupal_set_message(t("Parent Vocabulary is not valid in row @row", array('@row' => $row)));
-            }
-            break;
-          default:
-            // Invalid Action.
-            drupal_set_message(t("Invalid action in row @row", array('@row' => $row)));
-            break;
-        }return;
+        return;
       }
       fclose($handle);
     }
   }
   else {
     drupal_set_message(t("File not found @file", array('@file' => $file_path)));
+  }
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function dennis_term_manager_cron_queue_info() {
+  $queues['dennis_term_manager_queue'] = array(
+    'worker callback' => 'dennis_term_manager_csv_process',
+    'time' => 60,
+  );
+  return $queues;
+}
+
+/**
+ * Process the queue of terms, if any.
+ * Does what drupal_cron_run() does.
+ * @see drupal_cron_run()
+ */
+function dennis_term_manager_process_queue($max_time = 15) {
+  $end = time() + $max_time;
+  $queue = DrupalQueue::get('dennis_term_manager_queue');
+  while (time() < $end && ($item = $queue->claimItem())) {
+    dennis_term_manager_process_queue_item($item->data);
+    $queue->deleteItem($item);
+  }
+}
+
+function dennis_term_manager_process_queue_item($data) {
+
+  $vocabulary_name = $data['vocabulary_name'];
+  $term_name = $data['term_name'];
+  $related_nodes = $data['related_nodes'];
+  $parent_term = $data['parent_term'];
+  $parent_vocabulary = $data['parent_vocabulary'];
+  $action = $data['action'];
+  $target = $data['target'];
+  $new_name = $data['new_name'];
+  $row_number = $data['row_number'];
+  $user_id = $data['user_id'];
+
+  // Process each row against their action column and validate their data.
+  switch (strtolower(trim($action))) {
+    case ACTION_CREATE:
+      //@todo: create term
+      //check
+      break;
+    case ACTION_DELETE:
+      // Validate vocabulary column.
+      if (empty($vocabulary_name)) {
+        drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $row)));
+      }
+      // Validate term name.
+      if (empty($term_name)) {
+        drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+      }
+      // Check if related node doesnt exist
+      if ($related_nodes != 0) {
+        drupal_set_message(t("There are related nodes exists for @term actioned to be deleted in row @row", array('@term' => $term_name, '@row' => $row)));
+      }
+      break;
+    case ACTION_RENAME:
+      //check if vocab name exist
+      if (!isset($vocabulary_name)) {
+        drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+      }
+      //check if term name exist
+      if (!isset($term_name)) {
+        drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+      }
+      //check if New term name exists
+      if (!isset($new_name)) {
+        drupal_set_message(t("New Name for term @term is not valid in row @row", array('@term' => $term_name, '@row' => $row)));
+      }
+      break;
+    case ACTION_MERGE:
+      $target_term = explode(">->", $target);
+      //check if target term exists.
+      if (count($target_term) <= 1) {
+        drupal_set_message(t("Target Term Name is not valid in row @row", array('@row' => $row)));
+      }
+      //check if vocab name exists.
+      if (!isset($vocabulary_name)) {
+        drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+      }
+      //check if term name exists.
+      if (!isset($term_name)) {
+        drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+      }
+      break;
+    case ACTION_MOVE_PARENT:
+      //check if vocab name exists.
+      if (!isset($vocabulary_name)) {
+        drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+      }
+      //check if term name exists.
+      if (!isset($term_name)) {
+        drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+      }
+      //check if parent term exists
+      if ( !isset($parent_term)) {
+        drupal_set_message(t("Parent Term is not valid in row @row", array('@row' => $row)));
+      }
+      //check if parent vocab exists.
+      if (  !isset($parent_vocabulary)) {
+        drupal_set_message(t("Parent Vocabulary is not valid in row @row", array('@row' => $row)));
+      }
+      break;
+    default:
+      // Invalid Action.
+      drupal_set_message(t("Invalid action in row @row", array('@row' => $row)));
+      break;
   }
 }
 
