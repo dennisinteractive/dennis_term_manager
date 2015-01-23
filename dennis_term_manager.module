@@ -178,7 +178,7 @@ function dennis_term_manager_csv_process($uri) {
  */
 function dennis_term_manager_cron_queue_info() {
   $queues['dennis_term_manager_queue'] = array(
-    'worker callback' => 'dennis_term_manager_csv_process',
+    'worker callback' => 'dennis_term_manager_process_queue_item',
     'time' => 60,
   );
   return $queues;
@@ -208,14 +208,28 @@ function dennis_term_manager_process_queue_item($data) {
   $action = $data['action'];
   $target = $data['target'];
   $new_name = $data['new_name'];
-  $row_number = $data['row_number'];
+  $row = $data['row_number'];
   $user_id = $data['user_id'];
 
   // Process each row against their action column and validate their data.
   switch (strtolower(trim($action))) {
     case ACTION_CREATE:
-      //@todo: create term
-      //check
+      // Check if vocabulary name exist.
+      if (empty($vocabulary_name)) {
+        drupal_set_message(t("vocabulary name does not exist in row @row", array('@row' => $row)));
+        return;
+      }
+      // Get VID by term_name
+      $vocabulary = db_select('taxonomy_vocabulary', 'tv')
+      ->fields('tv', array('machine_name','vid'))
+      ->condition('name', $vocabulary_name)
+      ->execute();
+      // Create new term.
+      $term = new stdClass();
+      $term->name = $term_name;
+      $term->vid = $vocabulary->vid;
+      $term->vocabulary_machine_name = $vocabulary->machine_name;
+      taxonomy_term_save($term);
       break;
     case ACTION_DELETE:
       // Validate vocabulary column.
@@ -285,7 +299,7 @@ function dennis_term_manager_process_queue_item($data) {
   }
 }
 
-function dennis_term_manager_init() {
-  $file_path = 'public://term_csv/sample_itpro_taxonomy_mapping.csv';
+function dennis_term_manager_debug() {
+  $file_path = 'public://sample_itpro_taxonomy_mapping.csv';
   dennis_term_manager_csv_process($file_path);
 }
