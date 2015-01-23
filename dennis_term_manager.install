@@ -1,15 +1,16 @@
 <?php
 /**
  * @file
+ * Install file for Dennis Term Manager.
  */
 
 /**
  * Implement hook_install()
- * @todo : change storage to private.
  */
 function dennis_term_manager_install() {
-  $dir_docs_created = drupal_mkdir('public://term_csv/');
+  // @todo : change storage to private.
+/*   $dir_docs_created = drupal_mkdir('public://term_csv/');
   if ($dir_docs_created === FALSE) {
     drupal_set_message(st('The directory private://term_csv/ could not be created.'), 'warning');
-  }
+  } */
 }

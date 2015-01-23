@@ -1,7 +1,14 @@
 <?php
 /**
  * @file
+ * Module file Dennis Term Manager.
  */
+
+define ('ACTION_CREATE', 'create');
+define ('ACTION_DELETE', 'delete');
+define ('ACTION_MERGE', 'merge');
+define ('ACTION_RENAME', 'rename');
+define ('ACTION_MOVE_PARENT', 'move parent');
 
 /**
  * Implement hook_permission().
@@ -10,7 +17,7 @@ function dennis_term_manager_permission() {
   return array(
     'administer dennis term manager' => array(
       'title' => t('Administer term manager'),
-      'description' => t('Manage Dennis taxonomy terms csv bulk operation'),
+      'description' => t('Manage Dennis taxonomy terms CSV bulk operation'),
     ),
   );
 }
@@ -26,14 +33,38 @@ function dennis_term_manager_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('dennis_term_manager_form'),
     'access arguments' => array('administer dennis term manager'),
+    'type' => MENU_LOCAL_ACTION,
   );
   return $items;
 }
 
 /**
- * Implement hook_form().
- * @param unknown_type $form
- * @param unknown_type $form_state
+ * Implements hook_help().
+ */
+function dennis_term_manager_help($path, $arg) {
+  switch ($path) {
+    case 'admin/structure/taxonomy/term_manager':
+    case 'admin/help#dennis_term_manager':
+      $output = '';
+      $output .= '<div class="import-notes">';
+      $output .= '<span>' . t('Make sure the file is in CSV or TSV format. And Columns must be in following order. First line of the file must contain a header.') . '</span>';
+      $output .= '<table><tr>';
+      $output .= '<td>Vocabulary</td>';
+      $output .= '<td>Term name</td>';
+      $output .= '<td>Related Nodes Number</td>';
+      $output .= '<td>Parent Term</td>';
+      $output .= '<td>Parent Vocabulary</td>';
+      $output .= '<td>Action</td>';
+      $output .= '<td>Target</td>';
+      $output .= '<td>New Name</td>';
+      $output .= '</tr></table>';
+      $output .= '</div>';
+      return $output;
+  }
+}
+
+/**
+ * Dennis Term Manager Form.
  */
 function dennis_term_manager_form($form, &$form_state) {
   $form = array();
@@ -41,11 +72,11 @@ function dennis_term_manager_form($form, &$form_state) {
   // #managed_file FAPI
   // @todo : change storage to private
   $form['csv_file'] = array(
-    '#title' => t('import'),
+    '#title' => t('Import'),
     '#type' => 'managed_file',
-    '#description' => t('The uploaded csv file will be processed.'),
+    '#description' => t('The CSV file to be processed.'),
     '#upload_validators' => array(
-      'file_validate_extensions' => array('csv'),
+      'file_validate_extensions' => array('csv', 'tsv'),
     ),
     '#upload_location' => 'public://term_csv/'
   );
@@ -53,33 +84,21 @@ function dennis_term_manager_form($form, &$form_state) {
   $form['buttons']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Import'),
-  );
-  $form['notes'] = array(
-    '#type' => 'markup',
-    '#markup' => '<div class="import-notes">
-    <ul><li>Make sure the file is in a .csv format. And Columns should be in following order.</li>
-    <li>vocabulary_machine_name, Term_name, Related_nodes_no, Parent_term, Parent_vocab, Action,Target, New_name</li>
-    <li>click the "Upload" button when you select a csv.</li></ul></div>',
-    '#upload_location' => 'public://tmp/'
+    '#suffix' => '<span> ' . t('Click the "Upload" button to process the file.') . '</span>',
   );
 
   return $form;
 }
 
 /**
- * Implement hook_form_submit().
- * @param unknown_type $form
- * @param unknown_type $form_state
+ * Call back function for form submission.
  */
 function dennis_term_manager_form_submit(&$form, &$form_state) {
   // Load the file.
   $file = file_load($form_state['values']['csv_file']);
   // Change status to permanent.
-  $file->status = FILE_STATUS_PERMANENT;
+  $file->status = FILE_EXISTS_REPLACE;
   $file_path = $file->uri;
-
-  //file content validation.
-  dennis_term_manager_csv_import_validate($file_path);
 
   // Save.
   $uploaded = file_save($file);
@@ -89,57 +108,120 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
   else {
     drupal_set_message(t('The file could not be uploaded. Please contact the site administrator.'), 'error');
   }
+
+  // Process the file.
+  dennis_term_manager_csv_process($file_path);
 }
 
 /**
  * Process csv file and validate its content
  */
-function dennis_term_manager_csv_import_validate($file_path) {
+function dennis_term_manager_csv_process($uri) {
+  $file_path = drupal_realpath($uri);
 
-  $row = 0;
-  $errors = array();
-  // get the file content
-  if (($handle = fopen($file_path, "r")) !== FALSE) {
-    while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
-      $row++;
-      //skip the header row
-      if($row <= 1) {
-        continue 1;
+  if (file_exists($file_path)) {
+    $row = 0;
+    $errors = array();
+    // get the file content
+    if (($handle = fopen($file_path, "r")) !== FALSE) {
+      while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
+        //set variable for each column
+        $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
+        $term_name = isset($data[1]) ? check_plain($data[1]) : "";
+        $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
+        $parent_term = isset($data[3]) ? check_plain($data[3]) : "";
+        $parent_vocabulary = isset($data[4]) ? check_plain($data[4]) : "";
+        $action = isset($data[5]) ? check_plain($data[5]) : "";
+        $target = isset($data[6]) ? check_plain($data[6]) : "";
+        $new_name = isset($data[7]) ? check_plain($data[7]) : "";
+        $row++;
+        //skip the header row
+        if($row <= 1) {
+          continue 1;
+        }
+        dpm($vocabulary_name, strtolower(trim($action)));
+        // Process each row against their action column and validate their data.
+        switch (strtolower(trim($action))) {
+          case ACTION_CREATE:
+            //@todo: create term
+            //check
+            break;
+          case ACTION_DELETE:
+            // Validate vocabulary column.
+            if (empty($vocabulary_name)) {
+              drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $row)));
+            }
+            // Validate term name.
+            if (empty($term_name)) {
+              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+            }
+            // Check if related node doesnt exist
+            if ($related_nodes != 0) {
+              drupal_set_message(t("There are related nodes exists for @term actioned to be deleted in row @row", array('@term' => $term_name, '@row' => $row)));
+            }
+            break;
+          case ACTION_RENAME:
+            //check if vocab name exist
+            if (!isset($vocabulary_name)) {
+              drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+            }
+            //check if term name exist
+            if (!isset($term_name)) {
+              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+            }
+            //check if New term name exists
+            if (!isset($new_name)) {
+              drupal_set_message(t("New Name for term @term is not valid in row @row", array('@term' => $term_name, '@row' => $row)));
+            }
+            break;
+          case ACTION_MERGE:
+            $target_term = explode(">->", $target);
+            //check if target term exists.
+            if (count($target_term) <= 1) {
+              drupal_set_message(t("Target Term Name is not valid in row @row", array('@row' => $row)));
+            }
+            //check if vocab name exists.
+            if (!isset($vocabulary_name)) {
+              drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+            }
+            //check if term name exists.
+            if (!isset($term_name)) {
+              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+            }
+            break;
+          case ACTION_MOVE_PARENT:
+            //check if vocab name exists.
+            if (!isset($vocabulary_name)) {
+              drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+            }
+            //check if term name exists.
+            if (!isset($term_name)) {
+              drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+            }
+            //check if parent term exists
+            if ( !isset($parent_term)) {
+              drupal_set_message(t("Parent Term is not valid in row @row", array('@row' => $row)));
+            }
+            //check if parent vocab exists.
+            if (  !isset($parent_vocabulary)) {
+              drupal_set_message(t("Parent Vocabulary is not valid in row @row", array('@row' => $row)));
+            }
+            break;
+          default:
+            // Invalid Action.
+            drupal_set_message(t("Invalid action in row @row", array('@row' => $row)));
+            break;
+        }return;
       }
-      //get the action column data
-      $command = $data[5];
-      switch ($command) {
-        case 'Delete':
-          //@todo : validate current row for Term Delete action
-          if (!isset($data[0]) || !isset($data[1]) || $data[2] != 0) {
-            drupal_set_message(t("Row @row not Valid", array('@row' => $row)));
-          }
-          break;
-        case 'Rename':
-          //@todo: validate current row for Term Rename action
-          if (!isset($data[0]) || !isset($data[1]) || !isset($data[7])) {
-            drupal_set_message(t("Row @row not Valid", array('@row' => $row)));
-          }
-          break;
-        case 'Merge':
-          //@todo: validate current row for Term Merge action
-          $target = explode(">->", $data[6]);
-          if (count($target) <= 1 || !isset($data[0]) || !isset($data[1])) {
-            drupal_set_message(t("Row @row not Valid", array('@row' => $row)));
-          }
-          break;
-        case 'Move':
-          //@todo: vakudate current row for Term Move action
-          if (!isset($data[0]) || !isset($data[1]) || !isset($data[3]) || !isset($data[4])) {
-            drupal_set_message(t("Row @row not Valid", array('@row' => $row)));
-          }
-          break;
-        case 'default':
-          //no command matched. record error
-          //@todo: add error in an array. so we can display on screen.
-          drupal_set_message(t("Row @row not Valid", array('@row' => $row)));
-      }
+      fclose($handle);
     }
-    fclose($handle);
   }
+  else {
+    drupal_set_message(t("File not found @file", array('@file' => $file_path)));
+  }
+}
+
+function dennis_term_manager_init() {
+  $file_path = 'public://term_csv/sample_itpro_taxonomy_mapping.csv';
+  dennis_term_manager_csv_process($file_path);
 }
