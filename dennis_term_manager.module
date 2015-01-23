@@ -219,17 +219,34 @@ function dennis_term_manager_process_queue_item($data) {
         drupal_set_message(t("vocabulary name does not exist in row @row", array('@row' => $row)));
         return;
       }
-      // Get VID by term_name
-      $vocabulary = db_select('taxonomy_vocabulary', 'tv')
-      ->fields('tv', array('machine_name','vid'))
-      ->condition('name', $vocabulary_name)
-      ->execute();
+      // Get vocabulary by vocabulary name.
+      $query = db_select('taxonomy_vocabulary', 'tv');
+      $query->fields('tv', array('machine_name','vid'));
+      $query->condition('tv.name', $vocabulary_name, '=');
+      $vocabulary = $query->execute()->fetchAssoc();
+
+      // Check if Vocabulary exist in database.
+      if (!isset($vocabulary['machine_name']) || !isset($vocabulary['vid'])) {
+        drupal_set_message(t("There is no vocabulary @vocab exists in database for create action on row @row", array('@row' => $row, '@vocab' => $vocabulary_name)));
+      }
+      // Check if Term already exist.
+      $existing_term = taxonomy_get_term_by_name($term_name, $vocabulary['machine_name']);
+      if (isset($existing_term)) {
+        drupal_set_message(t("Term '@term_name' already exist in vocabulary '@vocab'", array('@term_name' => $term_name, '@vocab' => $vocabulary_name)));
+        return;
+      }
       // Create new term.
       $term = new stdClass();
       $term->name = $term_name;
-      $term->vid = $vocabulary->vid;
-      $term->vocabulary_machine_name = $vocabulary->machine_name;
+      $term->vid = $vocabulary['vid'];
+      $term->vocabulary_machine_name = $vocabulary['machine_name'];
       taxonomy_term_save($term);
+      if(!isset($term->tid)) {
+        drupal_set_message(t('Not able to create term @term_name in row @row', array('@term_name' => $term_name, '@row' => $row)));
+      }
+      else {
+        drupal_set_message(t("Term '@term_name' with TID '@tid' created", array('@term_name' => $term->name, '@tid' => $term->tid)));
+      }
       break;
     case ACTION_DELETE:
       // Validate vocabulary column.
