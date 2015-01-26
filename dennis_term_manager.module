@@ -204,7 +204,7 @@ function dennis_term_manager_process_queue_item($data) {
   $term_name = $data['term_name'];
   $related_nodes = $data['related_nodes'];
   $parent_term = $data['parent_term'];
-  $parent_vocabulary = $data['parent_vocabulary'];
+  $parent_vocabulary_name = $data['parent_vocabulary'];
   $action = $data['action'];
   $target = $data['target'];
   $new_name = $data['new_name'];
@@ -220,10 +220,7 @@ function dennis_term_manager_process_queue_item($data) {
         return;
       }
       // Get vocabulary by vocabulary name.
-      $query = db_select('taxonomy_vocabulary', 'tv');
-      $query->fields('tv', array('machine_name','vid'));
-      $query->condition('tv.name', $vocabulary_name, '=');
-      $vocabulary = $query->execute()->fetchAssoc();
+      $vocabulary = dennis_term_manager_get_vocabulary($vocabulary_name);
 
       // Check if Vocabulary exist in database.
       if (!isset($vocabulary['machine_name']) || !isset($vocabulary['vid'])) {
@@ -298,19 +295,23 @@ function dennis_term_manager_process_queue_item($data) {
       //check if vocab name exist
       if (empty($vocabulary_name)) {
         drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $row)));
+        return;
       }
       //check if term name exist
       if (empty($term_name)) {
         drupal_set_message(t("Term name is empty in row @row", array('@row' => $row)));
+        return;
       }
       //check if New term name exists
       if (empty($new_name)) {
         drupal_set_message(t("New Term Name is empty in row @row", array('@term' => $term_name, '@row' => $row)));
+        return;
       }
       // Get Vocabulary
       $vocabulary = dennis_term_manager_get_vocabulary($vocabulary_name);
       if (!isset($vocabulary['machine_name']) || !isset($vocabulary['vid'])) {
         drupal_set_message(t("There is no vocabulary @vocab exists in database for create action on row @row", array('@row' => $row, '@vocab' => $vocabulary_name)));
+        return;
       }
       // Get tid by term name
       $terms = taxonomy_get_term_by_name($term_name, $vocabulary['machine_name']);
@@ -334,31 +335,77 @@ function dennis_term_manager_process_queue_item($data) {
         drupal_set_message(t("Target Term Name is not valid in row @row", array('@row' => $row)));
       }
       //check if vocab name exists.
-      if (!isset($vocabulary_name)) {
-        drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+      if (empty($vocabulary_name)) {
+        drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $row)));
       }
       //check if term name exists.
-      if (!isset($term_name)) {
-        drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+      if (empty($term_name)) {
+        drupal_set_message(t("Term name is empty in row @row", array('@row' => $row)));
       }
       break;
     case ACTION_MOVE_PARENT:
       //check if vocab name exists.
-      if (!isset($vocabulary_name)) {
-        drupal_set_message(t("Vocabulary name not valid in row @row", array('@row' => $row)));
+      if (empty($vocabulary_name)) {
+        drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $row)));
+        return;
       }
       //check if term name exists.
-      if (!isset($term_name)) {
-        drupal_set_message(t("Term name not valid in row @row", array('@row' => $row)));
+      if (empty($term_name)) {
+        drupal_set_message(t("Term name is empty in row @row", array('@row' => $row)));
+        return;
       }
-      //check if parent term exists
-      if ( !isset($parent_term)) {
-        drupal_set_message(t("Parent Term is not valid in row @row", array('@row' => $row)));
+      //check parent vocab
+      if (empty($parent_vocabulary_name)) {
+        drupal_set_message(t("Parent vocabulary is empty in row @row", array('@row' => $row)));
+        return;
       }
-      //check if parent vocab exists.
-      if (  !isset($parent_vocabulary)) {
-        drupal_set_message(t("Parent Vocabulary is not valid in row @row", array('@row' => $row)));
+      // Check parent term
+      if (empty($parent_term)) {
+        drupal_set_message(t("Parent Term is empty in row @row", array('@row' => $row)));
+        return;
       }
+
+      // Get vocabulary
+      $vocabulary = dennis_term_manager_get_vocabulary($vocabulary_name);
+      if (!isset($vocabulary['machine_name']) || !isset($vocabulary['vid'])) {
+        drupal_set_message(t("There is no vocabulary @vocab exists in database for create action on row @row", array('@row' => $row, '@vocab' => $vocabulary_name)));
+        return;
+      }
+      // Get Parent Vocabulary
+      $parent_vocabulary = dennis_term_manager_get_vocabulary($parent_vocabulary_name);
+      if (!isset($parent_vocabulary['machine_name']) || !isset($parent_vocabulary['vid'])) {
+        drupal_set_message(t("There is no vocabulary @vocab exists in database for create action on row @row", array('@row' => $row, '@vocab' => $parent_vocabulary_name)));
+        return;
+      }
+
+      //Get parent tid
+      $parent_terms = taxonomy_get_term_by_name($parent_term, $parent_vocabulary['machine_name']);
+      reset($parent_terms);
+      $parent_term_id = key($parent_terms);
+      if (!isset($parent_term_id)) {
+        drupal_set_message(t("Parent Term '@term_name' does not exist in vocabulary '@vocab'", array('@term_name' => $parent_term, '@vocab' => $parent_vocabulary_name)));
+        return;
+      }
+
+      // Get tid by term name
+      $terms = taxonomy_get_term_by_name($term_name, $vocabulary['machine_name']);
+      reset($terms);
+      $term_id = key($terms);
+      if (!isset($term_id)) {
+        drupal_set_message(t("Term '@term_name' does not exist in vocabulary '@vocab'", array('@term_name' => $term_name, '@vocab' => $vocabulary_name)));
+        return;
+      }
+
+      // Move the term.
+      $first_term = array_shift($terms);
+
+      $first_term->parent = $parent_term_id;
+      $first_term->vid = $parent_vocabulary['vid'];
+      //print_r($first_term);return;
+      $res= taxonomy_term_save($first_term);
+      //pathauto_taxonomy_term_update_alias($first_term, 'update');
+      drupal_set_message(t("Term '@term_name' successfully moved", array('@term_name' => $first_term->name)));
+
       break;
     default:
       // Invalid Action.
