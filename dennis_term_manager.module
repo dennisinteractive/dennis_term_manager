@@ -239,10 +239,16 @@ function dennis_term_manager_csv_process($uri) {
           }
           break;
         case DENNIS_TERM_MANAGER_ACTION_CREATE:
-          BREAK;
+          $data['parent_term'] = $parameters['parent_term'];
+          $data['term_name'] = $parameters['term_name'];
+          $data['vocabulary_machine_name'] = $vocabulary->machine_name;
+          break;
         case DENNIS_TERM_MANAGER_ACTION_DELETE:
+          $data['term_name'] = $parameters['term_name'];
           break;
         case DENNIS_TERM_MANAGER_ACTION_RENAME:
+          $data['term_name'] = $parameters['term_name'];
+          $data['new_name'] = $parameters['new_name'];
           break;
         default:
 
@@ -363,6 +369,6 @@ function _dennis_term_manager_get_tid($term_name, $vocabulary_id) {
     return $tid;
   }
   else {
-    return false;
+    return FALSE;
   }
 }

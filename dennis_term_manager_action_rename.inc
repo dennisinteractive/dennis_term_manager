@@ -5,39 +5,31 @@
  */
 
 function _dennis_term_manager_process_action_rename($data) {
-  //check if vocab name exist
-  if (empty($data['vocabulary_name'])) {
-    drupal_set_message(t("Vocabulary name is empty in row @row", array('@row' => $data['row'])));
-    return;
-  }
-  //check if term name exist
-  if (empty($data['term_name'])) {
-    drupal_set_message(t("Term name is empty in row @row", array('@row' => $data['row'])));
-    return;
-  }
-  //check if New term name exists
+  // Check if New term is empty.
   if (empty($data['new_name'])) {
+    // @todo: add this message to generated report.
     drupal_set_message(t("New Term Name is empty in row @row", array('@term' => $data['term_name'], '@row' => $data['row'])));
     return;
   }
-  // Get Vocabulary
-  $vocabulary = dennis_term_manager_get_vocabulary($data['vocabulary_name']);
-  if (!isset($vocabulary['machine_name']) || !isset($vocabulary['vid'])) {
-    drupal_set_message(t("There is no vocabulary @vocab exists in database for create action on row @row", array('@row' => $data['row'], '@vocab' => $data['vocabulary_name'])));
-    return;
+
+  // Check if Term already exist.
+  if ($term_id = _dennis_term_manager_get_tid($data['new_name'], $data['vocabulary_id'])) {
+    // @todo: add this message to generated report.
+    drupal_set_message(t("Term '@term_name' already exists", array('@term_name' => $data['new_name'])));
   }
-  // Get tid by term name
-  $terms = taxonomy_get_term_by_name($data['term_name'], $vocabulary['machine_name']);
-  reset($terms);
-  $term_id = key($terms);
-  if (!isset($term_id)) {
-    drupal_set_message(t("Term '@term_name' does not exist in vocabulary '@vocab'", array('@term_name' => $data['term_name'], '@vocab' => $data['vocabulary_name'])));
-    return;
+  else {
+    if ($term = taxonomy_term_load($data['source_tid'])) {
+      // Rename.
+      $term->name = $data['new_name'];
+      if (!taxonomy_term_save($term)) {
+        // @todo: add this message to generated report.
+        drupal_set_message(t("Term '@term_name' cannot be renamed", array('@term_name' => $term->name)));
+      }
+    }
+    else {
+      // @todo: move to report
+      drupal_set_message(t("Term '@term_name' does not exist in vocabulary '@vocab'", array('@term_name' => $data['term_name'], '@vocab' => $data['vocabulary_id'])));
+    }
+
   }
-  // Rename the term.
-  $first_term = array_shift($terms);
-  $first_term->name = $data['new_name'];
-  $res= taxonomy_term_save($first_term);
-  pathauto_taxonomy_term_update_alias($first_term, 'update');
-  drupal_set_message(t("Term '@term_name' successfully renamed", array('@term_name' => $first_term->name)));
 }
