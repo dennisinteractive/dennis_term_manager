@@ -165,7 +165,9 @@ function dennis_term_manager_csv_process($uri) {
         if(strtolower(trim($filtered_data['action'])) == ACTION_MERGE) {
           // Get all nodes with target term reference.
           $nodes = _dennis_term_manager_get_merging_nodes($filtered_data);
+          return;
           // Extract all nodes from array.
+          // @todo: check if there is any node in $nodes_data
           $nodes_data = $nodes[0];
           $term_info = $nodes[1];
           // Create queue for each node
@@ -176,6 +178,8 @@ function dennis_term_manager_csv_process($uri) {
             $q->createItem($data);
             return;
           }
+          // Push delete term function to queue.
+          _dennis_term_manager_delete_term_after_merge($term_info['source_tid']);
         }
         else {
           // Queue terms for all other action
