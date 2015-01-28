@@ -30,6 +30,9 @@ function _dennis_term_manager_process_action_delete($data) {
     drupal_set_message(t("Term '@term_name' does not exist in vocabulary '@vocab'", array('@term_name' => $data['term_name'], '@vocab' => $data['vocabulary_name'])));
     return;
   }
+
+
+
   // Delete the terms
   $result = taxonomy_term_delete($term_id);
   if($result == SAVED_DELETED) {
