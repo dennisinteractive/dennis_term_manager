@@ -190,7 +190,7 @@ function dennis_term_manager_csv_process($uri) {
           }
           // Parse target term name.
           $target_term_name = '';
-          preg_match("/>->+(.*)/", $parameters['target'], $matches);
+          preg_match("/>->[ ]?+(.*)/", decode_entities($parameters['target']), $matches);
           if (isset($matches[1])) {
             $target_term_name = $matches[1];
           }
@@ -205,8 +205,8 @@ function dennis_term_manager_csv_process($uri) {
         
         switch (strtolower(trim($parameters['action']))) {
           case DENNIS_TERM_MANAGER_ACTION_MERGE:
-            // Get Target tid.
-            if ($target_tid = _dennis_term_manager_get_tid($parameters['term_name'], $vocabulary->vid)) {
+            // Get Target tid.            
+            if ($target_tid = _dennis_term_manager_get_tid($target_term_name, $vocabulary->machine_name)) {
               $data['target_tid'] = $target_tid;
             }
             else {
@@ -229,6 +229,7 @@ function dennis_term_manager_csv_process($uri) {
             // Change action to delete after Pushing nodes into the queue.
             $data['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
             $data['term_name'] = $target_term_name;
+            $data['source_tid'] = $target_tid;
             break;
           case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
             // Check parent term
@@ -414,7 +415,7 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  */
 function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
   if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {
-    $first_term = array_values($term);
+    $first_term = array_values($term);    
     return $first_term[0]->tid;
   }
   else {

@@ -11,8 +11,7 @@ function _dennis_term_manager_process_action_delete($data) {
     // @todo: move to report.
     drupal_set_message(t('You can not delete term @term_name because there are nodes associated with it, in row @row.', array('@term_name' => $data['term_name'], '@row' => $data['row'])));
     return;
-  }
-  print_r($nodes);
+  }  
   // Get parent tid.
   if ($term_id = _dennis_term_manager_get_tid($data['term_name'], $data['vocabulary_machine_name'])) {
     if(taxonomy_term_delete($term_id) != SAVED_DELETED) {
