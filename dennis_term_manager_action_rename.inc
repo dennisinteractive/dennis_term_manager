@@ -13,7 +13,7 @@ function _dennis_term_manager_process_action_rename($data) {
   }
 
   // Check if Term already exist.
-  if ($term_id = _dennis_term_manager_get_tid($data['new_name'], $data['vocabulary_id'])) {
+  if ($term_id = _dennis_term_manager_get_tid($data['new_name'], $data['vocabulary_machine_name'])) {
     // @todo: add this message to generated report.
     drupal_set_message(t("Term '@term_name' already exists", array('@term_name' => $data['new_name'])));
   }
