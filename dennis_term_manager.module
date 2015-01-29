@@ -10,6 +10,7 @@ define('DENNIS_TERM_MANAGER_ACTION_DELETE', 'delete');
 define('DENNIS_TERM_MANAGER_ACTION_MERGE', 'merge');
 define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
+define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE', 'move parent merge');
 
 /**
  * Implement hook_permission().
@@ -205,7 +206,7 @@ function dennis_term_manager_csv_process($uri) {
         
         switch (strtolower(trim($parameters['action']))) {
           case DENNIS_TERM_MANAGER_ACTION_MERGE:
-            // Get Target tid.            
+            // Get Target tid.
             if ($target_tid = _dennis_term_manager_get_tid($target_term_name, $vocabulary->machine_name)) {
               $data['target_tid'] = $target_tid;
             }
@@ -218,7 +219,24 @@ function dennis_term_manager_csv_process($uri) {
             }
             // Get all nodes with target term reference.
             $nodes = _dennis_term_manager_get_associated_nodes($target_tid);
-            
+            if (! empty($nodes)) {
+              // Find all child terms of target term.
+              $children = taxonomy_get_children($target_tid);
+              // print_r($target_tid);
+              if (! empty($children)) {
+                foreach ($children as $child) {
+                  // change parent of each child term to source term
+                  // Skip the first term as it is target tid itself.
+                  $data['moving_parent_tid'] = $data['source_tid'];
+                  $data['moving_child_tid'] = $child->tid;
+                  $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE;
+                  
+                  // Push each "merge move parent" action into the queue.
+                  $q->createItem($data);
+                }
+              }
+            }
+            $data['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
             // Create queue for each node
             foreach ($nodes as $node) {
               $data['nid'] = $node->nid;
@@ -352,6 +370,9 @@ function dennis_term_manager_process_queue_item($data) {
       include_once 'dennis_term_manager_action_move_parent.inc';
       _dennis_term_manager_process_action_move_parent($data);
       break;
+    case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE:
+      include_once 'dennis_term_manager_action_move_parent_merge.inc';
+      _dennis_term_manager_process_action_move_parent_for_merge($data);
     default:
       // Invalid Action.
       drupal_set_message(t("Invalid action in row @row", array(
@@ -415,7 +436,7 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  */
 function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
   if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {
-    $first_term = array_values($term);    
+    $first_term = array_values($term);
     return $first_term[0]->tid;
   }
   else {

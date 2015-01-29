@@ -35,6 +35,7 @@ function _dennis_term_manager_process_action_merge($data) {
     }
     // If any tid has changed, then save the node.
     if ($node_changed) {
+      $node->path['pathauto'] = FALSE;
       node_save($node);
     }
   }
