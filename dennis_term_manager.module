@@ -11,6 +11,7 @@ define('DENNIS_TERM_MANAGER_ACTION_MERGE', 'merge');
 define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE', 'move parent merge');
+define('DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT', 'email report');
 
 /**
  * Implement hook_permission().
@@ -101,6 +102,11 @@ function dennis_term_manager_form($form, &$form_state) {
 
 /**
  * Call back function for form submission.
+ * 
+ * @param $form
+ *   Form Object
+ * @param $form_state
+ *   Form State
  */
 function dennis_term_manager_form_submit(&$form, &$form_state) {
   // Load the file.
@@ -117,13 +123,15 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
   else {
     drupal_set_message(t('The file could not be uploaded. Please contact the site administrator.'), 'error');
   }
-  
   // Process the file.
   dennis_term_manager_csv_process($file_path);
 }
 
 /**
  * Process csv file and pass each row to cron queue.
+ * 
+ * @param: $uri
+ *   URL of CSV file
  */
 function dennis_term_manager_csv_process($uri) {
   $file_path = drupal_realpath($uri);
@@ -136,181 +144,192 @@ function dennis_term_manager_csv_process($uri) {
   if (file_exists($file_path)) {
     $row = 0;
     $errors = array();
-    // Get the file content
+    // Get the file content.
     if (($handle = fopen($file_path, "r")) !== FALSE) {
-      while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
-        // Set variable for each column
-        $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
-        $term_name = isset($data[1]) ? check_plain($data[1]) : "";
-        $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
-        $parent_term = isset($data[3]) ? check_plain($data[3]) : "";
-        $parent_vocabulary = isset($data[4]) ? check_plain($data[4]) : "";
-        $action = isset($data[5]) ? check_plain($data[5]) : "";
-        $target = isset($data[6]) ? check_plain($data[6]) : "";
-        $new_name = isset($data[7]) ? check_plain($data[7]) : "";
-        $row ++;
-        // Skip the header row
-        if ($row <= 1) {
-          continue 1;
-        }
+      
+      // Create file for reporting error. Use the same file name and change extenstion.
+      $report_file_name = preg_replace("/[.](.*)/", ".txt", $file_path);
+      if (($report_handle = fopen($report_file_name, "w")) != FALSE) {
         
-        // Array containing parameters from the CSV.
-        $parameters = array(
-          'vocabulary_name' => $vocabulary_name,
-          'term_name' => $term_name,
-          'related_nodes' => $related_nodes,
-          'parent_term' => $parent_term,
-          'parent_vocabulary' => $parent_vocabulary,
-          'action' => $action,
-          'target' => $target,
-          'new_name' => $new_name,
-          'row' => $row,
-          'user_id' => $user_id
-        );
-        
-        $data = array(
-          'action' => $action,
-          'row' => $row,
-          'uid' => $user_id
-        );
-        
-        if ($vocabulary = _dennis_term_manager_get_vocabulary($parameters['vocabulary_name'])) {
-          $data['vocabulary_id'] = $vocabulary->vid;
-          if ($parameters['action'] != DENNIS_TERM_MANAGER_ACTION_CREATE) {
-            // Get source tid.
-            if ($source_tid = _dennis_term_manager_get_tid($parameters['term_name'], $vocabulary->machine_name)) {
-              $data['source_tid'] = $source_tid;
-            }
-            else {
-              drupal_set_message(t("Source term '@term_name' does not exist in vocabulary '@vocab'", array(
-                '@term_name' => $parameters['term_name'],
-                '@vocab' => $parameters['vocabulary_name']
-              )));
-              continue 1;
-            }
+        while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
+          // Set variable for each column
+          $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
+          $term_name = isset($data[1]) ? check_plain($data[1]) : "";
+          $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
+          $parent_term = isset($data[3]) ? check_plain($data[3]) : "";
+          $parent_vocabulary = isset($data[4]) ? check_plain($data[4]) : "";
+          $action = isset($data[5]) ? check_plain($data[5]) : "";
+          $target = isset($data[6]) ? check_plain($data[6]) : "";
+          $new_name = isset($data[7]) ? check_plain($data[7]) : "";
+          $row ++;
+          // Skip the header row
+          if ($row <= 1) {
+            continue 1;
           }
-          // Parse target term name.
-          $target_term_name = '';
-          preg_match("/>->[ ]?+(.*)/", decode_entities($parameters['target']), $matches);
-          if (isset($matches[1])) {
-            $target_term_name = $matches[1];
-          }
-        }
-        else {
-          drupal_set_message(t("There is no vocabulary @vocab exists in row @row", array(
-            '@row' => $parameters['row'],
-            '@vocab' => $parameters['vocabulary_name']
-          )));
-          continue 1;
-        }
-        
-        switch (strtolower(trim($parameters['action']))) {
-          case DENNIS_TERM_MANAGER_ACTION_MERGE:
-            // Get Target tid.
-            if ($target_tid = _dennis_term_manager_get_tid($target_term_name, $vocabulary->machine_name)) {
-              $data['target_tid'] = $target_tid;
-            }
-            else {
-              drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
-                '@target' => $parameters['target'],
-                '@vocab' => $parameters['vocabulary_name']
-              )));
-              continue 2;
-            }
-            // Get all nodes with target term reference.
-            $nodes = _dennis_term_manager_get_associated_nodes($target_tid);
-            if (! empty($nodes)) {
-              // Find all child terms of target term.
-              $children = taxonomy_get_children($target_tid);
-              // print_r($target_tid);
-              if (! empty($children)) {
-                foreach ($children as $child) {
-                  // change parent of each child term to source term
-                  // Skip the first term as it is target tid itself.
-                  $data['moving_parent_tid'] = $data['source_tid'];
-                  $data['moving_child_tid'] = $child->tid;
-                  $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE;
-                  
-                  // Push each "merge move parent" action into the queue.
-                  $q->createItem($data);
-                }
+          
+          // Array containing parameters from the CSV.
+          $parameters = array(
+            'vocabulary_name' => $vocabulary_name,
+            'term_name' => $term_name,
+            'related_nodes' => $related_nodes,
+            'parent_term' => $parent_term,
+            'parent_vocabulary' => $parent_vocabulary,
+            'action' => $action,
+            'target' => $target,
+            'new_name' => $new_name,
+            'row' => $row,
+            'user_id' => $user_id
+          );
+          
+          $data = array(
+            'action' => $action,
+            'row' => $row,
+            'uid' => $user_id,
+            'report_filename' => $report_file_name
+          );
+          
+          if ($vocabulary = _dennis_term_manager_get_vocabulary($parameters['vocabulary_name'])) {
+            $data['vocabulary_id'] = $vocabulary->vid;
+            if ($parameters['action'] != DENNIS_TERM_MANAGER_ACTION_CREATE) {
+              // Get source tid.
+              if ($source_tid = _dennis_term_manager_get_tid($parameters['term_name'], $vocabulary->machine_name)) {
+                $data['source_tid'] = $source_tid;
+              }
+              else {
+                drupal_set_message(t("Source term '@term_name' does not exist in vocabulary '@vocab'", array(
+                  '@term_name' => $parameters['term_name'],
+                  '@vocab' => $parameters['vocabulary_name']
+                )));
+                continue 1;
               }
             }
-            $data['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
-            // Create queue for each node
-            foreach ($nodes as $node) {
-              $data['nid'] = $node->nid;
-              // Queue item for Merge action.
-              $q->createItem($data);
+            // Parse target term name.
+            $target_term_name = '';
+            preg_match("/>->[ ]?+(.*)/", decode_entities($parameters['target']), $matches);
+            if (isset($matches[1])) {
+              $target_term_name = $matches[1];
             }
-            unset($data['nid']);
-            // Change action to delete after Pushing nodes into the queue.
-            $data['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
-            $data['term_name'] = $target_term_name;
-            $data['source_tid'] = $target_tid;
-            break;
-          case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
-            // Check parent term
-            if (empty($parameters['parent_term'])) {
-              drupal_set_message(t("Parent Term is empty in row @row", array(
-                '@row' => $data['row']
-              )));
-              continue 2;
-            }
-            // Check target and source terms belongs to same vocabulary
-            if (! _dennis_term_manager_compare_vids($parameters['parent_vocabulary'], $vocabulary->vid)) {
-              drupal_set_message(t("Target and Source term vocabulary is not same in row @row", array(
-                '@row' => $data['row']
-              )));
-              continue 2;
-            }
-            $data['parent_term'] = $parameters['parent_term'];
-            // Get Target tid.
-            if ($target_tid = _dennis_term_manager_get_tid($parameters['parent_term'], $vocabulary->machine_name)) {
-              $data['target_tid'] = $target_tid;
-            }
-            else {
-              drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
-                '@target' => $parameters['target'],
-                '@vocab' => $parameters['vocabulary_name']
-              )));
-              continue 2;
-            }
-            // Validate parent term if it is not child or source term.
-            if (! _dennis_term_manager_validate_parent($data['target_tid'], $data['source_tid'])) {
-              drupal_set_message(t("Parent cananot be moved. Because Term @parent_term is child of source term @term_name", array(
-                '@parent_term' => $data['parent_term'],
-                '@term_name' => $parameters['term_name']
-              )));
-            }
-            break;
-          case DENNIS_TERM_MANAGER_ACTION_CREATE:
-            $data['parent_term'] = $parameters['parent_term'];
-            $data['term_name'] = $parameters['term_name'];
-            $data['vocabulary_machine_name'] = $vocabulary->machine_name;
-            if (_dennis_term_manager_get_tid($data['term_name'], $data['vocabulary_machine_name'])) {
-              drupal_set_message(t("Term @term_name already exist in vocabaulary @vocabulary", array(
-                '@term_name' => $data['term_name'],
-                '@vocabulary' => $parameters['vocabulary_name']
-              )));
-              continue 2;
-            }
-            break;
-          case DENNIS_TERM_MANAGER_ACTION_DELETE:
-            $data['vocabulary_machine_name'] = $vocabulary->machine_name;
-            $data['term_name'] = $parameters['term_name'];
-            break;
-          case DENNIS_TERM_MANAGER_ACTION_RENAME:
-            $data['term_name'] = $parameters['term_name'];
-            $data['new_name'] = $parameters['new_name'];
-            $data['vocabulary_machine_name'] = $vocabulary->machine_name;
-            break;
-          default:
-            return;
-            break;
+          }
+          else {
+            drupal_set_message(t("There is no vocabulary @vocab exists in row @row", array(
+              '@row' => $parameters['row'],
+              '@vocab' => $parameters['vocabulary_name']
+            )));
+            continue 1;
+          }
+          
+          switch (strtolower(trim($parameters['action']))) {
+            case DENNIS_TERM_MANAGER_ACTION_MERGE:
+              // Get Target tid.
+              if ($target_tid = _dennis_term_manager_get_tid($target_term_name, $vocabulary->machine_name)) {
+                $data['target_tid'] = $target_tid;
+              }
+              else {
+                drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
+                  '@target' => $parameters['target'],
+                  '@vocab' => $parameters['vocabulary_name']
+                )));
+                continue 2;
+              }
+              // Get all nodes with target term reference.
+              $nodes = _dennis_term_manager_get_associated_nodes($target_tid);
+              if (! empty($nodes)) {
+                // Find all child terms of target term.
+                $children = taxonomy_get_children($target_tid);
+                // print_r($target_tid);
+                if (! empty($children)) {
+                  foreach ($children as $child) {
+                    // change parent of each child term to source term
+                    $data['moving_parent_tid'] = $data['source_tid'];
+                    $data['moving_child_tid'] = $child->tid;
+                    $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE;
+                    
+                    // Push each "merge move parent" action into the queue.
+                    $q->createItem($data);
+                  }
+                }
+              }
+              // Reset action to merge.
+              $data['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
+              // Create queue for each node
+              foreach ($nodes as $node) {
+                $data['nid'] = $node->nid;
+                // Queue item for Merge action.
+                $q->createItem($data);
+              }
+              unset($data['nid']);
+              // Change action to delete after Pushing nodes into the queue.
+              $data['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
+              $data['term_name'] = $target_term_name;
+              $data['source_tid'] = $target_tid;
+              break;
+            case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
+              // Check parent term
+              if (empty($parameters['parent_term'])) {
+                drupal_set_message(t("Parent Term is empty in row @row", array(
+                  '@row' => $data['row']
+                )));
+                continue 2;
+              }
+              // Check target and source terms belongs to same vocabulary
+              if (! _dennis_term_manager_compare_vids($parameters['parent_vocabulary'], $vocabulary->vid)) {
+                drupal_set_message(t("Target and Source term vocabulary is not same in row @row", array(
+                  '@row' => $data['row']
+                )));
+                continue 2;
+              }
+              $data['parent_term'] = $parameters['parent_term'];
+              // Get Target tid.
+              if ($target_tid = _dennis_term_manager_get_tid($parameters['parent_term'], $vocabulary->machine_name)) {
+                $data['target_tid'] = $target_tid;
+              }
+              else {
+                drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
+                  '@target' => $parameters['target'],
+                  '@vocab' => $parameters['vocabulary_name']
+                )));
+                continue 2;
+              }
+              // Validate parent term if it is not child or source term.
+              if (! _dennis_term_manager_validate_parent($data['target_tid'], $data['source_tid'])) {
+                drupal_set_message(t("Parent cananot be moved. Because Term @parent_term is child of source term @term_name", array(
+                  '@parent_term' => $data['parent_term'],
+                  '@term_name' => $parameters['term_name']
+                )));
+              }
+              break;
+            case DENNIS_TERM_MANAGER_ACTION_CREATE:
+              $data['parent_term'] = $parameters['parent_term'];
+              $data['term_name'] = $parameters['term_name'];
+              $data['vocabulary_machine_name'] = $vocabulary->machine_name;
+              // if (_dennis_term_manager_get_tid($data['term_name'], $data['vocabulary_machine_name'])) {
+              // drupal_set_message(t("Term @term_name already exist in vocabaulary @vocabulary", array(
+              // '@term_name' => $data['term_name'],
+              // '@vocabulary' => $parameters['vocabulary_name']
+              // )));
+              // continue 2;
+              // }
+              break;
+            case DENNIS_TERM_MANAGER_ACTION_DELETE:
+              $data['vocabulary_machine_name'] = $vocabulary->machine_name;
+              $data['term_name'] = $parameters['term_name'];
+              break;
+            case DENNIS_TERM_MANAGER_ACTION_RENAME:
+              $data['term_name'] = $parameters['term_name'];
+              $data['new_name'] = $parameters['new_name'];
+              $data['vocabulary_machine_name'] = $vocabulary->machine_name;
+              break;
+            case DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT:
+              break;
+            default:
+              return;
+              break;
+          }
+          $q->createItem($data);          
         }
+        // Create queue item to send error report
+        $data['action'] = DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT;
         $q->createItem($data);
-        return;
       }
     }
     fclose($handle);
@@ -338,6 +357,9 @@ function dennis_term_manager_cron_queue_info() {
  * Does what drupal_cron_run() does.
  *
  * @see drupal_cron_run()
+ * 
+ * @param $max_time
+ *   No of seconds
  */
 function dennis_term_manager_process_queue($max_time = 15) {
   $end = time() + $max_time;
@@ -348,6 +370,13 @@ function dennis_term_manager_process_queue($max_time = 15) {
   }
 }
 
+/**
+ * Perform action on each queue item.
+ * 
+ * @param $data
+ *   An array containing source and target taxonomy term data
+ * 
+ */
 function dennis_term_manager_process_queue_item($data) {
   // Process each row against their action column and validate their data.
   switch (strtolower(trim($data['action']))) {
@@ -373,6 +402,11 @@ function dennis_term_manager_process_queue_item($data) {
     case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE:
       include_once 'dennis_term_manager_action_move_parent_merge.inc';
       _dennis_term_manager_process_action_move_parent_for_merge($data);
+      break;
+    case DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT:
+      include_once 'dennis_term_manager_action_email_report.inc';
+      _dennis_term_manager_process_action_email_report($data);
+      break;
     default:
       // Invalid Action.
       drupal_set_message(t("Invalid action in row @row", array(
@@ -383,12 +417,13 @@ function dennis_term_manager_process_queue_item($data) {
 }
 
 /**
- * Helper to get vocabulary
+ * Helper to get vocabulary.
  *
  * @param : $vocabulary_name
- * Vocabulary Name
+ *   Vocabulary Name
+ *   
  * @return : $vocabulary
- * array containing vocabulary
+ *   array containing vocabulary
  */
 function _dennis_term_manager_get_vocabulary($vocabulary_name) {
   // Get vocabulary by vocabulary name.
@@ -411,8 +446,10 @@ function dennis_term_manager_debug() {
  * Helper to retrieve nodes associated with Term ID.
  *
  * @param : $tid
- * Taxonomy Term ID.
- * @return array List of nodes.
+ *   Taxonomy Term ID.
+ *   
+ * @return array 
+ *   List of nodes.
  */
 function _dennis_term_manager_get_associated_nodes($tid) {
   // Get nodes from taxonomy_index using target term tid.
@@ -426,18 +463,21 @@ function _dennis_term_manager_get_associated_nodes($tid) {
 }
 
 /**
- * Helper to get term ID
+ * Helper to get term ID.
  *
  * @param : $term_name
- * Taxonomy Term Name
+ *   Taxonomy Term Name
  * @param : $vocabulary_machine_name
- * Vocabulary Machine Name
- * @return $tid Taxonomy Term ID or false in case not found
+ *   Vocabulary Machine Name
+ *   
+ * @return $tid 
+ *   Taxonomy Term ID or false in case not found
  */
-function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
-  if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {
+function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {  
+  if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {  
     $first_term = array_values($term);
     return $first_term[0]->tid;
+  
   }
   else {
     return FALSE;
@@ -445,7 +485,7 @@ function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
 }
 
 /**
- * Helper to check target and source term belongs to same vocabulary
+ * Helper to check target and source term belongs to same vocabulary.
  *
  * @param : $target_vocabulary_name
  *   Taxonomy vocabulary Name
@@ -470,11 +510,11 @@ function _dennis_term_manager_compare_vids($target_vocabulary_name, $vocabulary_
 }
 
 /**
- * Helper to check source term is not child of target term
+ * Helper to check source term is not child of target term.
  *
  * @param $target_term_id 
  *   Taxonomy Term id
- * @param $vocbulary_id 
+ * @param $vocbulary_id
  *   Vocabulary Id
  */
 function _dennis_term_manager_validate_parent($target_term_id, $term_id) {
@@ -490,4 +530,22 @@ function _dennis_term_manager_validate_parent($target_term_id, $term_id) {
     return TRUE;
   }
   return TRUE;
+}
+
+/**
+ * Helper to write errors in report file.
+ * 
+ * @param: $file_name
+ *   URI of file
+ * @param: $error_message
+ *   Error Message.
+ */
+function _dennis_term_manager_write_report($file_name, $error_message) {
+  if (($report_handle = fopen($file_name, "a")) != FALSE) {
+    fwrite($report_handle, $error_message);
+    fclose($report_handle);
+  }
+  else {
+    // @todo: write this somewhere or send email.
+  }
 }
