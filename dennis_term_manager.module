@@ -11,7 +11,6 @@ define('DENNIS_TERM_MANAGER_ACTION_MERGE', 'merge');
 define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE', 'move parent merge');
-define('DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT', 'email report');
 
 /**
  * Implement hook_permission().
@@ -88,7 +87,7 @@ function dennis_term_manager_form($form, &$form_state) {
         'tsv'
       )
     ),
-    '#upload_location' => 'public://term_csv/'
+    '#upload_location' => 'public://'
   );
   
   $form['buttons']['submit'] = array(
@@ -96,8 +95,29 @@ function dennis_term_manager_form($form, &$form_state) {
     '#value' => t('Import'),
     '#suffix' => '<span> ' . t('Click the "Upload" button to process the file.') . '</span>'
   );
+  $form['from'] = array(
+    '#type' => 'item',
+    '#prefix' => '<div><br></div>',
+    '#title' => t('Report'),
+    '#markup' => views_embed_view('csv_report')
+  );
   
   return $form;
+}
+
+/**
+ *  Implement hook_views_pre_render().
+ */
+function dennis_term_manager_views_pre_render(&$view) {
+  if ($view->name == 'csv_report') {
+    foreach ($view->result as $key => $result) {      
+      $report_file_name = preg_replace("/[.](.*)/", ".txt", $result->file_managed_filename);
+      $report_file_uri = preg_replace("/[.](.*)/", ".txt", $result->file_managed_uri);
+      $result->file_managed_filename = $report_file_name;
+      $result->file_managed_uri = $report_file_uri;
+    }
+    //dpm($view);
+  }
 }
 
 /**
@@ -149,7 +169,7 @@ function dennis_term_manager_csv_process($uri) {
       
       // Create file for reporting error. Use the same file name and change extenstion.
       $report_file_name = preg_replace("/[.](.*)/", ".txt", $file_path);
-      if (($report_handle = fopen($report_file_name, "w")) != FALSE) {
+      if (($report_handle = fopen($report_file_name, "w")) !== FALSE) {
         
         while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
           // Set variable for each column
@@ -319,17 +339,15 @@ function dennis_term_manager_csv_process($uri) {
               $data['new_name'] = $parameters['new_name'];
               $data['vocabulary_machine_name'] = $vocabulary->machine_name;
               break;
-            case DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT:
-              break;
             default:
               return;
               break;
           }
-          $q->createItem($data);          
-        }
-        // Create queue item to send error report
-        $data['action'] = DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT;
-        $q->createItem($data);
+          $q->createItem($data);
+        }       
+      }
+      else {
+        drupal_set_message('report file cannot be created');
       }
     }
     fclose($handle);
@@ -403,10 +421,6 @@ function dennis_term_manager_process_queue_item($data) {
       include_once 'dennis_term_manager_action_move_parent_merge.inc';
       _dennis_term_manager_process_action_move_parent_for_merge($data);
       break;
-    case DENNIS_TERM_MANAGER_ACTION_EMAIL_REPORT:
-      include_once 'dennis_term_manager_action_email_report.inc';
-      _dennis_term_manager_process_action_email_report($data);
-      break;
     default:
       // Invalid Action.
       drupal_set_message(t("Invalid action in row @row", array(
@@ -438,7 +452,7 @@ function _dennis_term_manager_get_vocabulary($vocabulary_name) {
 }
 
 function dennis_term_manager_debug() {
-  $file_path = 'public://sample_itpro_taxonomy_mapping.csv';
+  $file_path = 'public://sample_itpro_taxonomy_mapping1.csv';
   dennis_term_manager_csv_process($file_path);
 }
 
@@ -473,11 +487,10 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  * @return $tid 
  *   Taxonomy Term ID or false in case not found
  */
-function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {  
-  if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {  
+function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
+  if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {
     $first_term = array_values($term);
     return $first_term[0]->tid;
-  
   }
   else {
     return FALSE;
@@ -546,6 +559,6 @@ function _dennis_term_manager_write_report($file_name, $error_message) {
     fclose($report_handle);
   }
   else {
-    // @todo: write this somewhere or send email.
+    // @todo: may be report on watchdog.
   }
 }
