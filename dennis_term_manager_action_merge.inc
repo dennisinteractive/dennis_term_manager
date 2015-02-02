@@ -8,7 +8,7 @@
 /**
  * Helper to merge taxonomy terms.
  * 
- * @param $data
+ * @param array $data
  *   An array containing source and target taxonomy term data
  */
 function _dennis_term_manager_process_action_merge($data) {
@@ -19,11 +19,11 @@ function _dennis_term_manager_process_action_merge($data) {
   else {
     // Send to error report.
     $error_message = t('Node ID is not presented in current queue item which belongs to row @row', array(
-      '@row' => $data['row']
+      '@row' => $data['row'],
     ));
     _dennis_term_manager_write_report($data['report_filename'], $error_message);
   }
-  
+
   // Set node change status.
   $node_changed = FALSE;
   // Get node type info.

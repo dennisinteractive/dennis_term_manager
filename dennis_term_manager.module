@@ -1,8 +1,9 @@
 <?php
 /**
  * @file
- * Module file Dennis Term Manager.
+ * Module file Dennis Term Manager. 
  */
+
 include_once 'dennis_term_manager_action_merge.inc';
 
 define('DENNIS_TERM_MANAGER_ACTION_CREATE', 'create');
@@ -13,19 +14,19 @@ define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE', 'move parent merge');
 
 /**
- * Implement hook_permission().
+ * Implements hook_permission().
  */
 function dennis_term_manager_permission() {
   return array(
     'administer dennis term manager' => array(
       'title' => t('Administer term manager'),
-      'description' => t('Manage Dennis taxonomy terms CSV bulk operation')
-    )
+      'description' => t('Manage Dennis taxonomy terms CSV bulk operation'),
+    ),
   );
 }
 
 /**
- * Implement hook_menu().
+ * Implements hook_menu().
  */
 function dennis_term_manager_menu() {
   $items = array();
@@ -34,12 +35,12 @@ function dennis_term_manager_menu() {
     'description' => 'Manage bulk taxonomy term operation via CSV file upload',
     'page callback' => 'drupal_get_form',
     'page arguments' => array(
-      'dennis_term_manager_form'
+      'dennis_term_manager_form',
     ),
     'access arguments' => array(
-      'administer dennis term manager'
+      'administer dennis term manager',
     ),
-    'type' => MENU_LOCAL_ACTION
+    'type' => MENU_LOCAL_ACTION,
   );
   return $items;
 }
@@ -74,9 +75,8 @@ function dennis_term_manager_help($path, $arg) {
  */
 function dennis_term_manager_form($form, &$form_state) {
   $form = array();
-  
-  // #managed_file FAPI
-  // @todo : change storage to private
+
+  // @todo : change storage to private.
   $form['csv_file'] = array(
     '#title' => t('Import'),
     '#type' => 'managed_file',
@@ -84,29 +84,29 @@ function dennis_term_manager_form($form, &$form_state) {
     '#upload_validators' => array(
       'file_validate_extensions' => array(
         'csv',
-        'tsv'
-      )
+        'tsv',
+      ),
     ),
-    '#upload_location' => 'public://'
+    '#upload_location' => 'public://',
   );
-  
+
   $form['buttons']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Import'),
-    '#suffix' => '<span> ' . t('Click the "Upload" button to process the file.') . '</span>'
+    '#suffix' => '<span> ' . t('Click the "Upload" button to process the file.') . '</span>',
   );
   $form['from'] = array(
     '#type' => 'item',
-    '#prefix' => '<div><br></div>',
+    '#prefix' => '<div><br /></div>',
     '#title' => t('Report'),
-    '#markup' => views_embed_view('csv_report')
+    '#markup' => views_embed_view('csv_report'),
   );
-  
+
   return $form;
 }
 
 /**
- *  Implement hook_views_pre_render().
+ * Implements hook_views_pre_render().
  */
 function dennis_term_manager_views_pre_render(&$view) {
   if ($view->name == 'csv_report') {
@@ -122,22 +122,23 @@ function dennis_term_manager_views_pre_render(&$view) {
 /**
  * Call back function for form submission.
  * 
- * @param $form
+ * @param object $form
  *   Form Object
- * @param $form_state
+ * @param object $form_state
  *   Form State
  */
 function dennis_term_manager_form_submit(&$form, &$form_state) {
   // Load the file.
   $file = file_load($form_state['values']['csv_file']);
-  if (! $file) {
+  if (!$file) {
     drupal_set_message(t('file not found'));
   }
   else {
     $file_path = $file->uri;
-    // Add file usage
-    file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
-    
+    // Add file usage.
+    file_usage_add($file, 'dennis_term_manager',
+     'dennis_term_manager_csv_file', 1);
+
     // Process the file.
     dennis_term_manager_csv_process($file->uri);
   }
@@ -151,24 +152,25 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  */
 function dennis_term_manager_csv_process($uri) {
   $file_path = drupal_realpath($uri);
-  // Get current logged in user
+  // Get current logged in user.
   $user_id = $GLOBALS["user"]->uid ? $GLOBALS["user"]->uid : '';
-  // Get the que to handle the
+  // Get the que to handle the.
   $q = DrupalQueue::get('dennis_term_manager_queue');
-  
+
   if (file_exists($file_path)) {
     $row = 0;
     $errors = array();
     // Get the file content.
     if (($handle = fopen($file_path, "r")) !== FALSE) {
-      
-      // Create file for reporting error. Use the same file name and change extenstion.
+
+      // Create file for reporting error.
+      // Use the same file name and change extenstion.
       $report_file_name = preg_replace("/[.](.*)/", ".txt", $file_path);
-      
+
       if (($report_handle = fopen($report_file_name, "w")) !== FALSE) {
-        
+
         while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
-          // Set variable for each column
+          // Set variable for each column.
           $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
           $term_name = isset($data[1]) ? check_plain($data[1]) : "";
           $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
@@ -177,12 +179,12 @@ function dennis_term_manager_csv_process($uri) {
           $action = isset($data[5]) ? check_plain($data[5]) : "";
           $target = isset($data[6]) ? check_plain($data[6]) : "";
           $new_name = isset($data[7]) ? check_plain($data[7]) : "";
-          $row ++;
-          // Skip the header row
+          $row++;
+          // Skip the header row.
           if ($row <= 1) {
             continue 1;
           }
-          
+
           // Array containing parameters from the CSV.
           $parameters = array(
             'vocabulary_name' => $vocabulary_name,
@@ -194,16 +196,16 @@ function dennis_term_manager_csv_process($uri) {
             'target' => $target,
             'new_name' => $new_name,
             'row' => $row,
-            'user_id' => $user_id
+            'user_id' => $user_id,
           );
-          
+
           $data = array(
             'action' => $action,
             'row' => $row,
             'uid' => $user_id,
-            'report_filename' => $report_file_name
+            'report_filename' => $report_file_name,
           );
-          
+
           if ($vocabulary = _dennis_term_manager_get_vocabulary($parameters['vocabulary_name'])) {
             $data['vocabulary_id'] = $vocabulary->vid;
             if ($parameters['action'] != DENNIS_TERM_MANAGER_ACTION_CREATE) {
@@ -214,7 +216,7 @@ function dennis_term_manager_csv_process($uri) {
               else {
                 drupal_set_message(t("Source term '@term_name' does not exist in vocabulary '@vocab'", array(
                   '@term_name' => $parameters['term_name'],
-                  '@vocab' => $parameters['vocabulary_name']
+                  '@vocab' => $parameters['vocabulary_name'],
                 )));
                 continue 1;
               }
@@ -229,11 +231,11 @@ function dennis_term_manager_csv_process($uri) {
           else {
             drupal_set_message(t("There is no vocabulary @vocab exists in row @row", array(
               '@row' => $parameters['row'],
-              '@vocab' => $parameters['vocabulary_name']
+              '@vocab' => $parameters['vocabulary_name'],
             )));
             continue 1;
           }
-          
+
           switch (strtolower(trim($parameters['action']))) {
             case DENNIS_TERM_MANAGER_ACTION_MERGE:
               // Get Target tid.
@@ -243,22 +245,22 @@ function dennis_term_manager_csv_process($uri) {
               else {
                 drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
                   '@target' => $parameters['target'],
-                  '@vocab' => $parameters['vocabulary_name']
+                  '@vocab' => $parameters['vocabulary_name'],
                 )));
                 continue 2;
               }
               // Get all nodes with target term reference.
               $nodes = _dennis_term_manager_get_associated_nodes($target_tid);
-              if (! empty($nodes)) {
+              if (!empty($nodes)) {
                 // Find all child terms of target term.
                 $children = taxonomy_get_children($target_tid);
-                if (! empty($children)) {
+                if (!empty($children)) {
                   foreach ($children as $child) {
-                    // change parent of each child term to source term
+                    // Change parent of each child term to source term.
                     $data['moving_parent_tid'] = $data['source_tid'];
                     $data['moving_child_tid'] = $child->tid;
                     $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE;
-                    
+
                     // Push each "merge move parent" action into the queue.
                     $q->createItem($data);
                   }
@@ -266,7 +268,7 @@ function dennis_term_manager_csv_process($uri) {
               }
               // Reset action to merge.
               $data['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
-              // Create queue for each node
+              // Create queue for each node.
               foreach ($nodes as $node) {
                 $data['nid'] = $node->nid;
                 // Queue item for Merge action.
@@ -278,18 +280,19 @@ function dennis_term_manager_csv_process($uri) {
               $data['term_name'] = $target_term_name;
               $data['source_tid'] = $target_tid;
               break;
+
             case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
-              // Check parent term
+              // Check parent term.
               if (empty($parameters['parent_term'])) {
                 drupal_set_message(t("Parent Term is empty in row @row", array(
-                  '@row' => $data['row']
+                  '@row' => $data['row'],
                 )));
                 continue 2;
               }
-              // Check target and source terms belongs to same vocabulary
-              if (! _dennis_term_manager_compare_vids($parameters['parent_vocabulary'], $vocabulary->vid)) {
+              // Check target and source terms belongs to same vocabulary.
+              if (!_dennis_term_manager_compare_vids($parameters['parent_vocabulary'], $vocabulary->vid)) {
                 drupal_set_message(t("Target and Source term vocabulary is not same in row @row", array(
-                  '@row' => $data['row']
+                  '@row' => $data['row'],
                 )));
                 continue 2;
               }
@@ -301,35 +304,38 @@ function dennis_term_manager_csv_process($uri) {
               else {
                 drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
                   '@target' => $parameters['target'],
-                  '@vocab' => $parameters['vocabulary_name']
+                  '@vocab' => $parameters['vocabulary_name'],
                 )));
                 continue 2;
               }
               // Validate parent term if it is not child or source term.
-              if (! _dennis_term_manager_validate_parent($data['target_tid'], $data['source_tid'])) {
+              if (!_dennis_term_manager_validate_parent($data['target_tid'], $data['source_tid'])) {
                 drupal_set_message(t("Parent cananot be moved. Because Term @parent_term is child of source term @term_name", array(
                   '@parent_term' => $data['parent_term'],
-                  '@term_name' => $parameters['term_name']
+                  '@term_name' => $parameters['term_name'],
                 )));
               }
               break;
+
             case DENNIS_TERM_MANAGER_ACTION_CREATE:
               $data['parent_term'] = $parameters['parent_term'];
               $data['term_name'] = $parameters['term_name'];
               $data['vocabulary_machine_name'] = $vocabulary->machine_name;
               break;
+
             case DENNIS_TERM_MANAGER_ACTION_DELETE:
               $data['vocabulary_machine_name'] = $vocabulary->machine_name;
               $data['term_name'] = $parameters['term_name'];
               break;
+
             case DENNIS_TERM_MANAGER_ACTION_RENAME:
               $data['term_name'] = $parameters['term_name'];
               $data['new_name'] = $parameters['new_name'];
               $data['vocabulary_machine_name'] = $vocabulary->machine_name;
               break;
+
             default:
-              return;
-              break;
+              continue 2;
           }
           $q->createItem($data);
         }
@@ -342,7 +348,7 @@ function dennis_term_manager_csv_process($uri) {
   }
   else {
     drupal_set_message(t("File not found @file", array(
-      '@file' => $file_path
+      '@file' => $file_path,
     )));
   }
 }
@@ -353,18 +359,17 @@ function dennis_term_manager_csv_process($uri) {
 function dennis_term_manager_cron_queue_info() {
   $queues['dennis_term_manager_queue'] = array(
     'worker callback' => 'dennis_term_manager_process_queue_item',
-    'time' => 60
+    'time' => 60,
   );
   return $queues;
 }
 
 /**
- * Process the queue of terms, if any.
- * Does what drupal_cron_run() does.
+ * Process the queue of terms, if any. Does what drupal_cron_run() does.
  *
  * @see drupal_cron_run()
  * 
- * @param $max_time
+ * @param int $max_time
  *   No of seconds
  */
 function dennis_term_manager_process_queue($max_time = 15) {
@@ -379,9 +384,9 @@ function dennis_term_manager_process_queue($max_time = 15) {
 /**
  * Perform action on each queue item.
  * 
- * @param $data
+ * @param array $data
  *   An array containing source and target taxonomy term data
- * 
+ *   
  */
 function dennis_term_manager_process_queue_item($data) {
   // Process each row against their action column and validate their data.
@@ -390,29 +395,35 @@ function dennis_term_manager_process_queue_item($data) {
       include_once 'dennis_term_manager_action_create.inc';
       _dennis_term_manager_process_action_create($data);
       break;
+
     case DENNIS_TERM_MANAGER_ACTION_DELETE:
       include_once 'dennis_term_manager_action_delete.inc';
       _dennis_term_manager_process_action_delete($data);
       break;
+
     case DENNIS_TERM_MANAGER_ACTION_RENAME:
       include_once 'dennis_term_manager_action_rename.inc';
       _dennis_term_manager_process_action_rename($data);
       break;
+
     case DENNIS_TERM_MANAGER_ACTION_MERGE:
       _dennis_term_manager_process_action_merge($data);
       break;
+
     case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
       include_once 'dennis_term_manager_action_move_parent.inc';
       _dennis_term_manager_process_action_move_parent($data);
       break;
+
     case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE:
       include_once 'dennis_term_manager_action_move_parent_merge.inc';
       _dennis_term_manager_process_action_move_parent_for_merge($data);
       break;
+
     default:
       // Invalid Action.
       drupal_set_message(t("Invalid action in row @row", array(
-        '@row' => $data['row']
+        '@row' => $data['row'],
       )));
       break;
   }
@@ -432,7 +443,7 @@ function _dennis_term_manager_get_vocabulary($vocabulary_name) {
   $query = db_select('taxonomy_vocabulary', 'tv');
   $query->fields('tv', array(
     'machine_name',
-    'vid'
+    'vid',
   ));
   $query->condition('tv.name', $vocabulary_name, '=');
   $vocabulary = $query->execute()->fetchObject();
@@ -457,7 +468,7 @@ function _dennis_term_manager_get_associated_nodes($tid) {
   // Get nodes from taxonomy_index using target term tid.
   $query = db_select('taxonomy_index', 'ti');
   $query->fields('ti', array(
-    'nid'
+    'nid',
   ));
   $query->condition('ti.tid', $tid, '=');
   $nodes = $query->execute()->fetchAll();
@@ -472,7 +483,7 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  * @param : $vocabulary_machine_name
  *   Vocabulary Machine Name
  *   
- * @return $tid 
+ * @return int 
  *   Taxonomy Term ID or false in case not found
  */
 function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
@@ -493,12 +504,13 @@ function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
  * @param : $vocabulary_id
  *   Vocabulary ID
  *
+ *
  * @return : boolean
  *   true if matches, false otherwise
  */
 function _dennis_term_manager_compare_vids($target_vocabulary_name, $vocabulary_id) {
   // Get target vocabulary id.
-  if (! $target_vocabulary = _dennis_term_manager_get_vocabulary($target_vocabulary_name)) {
+  if (!$target_vocabulary = _dennis_term_manager_get_vocabulary($target_vocabulary_name)) {
     return FALSE;
   }
   // Check target and source term belongs to same vocabulary.
@@ -513,14 +525,14 @@ function _dennis_term_manager_compare_vids($target_vocabulary_name, $vocabulary_
 /**
  * Helper to check source term is not child of target term.
  *
- * @param $target_term_id 
+ * @param int $target_term_id 
  *   Taxonomy Term id
- * @param $vocbulary_id
- *   Vocabulary Id
+ * @param int $term_id
+ *   Taxonomy Term Id
  */
 function _dennis_term_manager_validate_parent($target_term_id, $term_id) {
   $children = taxonomy_get_parents_all($target_term_id);
-  if (! empty($children)) {
+  if (!empty($children)) {
     foreach ($children as $key => $value) {
       if ($term_id == $value->tid) {
         return FALSE;
@@ -546,8 +558,10 @@ function _dennis_term_manager_write_report($file_name, $error_message) {
     fwrite($report_handle, $error_message);
     fclose($report_handle);
   }
-  else {    
+  else {
     // Report on watchdog.
-    watchdog('DENNIS_TERM_MANAGER', t('Not able to write in report file. error %message'), array('%message' => $error_message));
+    watchdog('DENNIS_TERM_MANAGER', t('Not able to write in report file. error %message'), array(
+      '%message' => $error_message,
+    ));
   }
 }
