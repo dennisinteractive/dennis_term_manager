@@ -12,7 +12,6 @@
  *   An array containing source and target taxonomy term data
  */
 function _dennis_term_manager_process_action_create($data) {
-  print_r($data);
   // Check if Term already exist.
   if ($term_id = _dennis_term_manager_get_tid($data['term_name'], $data['vocabulary_machine_name'])) {
     // Write error message into the report file.
