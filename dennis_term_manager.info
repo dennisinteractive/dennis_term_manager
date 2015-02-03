@@ -3,3 +3,4 @@ description = Tool to manage bulk taxonomy terms.
 core = 7.x
 package = Taxonomy
 dependencies[] = taxonomy
+configure = admin/structure/taxonomy/term_manager
