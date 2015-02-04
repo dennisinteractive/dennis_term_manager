@@ -91,12 +91,7 @@ function dennis_term_manager_form($form, &$form_state) {
     '#title' => t('Import'),
     '#type' => 'managed_file',
     '#description' => t('The CSV file to be processed.'),
-    '#upload_validators' => array(
-      'file_validate_extensions' => array(
-        'csv',
-        'tsv',
-      ),
-    ),
+    '#upload_validators' => array('file_validate_extensions' => array('csv tsv')),
     '#upload_location' => 'public://',
   );
 
@@ -108,7 +103,7 @@ function dennis_term_manager_form($form, &$form_state) {
   $form['from'] = array(
     '#type' => 'item',
     '#prefix' => '<div><br /></div>',
-    '#title' => t('Report'),
+    '#title' => t('Reports'),
     '#markup' => views_embed_view('csv_report'),
   );
 
@@ -333,9 +328,10 @@ function dennis_term_manager_csv_process($uri) {
               // If parent term is specidied, check if this term exist.
               $parent_term = _dennis_term_manager_get_tid($parameters['parent_term'], $vocabulary->machine_name);
               if ($parameters['parent_term'] && empty($parent_term)) {
-                drupal_set_message(t("Parent term '@parent_term' does not exist in vocabulary '@vocab'", array(
+                drupal_set_message(t("Parent term '@parent_term' does not exist in vocabulary '@vocab' in row @row", array(
                   '@parent_term' => $parameters['parent_term'],
                   '@vocab' => $parameters['vocabulary_name'],
+                  '@row' => $data['row'],
                 )));
                 continue 2;
               }

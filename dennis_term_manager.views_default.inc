@@ -52,7 +52,8 @@ function dennis_term_manager_views_default_views() {
   $handler->display->display_options['filters']['filemime']['id'] = 'filemime';
   $handler->display->display_options['filters']['filemime']['table'] = 'file_managed';
   $handler->display->display_options['filters']['filemime']['field'] = 'filemime';
-  $handler->display->display_options['filters']['filemime']['value'] = 'text/csv';
+  $handler->display->display_options['filters']['filemime']['operator'] = 'regular_expression';
+  $handler->display->display_options['filters']['filemime']['value'] = 'text/csv|text/tab-separated-values';
 
   /* Display: Block */
   $handler = $view->new_display('block', 'Block', 'block');
