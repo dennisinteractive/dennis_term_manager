@@ -204,7 +204,7 @@ function dennis_term_manager_csv_process($uri) {
             'related_nodes' => $related_nodes,
             'parent_term' => $parent_term,
             'parent_vocabulary' => $parent_vocabulary,
-            'action' => $action,
+            'action' => strtolower(trim($action)),
             'target' => $target,
             'new_name' => $new_name,
             'row' => $row,
@@ -248,7 +248,7 @@ function dennis_term_manager_csv_process($uri) {
             continue 1;
           }
 
-          switch (strtolower(trim($parameters['action']))) {
+          switch ($parameters['action']) {
             case DENNIS_TERM_MANAGER_ACTION_MERGE:
               // Get Target tid.
               if ($target_tid = _dennis_term_manager_get_tid($target_term_name, $vocabulary->machine_name)) {
@@ -321,7 +321,7 @@ function dennis_term_manager_csv_process($uri) {
                 continue 2;
               }
               // Validate parent term if it is not child or source term.
-              if (!_dennis_term_manager_validate_parent($data['target_tid'], $data['source_tid'])) {
+              if (!_dennis_term_manager_term_is_parent($data['target_tid'], $data['source_tid'])) {
                 drupal_set_message(t("Parent cananot be moved. Because Term @parent_term is child of source term @term_name", array(
                   '@parent_term' => $data['parent_term'],
                   '@term_name' => $parameters['term_name'],
@@ -402,7 +402,7 @@ function dennis_term_manager_process_queue($max_time = 15) {
  */
 function dennis_term_manager_process_queue_item($data) {
   // Process each row against their action column and validate their data.
-  switch (strtolower(trim($data['action']))) {
+  switch (strtolower($data['action'])) {
     case DENNIS_TERM_MANAGER_ACTION_CREATE:
       include_once 'dennis_term_manager_action_create.inc';
       _dennis_term_manager_process_action_create($data);
@@ -503,9 +503,6 @@ function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
     $first_term = array_values($term);
     return $first_term[0]->tid;
   }
-  else {
-    return FALSE;
-  }
 }
 
 /**
@@ -535,31 +532,34 @@ function _dennis_term_manager_compare_vids($target_vocabulary_name, $vocabulary_
 }
 
 /**
- * Helper to check source term is not child of target term.
+ * Helper to check if source term is the parent of target term.
  *
  * @param int $target_term_id 
  *   Taxonomy Term id
  * @param int $term_id
  *   Taxonomy Term Id
  */
-function _dennis_term_manager_validate_parent($target_term_id, $term_id) {
-  $children = taxonomy_get_parents_all($target_term_id);
-  if (!empty($children)) {
-    foreach ($children as $key => $value) {
+function _dennis_term_manager_term_is_parent($target_term_id, $term_id) {
+  $ancestors = taxonomy_get_parents_all($target_term_id);
+  // If there are no parents, it's already level 1 term.
+  if (empty($ancestors)) {
+    return TRUE;
+  }
+  // Overwise check the term for not beeing checked term itself.
+  else {
+    foreach ($ancestors as $value) {
       if ($term_id == $value->tid) {
         return FALSE;
       }
     }
   }
-  else {
-    return TRUE;
-  }
+
   return TRUE;
 }
 
 /**
  * Helper to write errors in report file.
- * 
+ *
  * @param: $file_name
  *   URI of file
  * @param: $error_message
