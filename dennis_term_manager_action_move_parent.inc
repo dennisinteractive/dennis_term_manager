@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Action to move parent of taxonomy term.
@@ -6,7 +7,7 @@
 
 /**
  * Action to move parent of taxonomy term.
- * 
+ *
  * @param array $data
  *   An array containing source and target taxonomy term data
  */

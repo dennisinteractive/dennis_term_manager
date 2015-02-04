@@ -31,7 +31,7 @@ function _dennis_term_manager_process_action_merge($data) {
     foreach ($entity_info as $info) {
       // Check each node field for term reference.
       if ($info['display']['default']['type'] == 'taxonomy_term_reference_link') {
-        foreach ($node->$info['field_name'] as $tids) {
+        foreach ($node->{$info['field_name']} as $tids) {
           // Loop each item where multiple values exist.
           foreach ($tids as $key => $value) {
             if ($value['tid'] == $data['target_tid']) {

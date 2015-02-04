@@ -15,7 +15,7 @@ function _dennis_term_manager_process_action_create($data) {
   // Check if Term already exist.
   if ($term_id = _dennis_term_manager_get_tid($data['term_name'], $data['vocabulary_machine_name'])) {
     // Write error message into the report file.
-    $error_message = t("Term '@term_name' already exists in row @row \n", array(
+    $error_message = t("Term '@term_name' already exists in row @row", array(
       '@term_name' => $data['term_name'],
       '@row' => $data['row'],
     ));
@@ -30,7 +30,7 @@ function _dennis_term_manager_process_action_create($data) {
     $term->parent = _dennis_term_manager_get_tid($data['parent_term'], $data['vocabulary_machine_name']);
     if (!taxonomy_term_save($term)) {
       // Write error message into the report file.
-      $error_message = t('Not able to create term @term_name in row @row \n', array(
+      $error_message = t('Not able to create term @term_name in row @row', array(
         '@term_name' => $data['term_name'],
         '@row' => $data['row'],
       ));
