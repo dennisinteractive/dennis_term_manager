@@ -70,7 +70,6 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '<td>Term name</td>';
       $output .= '<td>Related Nodes Number</td>';
       $output .= '<td>Parent Term</td>';
-      $output .= '<td>Parent Vocabulary</td>';
       $output .= '<td>Action</td>';
       $output .= '<td>Target</td>';
       $output .= '<td>New Name</td>';
@@ -182,10 +181,9 @@ function dennis_term_manager_csv_process($uri) {
           $term_name = isset($data[1]) ? check_plain($data[1]) : "";
           $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
           $parent_term = isset($data[3]) ? check_plain($data[3]) : "";
-          $parent_vocabulary = isset($data[4]) ? check_plain($data[4]) : "";
-          $action = isset($data[5]) ? check_plain($data[5]) : "";
-          $target = isset($data[6]) ? check_plain($data[6]) : "";
-          $new_name = isset($data[7]) ? check_plain($data[7]) : "";
+          $action = isset($data[4]) ? check_plain($data[4]) : "";
+          $target = isset($data[5]) ? check_plain($data[5]) : "";
+          $new_name = isset($data[6]) ? check_plain($data[6]) : "";
           $row++;
           // Skip the header row.
           if ($row <= 1) {
@@ -198,7 +196,6 @@ function dennis_term_manager_csv_process($uri) {
             'term_name' => $term_name,
             'related_nodes' => $related_nodes,
             'parent_term' => $parent_term,
-            'parent_vocabulary' => $parent_vocabulary,
             'action' => strtolower(trim($action)),
             'target' => $target,
             'new_name' => $new_name,
@@ -292,13 +289,6 @@ function dennis_term_manager_csv_process($uri) {
               // Check parent term.
               if (empty($parameters['parent_term'])) {
                 drupal_set_message(t("Parent Term is empty in row @row", array(
-                  '@row' => $data['row'],
-                )));
-                continue 2;
-              }
-              // Check target and source terms belongs to same vocabulary.
-              if (!_dennis_term_manager_compare_vids($parameters['parent_vocabulary'], $vocabulary->vid)) {
-                drupal_set_message(t("Target and Source term vocabulary is not same in row @row", array(
                   '@row' => $data['row'],
                 )));
                 continue 2;
@@ -505,38 +495,10 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  *   Taxonomy Term ID or false in case not found
  */
 function _dennis_term_manager_get_tid($term_name, $vocabulary_machine_name) {
-  // We don't want to decode all the string, so let's take in consideration
-  // "&" encoded char.
-  $term_name = str_replace('&amp;', '&', $term_name);
+  $term_name = _dennis_term_manager_decode_specific_chars($term_name);
   if ($term = taxonomy_get_term_by_name($term_name, $vocabulary_machine_name)) {
     $first_term = array_values($term);
     return $first_term[0]->tid;
-  }
-}
-
-/**
- * Helper to check target and source term belongs to same vocabulary.
- *
- * @param : $target_vocabulary_name
- *   Taxonomy vocabulary Name
- * @param : $vocabulary_id
- *   Vocabulary ID
- *
- *
- * @return : boolean
- *   true if matches, false otherwise
- */
-function _dennis_term_manager_compare_vids($target_vocabulary_name, $vocabulary_id) {
-  // Get target vocabulary id.
-  if (!$target_vocabulary = _dennis_term_manager_get_vocabulary($target_vocabulary_name)) {
-    return FALSE;
-  }
-  // Check target and source term belongs to same vocabulary.
-  if ($vocabulary_id == $target_vocabulary->vid) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
   }
 }
 
@@ -585,4 +547,14 @@ function _dennis_term_manager_write_report($file_name, $error_message) {
       '%message' => $error_message,
     ));
   }
+}
+
+/**
+ * Helper function, to decode encoded string.
+ *
+ * We don't want to decode all the string, so let's take in consideration
+ * encoded chars.
+ */
+function _dennis_term_manager_decode_specific_chars($string) {
+  return str_replace('&amp;', '&', $string);
 }

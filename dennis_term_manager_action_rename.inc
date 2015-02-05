@@ -24,7 +24,7 @@ function _dennis_term_manager_process_action_rename($data) {
 
   // Check if Term already exist.
   if ($term_id = _dennis_term_manager_get_tid($data['new_name'], $data['vocabulary_machine_name'])) {
-    // Send tp error report.
+    // Send to error report.
     $error_message = t("Term '@term_name' already exists", array(
       '@term_name' => $data['new_name'],
     ));
@@ -33,9 +33,8 @@ function _dennis_term_manager_process_action_rename($data) {
   else {
     if ($term = taxonomy_term_load($data['source_tid'])) {
       // Rename.
-      $term->name = $data['new_name'];
+      $term->name = _dennis_term_manager_decode_specific_chars($data['new_name']);
       if (!taxonomy_term_save($term)) {
-        // @todo: add this message to generated report.
         $error_message = t("Term '@term_name' cannot be renamed", array(
           '@term_name' => $term->name,
         ));
