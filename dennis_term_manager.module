@@ -11,7 +11,6 @@ define('DENNIS_TERM_MANAGER_ACTION_DELETE', 'delete');
 define('DENNIS_TERM_MANAGER_ACTION_MERGE', 'merge');
 define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
-define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE', 'move parent merge');
 
 /**
  * Implements hook_views_api().
@@ -253,6 +252,10 @@ function dennis_term_manager_csv_process($uri) {
                 )));
                 continue 2;
               }
+
+              // Store the original source tid in order to reset it after.
+              $original_source_tid = $data['source_tid'];
+
               // Get all nodes with target term reference.
               $nodes = _dennis_term_manager_get_associated_nodes($target_tid);
               if (!empty($nodes)) {
@@ -261,17 +264,16 @@ function dennis_term_manager_csv_process($uri) {
                 if (!empty($children)) {
                   foreach ($children as $child) {
                     // Change parent of each child term to source term.
-                    $data['moving_parent_tid'] = $data['source_tid'];
-                    $data['moving_child_tid'] = $child->tid;
-                    $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE;
-
+                    $data['source_tid'] = $child->tid;
+                    $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT;
                     // Push each "merge move parent" action into the queue.
                     $q->createItem($data);
                   }
                 }
               }
-              // Reset action to merge.
+              // Reset action and source_tid.
               $data['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
+              $data['source_tid'] = $original_source_tid;
               // Create queue for each node.
               foreach ($nodes as $node) {
                 $data['nid'] = $node->nid;
@@ -421,11 +423,6 @@ function dennis_term_manager_process_queue_item($data) {
     case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
       include_once 'dennis_term_manager_action_move_parent.inc';
       _dennis_term_manager_process_action_move_parent($data);
-      break;
-
-    case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT_FOR_MERGE:
-      include_once 'dennis_term_manager_action_move_parent_merge.inc';
-      _dennis_term_manager_process_action_move_parent_for_merge($data);
       break;
 
     default:
