@@ -48,6 +48,11 @@ function dennis_term_manager_views_default_views() {
   $handler->display->display_options['fields']['filename']['alter']['word_boundary'] = FALSE;
   $handler->display->display_options['fields']['filename']['alter']['ellipsis'] = FALSE;
   $handler->display->display_options['fields']['filename']['link_to_file'] = TRUE;
+  /* Sort criterion: File: Upload date */
+  $handler->display->display_options['sorts']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['sorts']['timestamp']['table'] = 'file_managed';
+  $handler->display->display_options['sorts']['timestamp']['field'] = 'timestamp';
+  $handler->display->display_options['sorts']['timestamp']['order'] = 'DESC';
   /* Filter criterion: File: Mime type */
   $handler->display->display_options['filters']['filemime']['id'] = 'filemime';
   $handler->display->display_options['filters']['filemime']['table'] = 'file_managed';

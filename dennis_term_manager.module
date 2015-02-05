@@ -1,9 +1,9 @@
 <?php
+
 /**
  * @file
  * Module file Dennis Term Manager. 
  */
-
 include_once 'dennis_term_manager_action_merge.inc';
 
 define('DENNIS_TERM_MANAGER_ACTION_CREATE', 'create');
@@ -140,12 +140,62 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
   }
   else {
     // Add file usage.
-    file_usage_add($file, 'dennis_term_manager',
-     'dennis_term_manager_csv_file', 1);
+    file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
+
+    // Set initial counter for debug information.
+    $_SESSION['http_request_count'] = 0;
 
     // Process the file.
-    dennis_term_manager_csv_process($file->uri);
+    $batch = _dennis_term_manager_batch_init($file->uri);
+    batch_set($batch);
   }
+}
+
+/**
+ * Prepare a batch definition that will process the file rows.
+ */
+function _dennis_term_manager_batch_init($uri) {
+  $limit = 100;
+  $file_path = drupal_realpath($uri);
+  $fp = file($file_path);
+  $total_lines = count($fp);
+  $num_operations = ceil($total_lines / $limit);
+
+  $operations = array();
+  for ($i = 0; $i < $num_operations; $i++) {
+
+    // Skip the header for first loop.
+    if ($i == 0) {
+      $start = 1;
+      $end = $start + $limit;
+    }
+    else {
+      $start = ($limit * $i) + 1;
+      $end = $start + $limit;
+    }
+
+    $options = array(
+      'file_path' => $file_path,
+      'start' => $start,
+      'end' => $end,
+    );
+
+    $operations[] = array(
+      'dennis_term_manager_csv_process',
+      array($options),
+    );
+  }
+
+  $batch = array(
+    'operations' => $operations,
+    //'finished' => 'batch_dennis_term_manager_finished',
+    'title' => t('Processing your file'),
+    'init_message' => t('File process is starting.'),
+    'progress_message' => t('Processed @current out of @total steps, splited for @count_rows rows.', array('@count_rows' => $total_lines - 1)),
+    'error_message' => t('Batch has encountered an error.'),
+  );
+
+  return $batch;
 }
 
 /**
@@ -154,17 +204,27 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  * @param: $uri
  *   URL of CSV file
  */
-function dennis_term_manager_csv_process($uri) {
+function dennis_term_manager_csv_process($options, &$context) {
   global $user;
-  
-  $file_path = drupal_realpath($uri);
+
+  $file_path = $options['file_path'];
+  $start = $options['start'];
+  $end = $options['end'];
+
   // Get current logged in user id.
   $user_id = $user->uid ? $user->uid : '';
   // Get the que to handle the.
   $q = DrupalQueue::get('dennis_term_manager_queue');
 
   if (file_exists($file_path)) {
-    $row = 0;
+
+    // Set initial batch parameters.
+    if (empty($context['sandbox'])) {
+      $context['sandbox'] = array();
+      $context['sandbox']['progress'] = 0;
+      $context['sandbox']['http_requests_count'] = 0;
+    }
+
     // Get the file content.
     if (($handle = fopen($file_path, "r")) !== FALSE) {
 
@@ -173,8 +233,20 @@ function dennis_term_manager_csv_process($uri) {
       $report_file_name = preg_replace("/[.](.*)/", ".txt", $file_path);
 
       if (($report_handle = fopen($report_file_name, "w")) !== FALSE) {
-
         while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
+          // Go to the last processed line.
+          // We need to skip this way because fgetcsv() works only inside while.
+          $processed_items = $context['sandbox']['progress'];
+          $context['sandbox']['progress']++;
+
+          if ($start <= $processed_items && $processed_items < $end) {
+            // Good for processing.
+          }
+          else {
+            // Skip already prcessed rows.
+            continue 1;
+          }
+
           // Set variable for each column.
           $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
           $term_name = isset($data[1]) ? check_plain($data[1]) : "";
@@ -183,11 +255,7 @@ function dennis_term_manager_csv_process($uri) {
           $action = isset($data[4]) ? check_plain($data[4]) : "";
           $target = isset($data[5]) ? check_plain($data[5]) : "";
           $new_name = isset($data[6]) ? check_plain($data[6]) : "";
-          $row++;
-          // Skip the header row.
-          if ($row <= 1) {
-            continue 1;
-          }
+          $row = $context['sandbox']['progress'];
 
           // Array containing parameters from the CSV.
           $parameters = array(
@@ -361,6 +429,9 @@ function dennis_term_manager_csv_process($uri) {
       '@file' => $file_path,
     )));
   }
+
+  // Increase this session http requests.
+  $context['sandbox']['http_requests_count']++;
 }
 
 /**
@@ -457,7 +528,14 @@ function _dennis_term_manager_get_vocabulary($vocabulary_name) {
 
 function dennis_term_manager_debug() {
   $file_path = 'public://sample_itpro_taxonomy_mapping1.csv';
-  dennis_term_manager_csv_process($file_path);
+  $options = array(
+    'file_path' => $file_path,
+    'start' => 1,
+    'end' => 99999999999,
+  );
+
+  $temp = array();
+  dennis_term_manager_csv_process($options, $temp);
 }
 
 /**
