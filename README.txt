@@ -38,3 +38,15 @@ Following are the assumptions made when developing this module:
 7) Column "target" must be in described format. e.g vocabulary_name >-> Term_name
 8) Taxonomy term url will be updated in case of rename.
 9) Dennis term manager queue items will be processed for 60 second in one cron run.
+
+Examples
+========
+
+| vocabulary_name | term_name    | parent_term | action      | target               | new_name | description                                        |
+| Category        | Android      | Server      | move parent |                      |          | Make "Android" child of "Mobile"                   |
+| Category        | Android      |             | move parent |                      |          | Make "Android" a root term                         |
+| Category        | Android      |             | rename      |                      | Robot    | Rename "Android" to "Robot"                        |
+| Category        | Teleporter   |             | create      |                      |          | Create new term "Teleporter"                       |
+| Category        | Teleporter   | Mobile      | create      |                      |          | Create new term "Teleporter" with parent "Mobile"  |
+| Category        | Android      |             | delete      |                      |          | Delete "Android"                                   |
+| Category        | Apps         |             | merge       | Category >-> Android |          | Merge "Android" content into "Apps"                |
