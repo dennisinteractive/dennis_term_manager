@@ -77,21 +77,36 @@ function dennis_term_manager_menu() {
  * Export current taxonomy.
  */
 function dennis_term_manager_export_terms($delimiter = "\t") {
-  $sql = "SELECT
-    v.name AS 'vocabulary_name',
-    t.name AS 'term_name',
-    count(DISTINCT i.nid) AS 'node_count',
-    IF(p.name IS NULL, '', p.name) AS 'parent_term'
-  FROM taxonomy_term_data t
-    LEFT JOIN taxonomy_vocabulary v ON v.vid = t.vid
-    LEFT JOIN taxonomy_index i ON i.tid = t.tid
-    # Parent information
-    LEFT JOIN taxonomy_term_hierarchy h ON h.tid = t.tid
-    LEFT JOIN taxonomy_term_data p ON p.tid = h.parent
-    LEFT JOIN taxonomy_vocabulary pv ON pv.vid = p.vid
-  GROUP BY t.tid
-  ORDER BY t.vid ASC, t.name ASC";
-  $result = db_query($sql);
+  $query = db_select('taxonomy_term_data', 't');
+
+  // Term vocabulary and name.
+  $query->addField('v', 'name', 'vocabulary_name');
+  $query->addField('t', 'name', 'term_name');
+
+  // Get node count for term.
+  $query->addExpression('COUNT(DISTINCT i.nid)', 'node_count');
+
+  // Parent term name.
+  $query->addExpression('IF(p.name IS NULL, \'\', p.name)', 'parent_term');
+
+  // Join on vocabulary of term.
+  $query->leftJoin('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
+
+  // Join taxonomy_index to get node usage.
+  $query->leftJoin('taxonomy_index', 'i', 'i.tid = t.tid');
+
+  // Parent information.
+  $query->leftJoin('taxonomy_term_hierarchy', 'h', 'h.tid = t.tid');
+  $query->leftJoin('taxonomy_term_data', 'p', 'p.tid = h.parent');
+
+  // Group by tid to get node counts for each term.
+  $query->groupBy('t.tid');
+
+  // Sort results by vocabulary, then by name.
+  $query->orderBy('t.vid', 'ASC');
+  $query->orderBy('t.name', 'ASC');
+
+  $result = $query->execute();
 
   // Send correct header to download file.
   $extension = $delimiter == ',' ? 'csv' : 'tsv';
