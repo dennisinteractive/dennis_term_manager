@@ -51,7 +51,67 @@ function dennis_term_manager_menu() {
     ),
     'type' => MENU_LOCAL_ACTION,
   );
+  $items['admin/structure/taxonomy/term_manager/download'] = array(
+    'title' => 'Download TSV ',
+    'description' => 'Download tab separated data',
+    'page callback' => 'dennis_term_manager_export_terms',
+    'access arguments' => array(
+      'administer dennis term manager',
+    ),
+    'type' => MENU_LOCAL_ACTION,
+  );
+  $items['admin/structure/taxonomy/term_manager/download_csv'] = array(
+    'title' => 'Download CSV ',
+    'description' => 'Download comma separated data',
+    'page callback' => 'dennis_term_manager_export_terms',
+    'page arguments' => array(','),
+    'access arguments' => array(
+      'administer dennis term manager',
+    ),
+    'type' => MENU_LOCAL_ACTION,
+  );
   return $items;
+}
+
+/**
+ * Export current taxonomy.
+ */
+function dennis_term_manager_export_terms($delimiter = "\t") {
+  $sql = "SELECT
+    v.name AS 'vocabulary_name',
+    t.name AS 'term_name',
+    count(DISTINCT i.nid) AS 'node_count',
+    IF(p.name IS NULL, '', p.name) AS 'parent_term'
+  FROM taxonomy_term_data t
+    LEFT JOIN taxonomy_vocabulary v ON v.vid = t.vid
+    LEFT JOIN taxonomy_index i ON i.tid = t.tid
+    # Parent information
+    LEFT JOIN taxonomy_term_hierarchy h ON h.tid = t.tid
+    LEFT JOIN taxonomy_term_data p ON p.tid = h.parent
+    LEFT JOIN taxonomy_vocabulary pv ON pv.vid = p.vid
+  GROUP BY t.tid
+  ORDER BY t.vid ASC, t.name ASC";
+  $result = db_query($sql);
+
+  // Send correct header to download file.
+  $extension = $delimiter == ',' ? 'csv' : 'tsv';
+  drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
+  $file_name = 'taxonomy_export_' . date('Y-m-d_H:i:s') . '.' . $extension;
+  drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
+
+  // Add default CSV/TSV headings.
+  $columns = dennis_term_manager_default_columns();
+  $out = fopen('php://output', 'w');
+  fputcsv($out, $columns, $delimiter, '"');
+
+  while ($row = $result->fetchObject()) {
+    // Add report data to corresponding column.
+    $row_data = array();
+    foreach ($columns as $column) {
+      $row_data[] = isset($row->{$column}) ? $row->{$column} : '';
+    }
+    fputcsv($out, $row_data, $delimiter, '"');
+  }
 }
 
 /**
@@ -164,15 +224,15 @@ function _dennis_term_manager_batch_init($uri) {
   $operations = array();
   for ($i = 0; $i < $num_operations; $i++) {
 
-    // Skip the header for first loop.
+    // Start first batch from 0.
     if ($i == 0) {
-      $start = 1;
-      $end = $start + $limit;
+      $start = 0;
     }
     else {
       $start = ($limit * $i) + 1;
-      $end = $start + $limit;
     }
+
+    $end = $start + $limit;
 
     $options = array(
       'file_path' => $file_path,
@@ -218,6 +278,10 @@ function dennis_term_manager_csv_process($options, &$context) {
 
   if (file_exists($file_path)) {
 
+    // Get file extension.
+    $file_info = pathinfo($file_path);
+    $delimiter = $file_info['extension'] == 'csv' ? ',' : "\t";
+
     // Set initial batch parameters.
     if (empty($context['sandbox'])) {
       $context['sandbox'] = array();
@@ -233,7 +297,12 @@ function dennis_term_manager_csv_process($options, &$context) {
       $report_file_name = preg_replace("/[.](.*)/", ".txt", $file_path);
 
       if (($report_handle = fopen($report_file_name, "w")) !== FALSE) {
-        while (($data = fgetcsv($handle, 1000, "\t")) !== FALSE) {
+        // Get columns mapping.
+        // - This will also move the file pointer to the second row.
+        $heading_row = fgetcsv($handle, 1000, $delimiter);
+        $columns = array_flip($heading_row);
+
+        while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
           // Go to the last processed line.
           // We need to skip this way because fgetcsv() works only inside while.
           $processed_items = $context['sandbox']['progress'];
@@ -247,32 +316,17 @@ function dennis_term_manager_csv_process($options, &$context) {
             continue 1;
           }
 
-          // Set variable for each column.
-          $vocabulary_name = isset($data[0]) ? check_plain($data[0]) : "";
-          $term_name = isset($data[1]) ? check_plain($data[1]) : "";
-          $related_nodes = isset($data[2]) ? check_plain($data[2]) : "";
-          $parent_term = isset($data[3]) ? check_plain($data[3]) : "";
-          $action = isset($data[4]) ? check_plain($data[4]) : "";
-          $target = isset($data[5]) ? check_plain($data[5]) : "";
-          $new_name = isset($data[6]) ? check_plain($data[6]) : "";
-          $row = $context['sandbox']['progress'];
-
           // Array containing parameters from the CSV.
-          $parameters = array(
-            'vocabulary_name' => $vocabulary_name,
-            'term_name' => $term_name,
-            'related_nodes' => $related_nodes,
-            'parent_term' => $parent_term,
-            'action' => strtolower(trim($action)),
-            'target' => $target,
-            'new_name' => $new_name,
-            'row' => $row,
-            'user_id' => $user_id,
-          );
+          $parameters = array();
+          foreach (dennis_term_manager_default_columns() as $column) {
+            $parameters[$column] = isset($data[$columns[$column]]) ? $data[$columns[$column]] : "";
+          }
+          $parameters['row'] = $context['sandbox']['progress'];
+          $parameters['user_id'] = $user_id;
 
           $data = array(
-            'action' => $action,
-            'row' => $row,
+            'action' => $parameters['action'],
+            'row' => $parameters['row'],
             'uid' => $user_id,
             'report_filename' => $report_file_name,
           );
@@ -356,24 +410,14 @@ function dennis_term_manager_csv_process($options, &$context) {
               break;
 
             case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
-              // Check parent term.
-              if (empty($parameters['parent_term'])) {
-                drupal_set_message(t("Parent Term is empty in row @row", array(
-                  '@row' => $data['row'],
-                )));
-                continue 2;
-              }
               $data['parent_term'] = $parameters['parent_term'];
               // Get Target tid.
               if ($target_tid = _dennis_term_manager_get_tid($parameters['parent_term'], $vocabulary->machine_name)) {
                 $data['target_tid'] = $target_tid;
               }
               else {
-                drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
-                  '@target' => $parameters['target'],
-                  '@vocab' => $parameters['vocabulary_name'],
-                )));
-                continue 2;
+                // Make term a root item.
+                $data['target_tid'] = 0;
               }
               // Validate parent term if it is not child or source term.
               if (!_dennis_term_manager_term_is_parent($data['target_tid'], $data['source_tid'])) {
@@ -632,4 +676,19 @@ function _dennis_term_manager_write_report($file_name, $error_message) {
  */
 function _dennis_term_manager_decode_specific_chars($string) {
   return str_replace('&amp;', '&', $string);
+}
+
+/**
+ * CSV/TSV files should always have these columns.
+ */
+function dennis_term_manager_default_columns() {
+  return array(
+    'vocabulary_name',
+    'term_name',
+    'node_count',
+    'parent_term',
+    'action',
+    'target',
+    'new_name',
+  );
 }
