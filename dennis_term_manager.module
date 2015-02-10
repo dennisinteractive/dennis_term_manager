@@ -269,6 +269,9 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  * Prepare a batch definition that will process the file rows.
  */
 function _dennis_term_manager_batch_init($uri) {
+  // Detect line endings.
+  ini_set('auto_detect_line_endings',TRUE);
+
   $limit = 100;
   $file_path = drupal_realpath($uri);
   $fp = file($file_path);
