@@ -39,6 +39,7 @@ function dennis_term_manager_permission() {
  */
 function dennis_term_manager_menu() {
   $items = array();
+  $weight = 0;
   $items['admin/structure/taxonomy/term_manager'] = array(
     'title' => 'Term Manager',
     'description' => 'Manage bulk taxonomy term operation via CSV file upload',
@@ -49,28 +50,72 @@ function dennis_term_manager_menu() {
     'access arguments' => array(
       'administer dennis term manager',
     ),
-    'type' => MENU_LOCAL_ACTION,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => $weight++,
   );
-  $items['admin/structure/taxonomy/term_manager/download'] = array(
-    'title' => 'Download TSV ',
+  $items['admin/structure/taxonomy/term_manager/manage'] = array(
+    'title' => 'Manage',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => $weight++,
+  );
+  $items['admin/structure/taxonomy/term_manager/export_tsv'] = array(
+    'title' => 'TSV Export',
     'description' => 'Download tab separated data',
     'page callback' => 'dennis_term_manager_export_terms',
     'access arguments' => array(
       'administer dennis term manager',
     ),
-    'type' => MENU_LOCAL_ACTION,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => $weight++,
   );
-  $items['admin/structure/taxonomy/term_manager/download_csv'] = array(
-    'title' => 'Download CSV ',
+  $items['admin/structure/taxonomy/term_manager/export_csv'] = array(
+    'title' => 'CSV Export',
     'description' => 'Download comma separated data',
     'page callback' => 'dennis_term_manager_export_terms',
     'page arguments' => array(','),
     'access arguments' => array(
       'administer dennis term manager',
     ),
-    'type' => MENU_LOCAL_ACTION,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => $weight++,
+  );
+  $items['admin/structure/taxonomy/term_manager/template_tsv'] = array(
+    'title' => 'TSV Template',
+    'description' => 'Download tab separated template',
+    'page callback' => 'dennis_term_manager_download_template',
+    'access arguments' => array(
+      'administer dennis term manager',
+    ),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => $weight++,
+  );
+  $items['admin/structure/taxonomy/term_manager/template_csv'] = array(
+    'title' => 'CSV Template',
+    'description' => 'Download comma separated template',
+    'page callback' => 'dennis_term_manager_download_template',
+    'page arguments' => array(','),
+    'access arguments' => array(
+      'administer dennis term manager',
+    ),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => $weight++,
   );
   return $items;
+}
+
+/**
+ * Download CSV/TSV template.
+ */
+function dennis_term_manager_download_template($delimiter = "\t") {
+  // Send correct header to download file.
+  $extension = $delimiter == ',' ? 'csv' : 'tsv';
+  drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
+  $file_name = 'taxonomy_template_' . date('Y-m-d_H:i:s') . '.' . $extension;
+  drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
+
+  $columns = dennis_term_manager_default_columns();
+  $out = fopen('php://output', 'w');
+  fputcsv($out, $columns, $delimiter, '"');
 }
 
 /**
@@ -138,15 +183,9 @@ function dennis_term_manager_help($path, $arg) {
     case 'admin/help#dennis_term_manager':
       $output = '';
       $output .= '<div class="import-notes">';
-      $output .= '<span>' . t('Make sure the file is in CSV or TSV format. And Columns must be in following order. First line of the file must contain a header.') . '</span>';
+      $output .= '<span>' . t('Make sure the file is in CSV or TSV format with the following headings.') . '</span>';
       $output .= '<table><tr>';
-      $output .= '<td>Vocabulary</td>';
-      $output .= '<td>Term name</td>';
-      $output .= '<td>Related Nodes Number</td>';
-      $output .= '<td>Parent Term</td>';
-      $output .= '<td>Action</td>';
-      $output .= '<td>Target</td>';
-      $output .= '<td>New Name</td>';
+      $output .= '<td>' . implode('</td><td>', dennis_term_manager_default_columns()) . '</td>';
       $output .= '</tr></table>';
       $output .= '</div>';
       return $output;
