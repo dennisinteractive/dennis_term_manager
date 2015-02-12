@@ -4,3 +4,9 @@ core = 7.x
 package = Taxonomy
 dependencies[] = taxonomy
 configure = admin/structure/taxonomy/term_manager
+
+files[] = includes/DennisTermManagerItem.inc
+files[] = includes/DennisTermManagerDryRun.inc
+files[] = includes/DennisTermManagerDryRunItem.inc
+files[] = includes/DennisTermManagerOperationList.inc
+files[] = includes/DennisTermManagerOperationItem.inc

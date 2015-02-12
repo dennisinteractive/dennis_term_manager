@@ -110,7 +110,7 @@ function dennis_term_manager_download_template($delimiter = "\t") {
   // Send correct header to download file.
   $extension = $delimiter == ',' ? 'csv' : 'tsv';
   drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
-  $file_name = 'taxonomy_template_' . date('Y-m-d_H:i:s') . '.' . $extension;
+  $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s') . '.' . $extension;
   drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
 
   $columns = dennis_term_manager_default_columns();
@@ -119,20 +119,24 @@ function dennis_term_manager_download_template($delimiter = "\t") {
 }
 
 /**
- * Export current taxonomy.
+ * Get existing taxonomy usage.
  */
-function dennis_term_manager_export_terms($delimiter = "\t") {
+function _dennis_term_manager_export_terms_query() {
   $query = db_select('taxonomy_term_data', 't');
 
   // Term vocabulary and name.
   $query->addField('v', 'name', 'vocabulary_name');
   $query->addField('t', 'name', 'term_name');
 
+  // TID and VID
+  $query->addField('v', 'vid', 'vid');
+  $query->addField('t', 'tid', 'tid');
+
   // Get node count for term.
   $query->addExpression('COUNT(DISTINCT i.nid)', 'node_count');
 
   // Parent term name.
-  $query->addExpression('IF(p.name IS NULL, \'\', p.name)', 'parent_term');
+  $query->addExpression('IF(p.name IS NULL, \'\', p.name)', 'parent_term_name');
 
   // Join on vocabulary of term.
   $query->leftJoin('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
@@ -151,12 +155,20 @@ function dennis_term_manager_export_terms($delimiter = "\t") {
   $query->orderBy('t.vid', 'ASC');
   $query->orderBy('t.name', 'ASC');
 
+  return $query;
+}
+
+/**
+ * Export current taxonomy.
+ */
+function dennis_term_manager_export_terms($delimiter = "\t") {
+  $query = _dennis_term_manager_export_terms_query();
   $result = $query->execute();
 
   // Send correct header to download file.
   $extension = $delimiter == ',' ? 'csv' : 'tsv';
   drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
-  $file_name = 'taxonomy_export_' . date('Y-m-d_H:i:s') . '.' . $extension;
+  $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s') . '.' . $extension;
   drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
 
   // Add default CSV/TSV headings.
@@ -223,22 +235,6 @@ function dennis_term_manager_form($form, &$form_state) {
 }
 
 /**
- * Implements hook_views_pre_render().
- *
- * Modify the filename and file uri accordingly to generated file.
- */
-function dennis_term_manager_views_pre_render(&$view) {
-  if ($view->name == 'csv_report') {
-    foreach ($view->result as $result) {
-      $report_file_name = preg_replace("/[.](.*)/", ".txt", $result->file_managed_filename);
-      $report_file_uri = preg_replace("/[.](.*)/", ".txt", $result->file_managed_uri);
-      $result->file_managed_filename = $report_file_name;
-      $result->file_managed_uri = $report_file_uri;
-    }
-  }
-}
-
-/**
  * Callback function for form submission.
  *
  * @param object $form
@@ -269,36 +265,31 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  * Prepare a batch definition that will process the file rows.
  */
 function _dennis_term_manager_batch_init($uri) {
-  // Detect line endings.
-  ini_set('auto_detect_line_endings',TRUE);
+  $file_path = $uri;
+  $file_info = pathinfo($file_path);
+  $delimiter = $file_info['extension'] == 'csv' ? ',' : "\t";
+  $file_contents = file($file_path);
 
-  $limit = 100;
-  $file_path = drupal_realpath($uri);
-  $fp = file($file_path);
-  $total_lines = count($fp);
-  $num_operations = ceil($total_lines / $limit);
+  // Dry Run to validate and get operation list.
+  $dryRun = new TermManagerDryRun();
+  $dryRun->execute($file_path, $delimiter);
+  $operationList = $dryRun->getOperationList();
+
+  if ($operationList->getErrorList()) {
+    // Halt batch.
+    return;
+  }
 
   $operations = array();
-  for ($i = 0; $i < $num_operations; $i++) {
-
-    // Start first batch from 0.
-    if ($i == 0) {
-      $start = 0;
-    }
-    else {
-      $start = ($limit * $i) + 1;
-    }
-
-    $end = $start + $limit;
+  foreach ($operationList as $operationItem) {
 
     $options = array(
+      'operation_item' => $operationItem,
       'file_path' => $file_path,
-      'start' => $start,
-      'end' => $end,
     );
 
     $operations[] = array(
-      'dennis_term_manager_csv_process',
+      'dennis_term_manager_queue_operation',
       array($options),
     );
   }
@@ -306,9 +297,9 @@ function _dennis_term_manager_batch_init($uri) {
   $batch = array(
     'operations' => $operations,
     //'finished' => 'batch_dennis_term_manager_finished',
-    'title' => t('Processing your file'),
-    'init_message' => t('File process is starting.'),
-    'progress_message' => t('Processed @current out of @total steps, splited for @count_rows rows.', array('@count_rows' => $total_lines - 1)),
+    'title' => t('Processing operations'),
+    'init_message' => t('Process is starting.'),
+    'progress_message' => t('Processed @current out of @total steps.'),
     'error_message' => t('Batch has encountered an error.'),
   );
 
@@ -316,226 +307,115 @@ function _dennis_term_manager_batch_init($uri) {
 }
 
 /**
- * Process csv file and pass each row to cron queue.
- *
- * @param: $uri
- *   URL of CSV file
+ * Process operations and pass each to cron queue.
  */
-function dennis_term_manager_csv_process($options, &$context) {
+function dennis_term_manager_queue_operation($options, &$context) {
   global $user;
 
+  $operationItem =  $options['operation_item'];
   $file_path = $options['file_path'];
-  $start = $options['start'];
-  $end = $options['end'];
 
-  // Get current logged in user id.
-  $user_id = $user->uid ? $user->uid : '';
   // Get the que to handle the.
   $q = DrupalQueue::get('dennis_term_manager_queue');
 
-  if (file_exists($file_path)) {
+  // Set initial batch parameters.
+  if (empty($context['sandbox'])) {
+    $context['sandbox'] = array();
+  }
 
-    // Get file extension.
-    $file_info = pathinfo($file_path);
-    $delimiter = $file_info['extension'] == 'csv' ? ',' : "\t";
+  // Create file for reporting error.
+  // Use the same file name and change extenstion.
+  $report_file_name = preg_replace("/[.](.*)/", "-report.txt", $file_path);
 
-    // Detect line endings.
-    ini_set('auto_detect_line_endings',TRUE);
+  if (($report_handle = fopen($report_file_name, "w")) !== FALSE) {
+    switch ($operationItem->action) {
+      case DENNIS_TERM_MANAGER_ACTION_MERGE:
 
-    // Set initial batch parameters.
-    if (empty($context['sandbox'])) {
-      $context['sandbox'] = array();
-      $context['sandbox']['progress'] = 0;
-      $context['sandbox']['http_requests_count'] = 0;
-    }
-
-    // Get the file content.
-    if (($handle = fopen($file_path, "r")) !== FALSE) {
-
-      // Create file for reporting error.
-      // Use the same file name and change extenstion.
-      $report_file_name = preg_replace("/[.](.*)/", ".txt", $file_path);
-
-      if (($report_handle = fopen($report_file_name, "w")) !== FALSE) {
-        // Get columns mapping.
-        // - This will also move the file pointer to the second row.
-        $heading_row = fgetcsv($handle, 1000, $delimiter);
-        $columns = array_flip($heading_row);
-
-        while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-          // Go to the last processed line.
-          // We need to skip this way because fgetcsv() works only inside while.
-          $processed_items = $context['sandbox']['progress'];
-          $context['sandbox']['progress']++;
-
-          if ($start <= $processed_items && $processed_items < $end) {
-            // Good for processing.
+        // Find all child terms of source term.
+        $children = taxonomy_get_children($operationItem->tid);
+        if (!empty($children)) {
+          foreach ($children as $child) {
+            // Change parent of each child term to target term.
+            $childData['tid'] = $child->tid;
+            $childData['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT;
+            $childData['parent_tid'] =  $operationItem->target_tid;
+            // Push each "merge move parent" action into the queue.
+            $q->createItem($data);
           }
-          else {
-            // Skip already prcessed rows.
-            continue 1;
-          }
-
-          // Array containing parameters from the CSV.
-          $parameters = array();
-          foreach (dennis_term_manager_default_columns() as $column) {
-            $parameters[$column] = isset($data[$columns[$column]]) ? $data[$columns[$column]] : "";
-          }
-          $parameters['row'] = $context['sandbox']['progress'];
-          $parameters['user_id'] = $user_id;
-
-          $data = array(
-            'action' => $parameters['action'],
-            'row' => $parameters['row'],
-            'uid' => $user_id,
-            'report_filename' => $report_file_name,
-          );
-
-          if ($vocabulary = _dennis_term_manager_get_vocabulary($parameters['vocabulary_name'])) {
-            $data['vocabulary_id'] = $vocabulary->vid;
-            if ($parameters['action'] != DENNIS_TERM_MANAGER_ACTION_CREATE) {
-              // Get source tid.
-              if ($source_tid = _dennis_term_manager_get_tid($parameters['term_name'], $vocabulary->machine_name)) {
-                $data['source_tid'] = $source_tid;
-              }
-              else {
-                drupal_set_message(t("Source term '@term_name' does not exist in vocabulary '@vocab'", array(
-                  '@term_name' => $parameters['term_name'],
-                  '@vocab' => $parameters['vocabulary_name'],
-                )));
-                continue 1;
-              }
-            }
-            // Parse target term name.
-            $target_term_name = '';
-            preg_match("/>->[ ]?+(.*)/", decode_entities($parameters['target']), $matches);
-            if (isset($matches[1])) {
-              $target_term_name = $matches[1];
-            }
-          }
-          else {
-            drupal_set_message(t("There is no vocabulary @vocab exists in row @row", array(
-              '@row' => $parameters['row'],
-              '@vocab' => $parameters['vocabulary_name'],
-            )));
-            continue 1;
-          }
-
-          switch ($parameters['action']) {
-            case DENNIS_TERM_MANAGER_ACTION_MERGE:
-              // Get Target tid.
-              if ($target_tid = _dennis_term_manager_get_tid($target_term_name, $vocabulary->machine_name)) {
-                $data['target_tid'] = $target_tid;
-              }
-              else {
-                drupal_set_message(t("Target term '@target' does not exist in vocabulary '@vocab'", array(
-                  '@target' => $parameters['target'],
-                  '@vocab' => $parameters['vocabulary_name'],
-                )));
-                continue 2;
-              }
-
-              // Store the original source tid in order to reset it after.
-              $original_source_tid = $data['source_tid'];
-
-              // Get all nodes with target term reference.
-              $nodes = _dennis_term_manager_get_associated_nodes($target_tid);
-              if (!empty($nodes)) {
-                // Find all child terms of target term.
-                $children = taxonomy_get_children($target_tid);
-                if (!empty($children)) {
-                  foreach ($children as $child) {
-                    // Change parent of each child term to source term.
-                    $data['source_tid'] = $child->tid;
-                    $data['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT;
-                    // Push each "merge move parent" action into the queue.
-                    $q->createItem($data);
-                  }
-                }
-              }
-              // Reset action and source_tid.
-              $data['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
-              $data['source_tid'] = $original_source_tid;
-              // Create queue for each node.
-              foreach ($nodes as $node) {
-                $data['nid'] = $node->nid;
-                // Queue item for Merge action.
-                $q->createItem($data);
-              }
-              unset($data['nid']);
-              // Change action to delete after Pushing nodes into the queue.
-              $data['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
-              $data['term_name'] = $target_term_name;
-              $data['source_tid'] = $target_tid;
-              break;
-
-            case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
-              $data['parent_term'] = $parameters['parent_term'];
-              // Get Target tid.
-              if ($target_tid = _dennis_term_manager_get_tid($parameters['parent_term'], $vocabulary->machine_name)) {
-                $data['target_tid'] = $target_tid;
-              }
-              else {
-                // Make term a root item.
-                $data['target_tid'] = 0;
-              }
-              // Validate parent term if it is not child or source term.
-              if (!_dennis_term_manager_term_is_parent($data['target_tid'], $data['source_tid'])) {
-                drupal_set_message(t("Parent can not be moved. Because Term @parent_term is child of source term @term_name", array(
-                  '@parent_term' => $data['parent_term'],
-                  '@term_name' => $parameters['term_name'],
-                )));
-              }
-              break;
-
-            case DENNIS_TERM_MANAGER_ACTION_CREATE:
-              // If parent term is specidied, check if this term exist.
-              $parent_term = _dennis_term_manager_get_tid($parameters['parent_term'], $vocabulary->machine_name);
-              if ($parameters['parent_term'] && empty($parent_term)) {
-                drupal_set_message(t("Parent term '@parent_term' does not exist in vocabulary '@vocab' in row @row", array(
-                  '@parent_term' => $parameters['parent_term'],
-                  '@vocab' => $parameters['vocabulary_name'],
-                  '@row' => $data['row'],
-                )));
-                continue 2;
-              }
-
-              $data['parent_term'] = $parameters['parent_term'];
-              $data['term_name'] = $parameters['term_name'];
-              $data['vocabulary_machine_name'] = $vocabulary->machine_name;
-              break;
-
-            case DENNIS_TERM_MANAGER_ACTION_DELETE:
-              $data['vocabulary_machine_name'] = $vocabulary->machine_name;
-              $data['term_name'] = $parameters['term_name'];
-              break;
-
-            case DENNIS_TERM_MANAGER_ACTION_RENAME:
-              $data['term_name'] = $parameters['term_name'];
-              $data['new_name'] = $parameters['new_name'];
-              $data['vocabulary_machine_name'] = $vocabulary->machine_name;
-              break;
-
-            default:
-              continue 2;
-          }
-          $q->createItem($data);
         }
-      }
-      else {
-        drupal_set_message('report file cannot be created');
-      }
+
+        // Get all nodes with source term reference.
+        $nodes = _dennis_term_manager_get_associated_nodes($operationItem->tid);
+        if (!empty($nodes)) {
+          $nodeData['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
+          $nodeData['tid'] = $operationItem->tid;
+          $nodeData['target_tid'] = $operationItem->target_tid;
+          // Create queue for each node.
+          foreach ($nodes as $node) {
+            $nodeData['nid'] = $node->nid;
+            // Queue item for Merge action.
+            $q->createItem($nodeData);
+          }
+        }
+
+        // Delete term once after nodes have been assigned to the target.
+        $deleteData['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
+        $deleteData['tid'] = $operationItem->tid;
+        $q->createItem($deleteData);
+
+        break;
+
+      case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
+        $data['action'] = $operationItem->action;
+        $data['tid'] = $operationItem->tid;
+        $data['parent_tid'] = $operationItem->parent_tid;
+        $q->createItem($data);
+        break;
+
+      case DENNIS_TERM_MANAGER_ACTION_CREATE:
+        $data['action'] = $operationItem->action;
+        $data['term_name'] = $operationItem->term_name;
+        $data['vocabulary_name'] = $operationItem->vocabulary_name;
+        $data['parent_term_name'] = $operationItem->parent_term_name;
+        $q->createItem($data);
+        break;
+
+      case DENNIS_TERM_MANAGER_ACTION_DELETE:
+        $data['action'] = $operationItem->action;
+        $data['tid'] = $operationItem->tid;
+        $q->createItem($data);
+        break;
+
+      case DENNIS_TERM_MANAGER_ACTION_RENAME:
+        $data['action'] = $operationItem->action;
+        $data['tid'] = $operationItem->tid;
+        $data['new_name'] = $operationItem->new_name;
+        $q->createItem($data);
+        break;
+
+      default:
+        continue 2;
     }
-    fclose($handle);
+
+    // Create managed file entry.
+    $query = db_select('file_managed', 'f')
+      ->fields('f', array('fid'))
+      ->condition('f.uri', $report_file_name, '=');
+    $result = $query->execute();
+    if ($row = $result->fetchObject()) {
+      $file = file_load($row->fid);
+    }
+    else {
+      $file = new stdClass();
+    }
+    $file->filename = basename($report_file_name);
+    $file->status = 1;
+    $file->uri = $report_file_name;
+    file_save($file);
   }
   else {
-    drupal_set_message(t("File not found @file", array(
-      '@file' => $file_path,
-    )));
+    drupal_set_message('report file cannot be created');
   }
-
-  // Increase this session http requests.
-  $context['sandbox']['http_requests_count']++;
 }
 
 /**
@@ -574,6 +454,8 @@ function dennis_term_manager_process_queue($max_time = 15) {
  *   
  */
 function dennis_term_manager_process_queue_item($data) {
+  return;
+  // @todo refactor to use new queue item keys.
   // Process each row against their action column and validate their data.
   switch (strtolower($data['action'])) {
     case DENNIS_TERM_MANAGER_ACTION_CREATE:
@@ -746,9 +628,10 @@ function dennis_term_manager_default_columns() {
     'vocabulary_name',
     'term_name',
     'node_count',
-    'parent_term',
+    'parent_term_name',
     'action',
-    'target',
+    'target_term_name',
+    'target_vocabulary_name',
     'new_name',
   );
 }

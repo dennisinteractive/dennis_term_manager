@@ -27,7 +27,7 @@ function dennis_term_manager_views_default_views() {
   $handler->display->display_options['query']['type'] = 'views_query';
   $handler->display->display_options['exposed_form']['type'] = 'basic';
   $handler->display->display_options['pager']['type'] = 'full';
-  $handler->display->display_options['pager']['options']['items_per_page'] = '5';
+  $handler->display->display_options['pager']['options']['items_per_page'] = '30';
   $handler->display->display_options['pager']['options']['offset'] = '0';
   $handler->display->display_options['pager']['options']['id'] = '0';
   $handler->display->display_options['pager']['options']['quantity'] = '5';
@@ -58,7 +58,7 @@ function dennis_term_manager_views_default_views() {
   $handler->display->display_options['filters']['filemime']['table'] = 'file_managed';
   $handler->display->display_options['filters']['filemime']['field'] = 'filemime';
   $handler->display->display_options['filters']['filemime']['operator'] = 'regular_expression';
-  $handler->display->display_options['filters']['filemime']['value'] = 'text/csv|text/tab-separated-values';
+  $handler->display->display_options['filters']['filemime']['value'] = 'text/csv|text/tab-separated-values|text/plain';
 
   /* Display: Block */
   $handler = $view->new_display('block', 'Block', 'block');
