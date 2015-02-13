@@ -232,6 +232,13 @@ class TermManagerDryRun {
    */
   public function delete($term_name, $vocabulary_name) {
     $term = $this->getTerm($term_name, $vocabulary_name);
+    if ($term->node_count > 0) {
+      throw new Exception(t('!vocab > !name cannot be deleted as it has !node_count nodes', array(
+        '!vocab' => $vocabulary_name,
+        '!name' => $term_name,
+        '!node_count' => $term->node_count,
+      )));
+    }
     $term->action = DENNIS_TERM_MANAGER_ACTION_DELETE;
   }
 

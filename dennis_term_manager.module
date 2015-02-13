@@ -318,6 +318,9 @@ function dennis_term_manager_queue_operation($options, &$context) {
   $baseData = array(
     'report_fid' => $options['report_fid'],
     'row' =>  $options['row'],
+    'term_name' => $operationItem->term_name,
+    'tid' => $operationItem->tid,
+    'vid' => $operationItem->vid,
   );
 
   // Get the que to handle the.
@@ -332,7 +335,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
         foreach ($children as $child) {
           // Change parent of each child term to target term.
           $childData = $baseData;
-          $childData['tid'] = $child->tid;
           $childData['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT;
           $childData['parent_tid'] =  $operationItem->target_tid;
           // Push each "merge move parent" action into the queue.
@@ -345,7 +347,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
       if (!empty($nodes)) {
         $nodeData = $baseData;
         $nodeData['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
-        $nodeData['tid'] = $operationItem->tid;
         $nodeData['target_tid'] = $operationItem->target_tid;
         // Create queue for each node.
         foreach ($nodes as $node) {
@@ -358,7 +359,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
       // Delete term once after nodes have been assigned to the target.
       $deleteData = $baseData;
       $deleteData['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
-      $deleteData['tid'] = $operationItem->tid;
       $q->createItem($deleteData);
 
       break;
@@ -366,7 +366,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
     case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
       $data = $baseData;
       $data['action'] = $operationItem->action;
-      $data['tid'] = $operationItem->tid;
       $data['parent_tid'] = $operationItem->parent_tid;
       $q->createItem($data);
       break;
@@ -374,8 +373,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
     case DENNIS_TERM_MANAGER_ACTION_CREATE:
       $data = $baseData;
       $data['action'] = $operationItem->action;
-      $data['term_name'] = $operationItem->term_name;
-      $data['vid'] = $operationItem->vid;
       $data['parent_tid'] = $operationItem->parent_tid;
       $q->createItem($data);
       break;
