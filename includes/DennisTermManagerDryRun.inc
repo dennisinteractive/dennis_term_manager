@@ -56,9 +56,12 @@ class TermManagerDryRun {
    * Execute dry run using specified TSV/CSV file.
    *
    * @param $file_path
-   * @param $delimiter
    */
-  public function execute($file_path, $delimiter) {
+  public function execute($file_path) {
+    // Get file info.
+    $file_info = pathinfo($file_path);
+    $delimiter = $file_info['extension'] == 'csv' ? ',' : "\t";
+
     // Detect line endings.
     ini_set('auto_detect_line_endings',TRUE);
 
@@ -110,26 +113,38 @@ class TermManagerDryRun {
    * @param $vocabulary_name
    */
   public function create($term_name, $vocabulary_name, $parent_term_name) {
-    try {
-      $term = $this->getTerm($term_name, $vocabulary_name);
+    // Check if term already exists.
+    if ($this->getOriginalTerm($term_name, $vocabulary_name)) {
       throw new Exception(t('!vocab > !name already exists', array(
-        '!name' => $term->term_name,
-        '!vocab' => $term->vocabulary_name,
+        '!vocab' => $vocabulary_name,
+        '!name' => $term_name,
       )));
     }
-    catch (Exception $e) {
-      // Assert that parents are valid.
-      if (!empty($parent_term_name)) {
-        $parent = $this->getTerm($parent_term_name, $vocabulary_name);
+    // Assert that parents are valid.
+    if (!empty($parent_term_name)) {
+      $parent = $this->getTerm($parent_term_name, $vocabulary_name);
+      if (empty($parent->tid)) {
+        throw new Exception(t('!vocab > !name has not been created yet', array(
+          '!vocab' => $vocabulary_name,
+          '!name' => $parent_term_name,
+        )));
       }
-      // If term doesn't exist and parent is valid, we can safely create.
-      $term = new TermManagerDryRunItem();
-      $term->term_name = $term_name;
-      $term->vocabulary_name = $vocabulary_name;
-      $term->parent_term_name = $parent_term_name;
-      $term->action = DENNIS_TERM_MANAGER_ACTION_CREATE;
-      $this->termTree[$vocabulary_name][$term_name] = $term;
     }
+    // Check that vocabulary is valid.
+    $vocabulary = _dennis_term_manager_get_vocabulary($vocabulary_name);
+    if (empty($vocabulary->vid)) {
+      throw new Exception(t('!vocab is not a valid vocabulary', array(
+        '!vocab' => $vocabulary_name,
+      )));
+    }
+    // If term doesn't exist and parent is valid, we can safely create.
+    $term = new TermManagerDryRunItem();
+    $term->term_name = $term_name;
+    $term->vid = $vocabulary->vid;
+    $term->vocabulary_name = $vocabulary_name;
+    $term->parent_term_name = $parent_term_name;
+    $term->action = DENNIS_TERM_MANAGER_ACTION_CREATE;
+    $this->termTree[$vocabulary_name][$term_name] = $term;
   }
 
   /**
@@ -190,9 +205,23 @@ class TermManagerDryRun {
    */
   public function rename($term_name, $vocabulary_name, $new_name) {
     $term = $this->getTerm($term_name, $vocabulary_name);
-    $term->term_name = $new_name;
-    $term->description = t('Renamed from %name', array('%name' => $term_name));
+    // Assert that the new name doesn't already exist.
+    if ($existingTerm =  $this->getOriginalTerm($new_name, $vocabulary_name)) {
+      throw new Exception(t('!vocab > !name already exists', array(
+        '!vocab' => $vocabulary_name,
+        '!name' => $new_name,
+      )));
+    }
+    // Copy term.
+    $renamedTerm = clone $term;
+    // Rename term.
+    $renamedTerm->term_name = $new_name;
+    $renamedTerm->description = t('Renamed from %name', array('%name' => $term_name));
+    // Add renamed term to tree (keyed with new name).
+    $this->termTree[$vocabulary_name][$renamedTerm->term_name] = $renamedTerm;
+    // Update original term with action.
     $term->action = DENNIS_TERM_MANAGER_ACTION_RENAME;
+    $term->new_name = $new_name;
   }
 
   /**
@@ -274,6 +303,14 @@ class TermManagerDryRun {
           $target_term = $this->getTerm($term->target_term_name, $term->target_vocabulary_name);
           return $target_term;
           break;
+        case DENNIS_TERM_MANAGER_ACTION_RENAME:
+          // If term has been marked for rename, it cannot be returned.
+          throw new Exception(t('!vocab > !name has been renamed to !new_name', array(
+            '!new_name' => $term->new_name,
+            '!name' => $term->term_name,
+            '!vocab' => $term->vocabulary_name,
+          )));
+          break;
       }
       return $this->termTree[$vocabulary_name][$term_name];
     }
@@ -282,6 +319,18 @@ class TermManagerDryRun {
       '!name' => $term_name,
       '!vocab' => $vocabulary_name
     )));
+  }
+
+  /**
+   * Get original term.
+   *
+   * @param $term_name
+   * @param $vocabulary_name
+   */
+  public function getOriginalTerm($term_name, $vocabulary_name) {
+    if (isset($this->termTree[$vocabulary_name][$term_name])) {
+      return $this->termTree[$vocabulary_name][$term_name];
+    }
   }
 
   /**

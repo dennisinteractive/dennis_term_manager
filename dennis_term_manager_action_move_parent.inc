@@ -13,15 +13,25 @@
  */
 function _dennis_term_manager_process_action_move_parent($data) {
   // Get term by tid.
-  $term = taxonomy_term_load($data['source_tid']);
+  $term = taxonomy_term_load($data['tid']);
   // Change parent.
-  $term->parent = $data['target_tid'];
-  if (!taxonomy_term_save($term)) {
+  if ($parent_term = taxonomy_term_load($data['parent_tid'])) {
+    $term->parent = $parent_term->tid;
+    if (!taxonomy_term_save($term)) {
+      // Send to error report.
+      $error_message = t("Term '@term_name' cannot be moved to @parent", array(
+        '@term_name' => $term->name,
+        '@parent' => $data['parent_tid'],
+      ));
+      _dennis_term_manager_write_report($data['report_fid'], $error_message);
+    }
+  }
+  else {
     // Send to error report.
-    $error_message = t("Term '@term_name' cannot be moved to @parent", array(
+    $error_message = t("Term '@term_name' cannot be moved to missing parent (tid:@parent)", array(
       '@term_name' => $term->name,
-      '@parent' => $data['parent_term'],
+      '@parent' => $data['parent_tid'],
     ));
-    _dennis_term_manager_write_report($data['report_filename'], $error_message);
+    _dennis_term_manager_write_report($data['report_fid'], $error_message);
   }
 }

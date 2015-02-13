@@ -21,7 +21,7 @@ function _dennis_term_manager_process_action_merge($data) {
     $error_message = t('Node ID is not presented in current queue item which belongs to row @row', array(
       '@row' => $data['row'],
     ));
-    _dennis_term_manager_write_report($data['report_filename'], $error_message);
+    _dennis_term_manager_write_report($data['report_fid'], $error_message);
   }
 
   // Set node change status.
@@ -34,9 +34,9 @@ function _dennis_term_manager_process_action_merge($data) {
         foreach ($node->{$info['field_name']} as $tids) {
           // Loop each item where multiple values exist.
           foreach ($tids as $key => $value) {
-            if ($value['tid'] == $data['target_tid']) {
+            if ($value['tid'] == $data['tid']) {
               // Replace target tid by source tid.
-              $node->{$info['field_name']}[LANGUAGE_NONE][$key]['tid'] = $data['source_tid'];
+              $node->{$info['field_name']}[LANGUAGE_NONE][$key]['tid'] = $data['target_tid'];
               $node_changed = TRUE;
             }
           }
