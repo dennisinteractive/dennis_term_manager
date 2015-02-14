@@ -264,10 +264,6 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  * Prepare a batch definition that will process the file rows.
  */
 function _dennis_term_manager_batch_init($uri) {
-  // Create file for reporting error.
-  // - Use the same file name and change extenstion.
-  $report_file_name = preg_replace("/[.](.*)/", "-report.txt", $uri);
-  $report_file = _dennis_term_manager_open_report($report_file_name);
 
   // Dry Run to validate and get operation list.
   $dryRun = new TermManagerDryRun();
@@ -278,6 +274,12 @@ function _dennis_term_manager_batch_init($uri) {
     // Halt batch.
     return;
   }
+
+  // Create file for reporting error.
+  // - Use the same file name and change extenstion.
+  $date = date('Y-m-d_H-i-s', REQUEST_TIME);
+  $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $uri);
+  $report_file = _dennis_term_manager_open_report($report_file_name);
 
   // Add each operation to the batch.
   $operations = array();

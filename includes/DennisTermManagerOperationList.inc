@@ -66,9 +66,14 @@ class TermManagerOperationList implements Iterator, Countable  {
    */
   public function outputCSV($file_path, $delimiter) {
     // Output dry run taxonomy.
-    $date = date('Y-m-d_H-i-s');
+    $date = date('Y-m-d_H-i-s', REQUEST_TIME);
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-errors.$1", $file_path);
-    $fp = fopen($file_name, 'w');
+
+    // Create managed file and open for writing.
+    $file = _dennis_term_manager_open_report($file_name);
+    $fp = fopen($file->uri, 'w');
+
+    // Add Headings.
     $columns = array_merge(dennis_term_manager_default_columns(), array('error'));
     fputcsv($fp, $columns, $delimiter, '"');
 
@@ -82,11 +87,6 @@ class TermManagerOperationList implements Iterator, Countable  {
     }
     fclose($fp);
 
-    // Create managed file to show in report list.
-    $file = new stdClass();
-    $file->filename = basename($file_name);
-    $file->status = 1;
-    $file->uri = $file_name;
     file_save($file);
   }
 

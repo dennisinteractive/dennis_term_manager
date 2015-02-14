@@ -366,9 +366,14 @@ class TermManagerDryRun {
    */
   protected function outputCSV($file_path, $delimiter) {
     // Output dry run taxonomy.
-    $date = date('Y-m-d_H-i-s');
+    $date = date('Y-m-d_H-i-s', REQUEST_TIME);
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-dry_run.$1", $file_path);
-    $fp = fopen($file_name, 'w');
+
+    // Create managed file and open for writing.
+    $file = _dennis_term_manager_open_report($file_name);
+    $fp = fopen($file->uri, 'w');
+
+    // Add Headings.
     $columns = array_merge(dennis_term_manager_default_columns(), array('description'));
     fputcsv($fp, $columns, $delimiter, '"');
 
@@ -392,11 +397,7 @@ class TermManagerDryRun {
     }
     fclose($fp);
   
-    // Create managed file to show in report list.
-    $file = new stdClass();
-    $file->filename = basename($file_name);
-    $file->status = 1;
-    $file->uri = $file_name;
+    // Saved managed file.
     file_save($file);
   }
 
