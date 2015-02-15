@@ -261,6 +261,10 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
     drupal_set_message(t('file not found'));
   }
   else {
+    // Make file permanent.
+    $file->status = FILE_STATUS_PERMANENT;
+    file_save($file);
+
     // Add file usage.
     file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
 
@@ -271,6 +275,51 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
     $batch = _dennis_term_manager_batch_init($file->uri);
     batch_set($batch);
   }
+}
+
+/**
+ * Implements hook_file_download().
+ *
+ * Handle private file permissions.
+ */
+function dennis_term_manager_file_download($uri, $field_type = 'file') {
+  // Get the file record based on the URI. If not in the database just return.
+  $files = file_load_multiple(array(), array('uri' => $uri));
+  if (count($files)) {
+    foreach ($files as $item) {
+      // Since some database servers sometimes use a case-insensitive comparison
+      // by default, double check that the filename is an exact match.
+      if ($item->uri === $uri) {
+        $file = $item;
+        break;
+      }
+    }
+  }
+  if (!isset($file)) {
+    return;
+  }
+
+  // Access denied by default.
+  $denied = TRUE;
+
+  // If the file is used by dennis_term_manager, check that the current user has access.
+  //dennis_term_manager
+  $usage = file_usage_list($file);
+  if (!empty($usage['dennis_term_manager']['dennis_term_manager_csv_file'])) {
+    if (user_access('administer dennis term manager')) {
+      // Grant access to user with term manager permissions.
+      $denied = FALSE;
+    }
+  }
+
+  // Access specifically denied.
+  if ($denied) {
+    return -1;
+  }
+
+  // Access is granted.
+  $headers = file_get_content_headers($file);
+  return $headers;
 }
 
 /**
@@ -326,8 +375,6 @@ function _dennis_term_manager_batch_init($uri) {
  * Process operations and pass each to cron queue.
  */
 function dennis_term_manager_queue_operation($options, &$context) {
-  global $user;
-
   $operationItem =  $options['operation_item'];
 
   $baseData = array(
@@ -607,7 +654,11 @@ function _dennis_term_manager_write_report($fid, $error_message) {
  * @param $file_path
  */
 function _dennis_term_manager_open_report($file_path) {
-  return file_save_data('', $file_path, FILE_EXISTS_RENAME);
+  // Create new managed file.
+  $file = file_save_data('', $file_path, FILE_EXISTS_RENAME);
+  // Add file usage.
+  file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
+  return $file;
 }
 
 /**
