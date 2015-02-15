@@ -209,13 +209,14 @@ function dennis_term_manager_help($path, $arg) {
 function dennis_term_manager_form($form, &$form_state) {
   $form = array();
 
-  // @todo : change storage to private.
+  // Store CSV/TSV files and reports in private file location if available.
+  $location = variable_get('file_private_path', '') ? 'private://' : 'public://';
   $form['csv_file'] = array(
     '#title' => t('Import'),
     '#type' => 'managed_file',
     '#description' => t('The CSV file to be processed.'),
     '#upload_validators' => array('file_validate_extensions' => array('csv tsv')),
-    '#upload_location' => 'public://',
+    '#upload_location' => $location,
   );
 
   $form['buttons']['submit'] = array(
