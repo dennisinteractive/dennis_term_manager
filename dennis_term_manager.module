@@ -210,7 +210,19 @@ function dennis_term_manager_form($form, &$form_state) {
   $form = array();
 
   // Store CSV/TSV files and reports in private file location if available.
-  $location = variable_get('file_private_path', '') ? 'private://' : 'public://';
+  if (variable_get('file_private_path', '')) {
+    $location = 'private://';
+  }
+  else {
+    $location = 'public://';
+    // Warn user that files will be publicly accessible.
+    $config_link = l(
+        'Please configure the private file system path to store report privately',
+        'admin/config/media/file-system'
+    );
+    $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
+    drupal_set_message($warning_message, 'warning');
+  }
   $form['csv_file'] = array(
     '#title' => t('Import'),
     '#type' => 'managed_file',
