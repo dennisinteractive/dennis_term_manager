@@ -23,6 +23,16 @@ function _dennis_term_manager_process_action_delete($data) {
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
     return;
   }
+  // Check if term has children.
+  if ($children = taxonomy_get_children($data['tid'])) {
+    // Send to error report.
+    $error_message = t('You can not delete term @term_name because it has children, in row @row.', array(
+      '@term_name' => $data['term_name'],
+      '@row' => $data['row'],
+    ));
+    _dennis_term_manager_write_report($data['report_fid'], $error_message);
+    return;
+  }
   // Attempt delete.
   if ($term = taxonomy_term_load($data['tid'])) {
     if (taxonomy_term_delete($term->tid) != SAVED_DELETED) {
