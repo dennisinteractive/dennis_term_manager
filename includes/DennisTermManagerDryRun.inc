@@ -29,6 +29,11 @@ class TermManagerDryRun {
   protected function buildTermTree() {
     // Get current taxonomy from DB.
     $query = _dennis_term_manager_export_terms_query();
+
+    // Get taxonomy child count.
+    $query->leftJoin('taxonomy_term_hierarchy', 'c', 'c.parent = t.tid');
+    $query->addExpression('GROUP_CONCAT(DISTINCT c.tid)', 'child_tids');
+
     $result = $query->execute();
 
     // List of columns to include in tree items.
@@ -42,6 +47,14 @@ class TermManagerDryRun {
       foreach ($columns as $column) {
         $item->{$column} = isset($row->{$column}) ? $row->{$column} : '';
       }
+      // Add children if available.
+      if (!empty($row->child_tids)) {
+        $tids = array_map('intval', explode(',', $row->child_tids));
+        foreach ($tids as $tid) {
+          $item->addChild($tid);
+        }
+      }
+      // Add tree item.
       $this->addTreeItem($item);
     }
   }
@@ -166,6 +179,15 @@ class TermManagerDryRun {
       )));
     }
 
+    // Get current parent.
+    if (!empty($term->parent_term_name)) {
+      $current_parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      // Remove child from current parent.
+      $current_parent_term->removeChild($term->tid);
+      // Add child to new parent.
+      $parent_term->addChild($term->tid);
+    }
+
     // Store parent term data.
     $term->parent_term_name = $parent_term->term_name;
     $term->parent_tid = $parent_term->tid;
@@ -233,6 +255,13 @@ class TermManagerDryRun {
         '!node_count' => $term->node_count,
       )));
     }
+    // Prevent deleted terms with children.
+    if ($term->isParent()) {
+      throw new Exception(t('!vocab > !name cannot be deleted as it has children', array(
+        '!vocab' => $vocabulary_name,
+        '!name' => $term_name,
+      )));
+    }
     $term->action = DENNIS_TERM_MANAGER_ACTION_DELETE;
   }
 
@@ -250,9 +279,18 @@ class TermManagerDryRun {
     if ($term_name == $target_term_name && $vocabulary_name == $target_vocabulary_name) {
       throw new Exception(t('Cannot merge with self'));
     }
+
     // Ensure target term can be retrieved.
     $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name);
     $term = $this->getTreeItem($term_name, $vocabulary_name);
+
+    // Prevent merging terms with children.
+    if ($term->isParent()) {
+      throw new Exception(t('!vocab > !name cannot be merged as it has children', array(
+        '!vocab' => $vocabulary_name,
+        '!name' => $term_name,
+      )));
+    }
 
     // Ensure target vocabulary is allowed in target field.
     if ($target_vocabulary_name != $vocabulary_name) {

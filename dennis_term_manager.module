@@ -150,10 +150,6 @@ function _dennis_term_manager_export_terms_query() {
   // Group by tid to get node counts for each term.
   $query->groupBy('t.tid');
 
-  // Sort results by vocabulary, then by name.
-  $query->orderBy('t.vid', 'ASC');
-  $query->orderBy('t.name', 'ASC');
-
   return $query;
 }
 
