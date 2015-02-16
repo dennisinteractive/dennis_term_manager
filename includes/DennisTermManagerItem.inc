@@ -38,6 +38,7 @@ class TermManagerItem {
       case 'parent_term_name':
       case 'target_term_name':
       case 'target_vocabulary_name':
+      case 'target_field':
       case 'new_name':
       case 'description':
       case 'error':

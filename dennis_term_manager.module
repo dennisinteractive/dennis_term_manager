@@ -403,6 +403,8 @@ function dennis_term_manager_queue_operation($options, &$context) {
         $nodeData = $baseData;
         $nodeData['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
         $nodeData['target_tid'] = $operationItem->target_tid;
+        $nodeData['target_vid'] = $operationItem->target_vid;
+        $nodeData['target_field'] = $operationItem->target_field;
         // Create queue for each node.
         foreach ($nodes as $node) {
           $nodeData['nid'] = $node->nid;
@@ -665,6 +667,60 @@ function _dennis_term_manager_decode_specific_chars($string) {
 }
 
 /**
+ * Get allowed vocabularies for specified field.
+ *
+ * @param $field_name
+ */
+function _dennis_term_manager_get_field_allowed_vocabularies($field_name) {
+  // Return cached allowed vocabularies if available.
+  $allowed_vocabularies = &drupal_static(__FUNCTION__ . $field_name, FALSE);
+  if ($allowed_vocabularies !== FALSE) {
+    return $allowed_vocabularies;
+  }
+
+  // Build arry of allowed vocabularies.
+  $allowed_vocabularies = array();
+  if ($field_info = field_info_field($field_name)) {
+    if (isset($field_info['settings']['allowed_values']) && is_array($field_info['settings']['allowed_values'])) {
+      foreach ($field_info['settings']['allowed_values'] as $allowed_value) {
+        if (isset($allowed_value['vocabulary'])) {
+          if ($vocabulary = taxonomy_vocabulary_machine_name_load($allowed_value['vocabulary'])) {
+            $allowed_vocabularies[$vocabulary->vid] = $allowed_value['vocabulary'];
+          }
+        }
+      }
+    }
+  }
+
+  return $allowed_vocabularies;
+}
+
+/**
+ * Get allowed fields for specified vocabulary.
+ *
+ * @param $vid
+ */
+function _dennis_term_manager_get_vocabulary_allowed_fields($vid) {
+  // Return cached allowed fields if available.
+  $allowed_fields = &drupal_static(__FUNCTION__ . $vid, FALSE);
+  if ($allowed_fields !== FALSE) {
+    return $allowed_fields;
+  }
+
+  // Build array of allowed fields for this vocabulary.
+  $allowed_fields = array();
+  $taxonomy_fields = field_read_fields(array('type' => 'taxonomy_term_reference'));
+  foreach ($taxonomy_fields as $field_info) {
+    $allowed_vocabularies = _dennis_term_manager_get_field_allowed_vocabularies($field_info['field_name']);
+    if (isset($allowed_vocabularies[$vid])) {
+      $allowed_fields[] = $field_info['field_name'];
+    }
+  }
+
+  return $allowed_fields;
+}
+
+/**
  * CSV/TSV files should always have these columns.
  */
 function dennis_term_manager_default_columns() {
@@ -676,6 +732,7 @@ function dennis_term_manager_default_columns() {
     'action',
     'target_term_name',
     'target_vocabulary_name',
+    'target_field',
     'new_name',
   );
 }

@@ -245,7 +245,7 @@ class TermManagerDryRun {
    * @param $target_vocabulary_name
    * @throws Exception
    */
-  protected function merge($term_name, $vocabulary_name, $target_term_name, $target_vocabulary_name) {
+  protected function merge($term_name, $vocabulary_name, $target_term_name, $target_vocabulary_name, $target_field = '') {
     // Prevent merge with self.
     if ($term_name == $target_term_name && $vocabulary_name == $target_vocabulary_name) {
       throw new Exception(t('Cannot merge with self'));
@@ -253,6 +253,36 @@ class TermManagerDryRun {
     // Ensure target term can be retrieved.
     $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name);
     $term = $this->getTreeItem($term_name, $vocabulary_name);
+
+    // Ensure target vocabulary is allowed in target field.
+    if ($target_vocabulary_name != $vocabulary_name) {
+      if (empty($target_field)) {
+        // Get target vocabulary by name.
+        $target_vocabulary = _dennis_term_manager_get_vocabulary($vocabulary_name);
+        $valid_fields = _dennis_term_manager_get_vocabulary_allowed_fields($target_vocabulary->vid);
+        throw new ErrorException(t('You must specify a target_field when merge across vocabularies: !valid_fields', array(
+          '!valid_fields' => implode(', ', $valid_fields),
+        )));
+      }
+      else {
+        // Get target vocabulary by name.
+        $target_vocabulary = _dennis_term_manager_get_vocabulary($target_vocabulary_name);
+
+        // Check that target vocabulary is allowed in the target field.
+        $target_fields = array_map('trim', explode(',', $target_field));
+        foreach ($target_fields as $field_name) {
+          $allowed_vocabularies = _dennis_term_manager_get_field_allowed_vocabularies($field_name);
+          if (!isset($allowed_vocabularies[$target_vocabulary->vid])) {
+            $valid_fields = _dennis_term_manager_get_vocabulary_allowed_fields($target_vocabulary->vid);
+            throw new ErrorException(t('!field cannot contain !vocab terms, please use one of the following: !valid_fields', array(
+              '!vocab' => $target_vocabulary_name,
+              '!field' => $field_name,
+              '!valid_fields' => implode(', ', $valid_fields),
+            )));
+          }
+        }
+      }
+    }
 
     // Update new count on target.
     $target_term->node_count += $term->node_count;
@@ -408,7 +438,7 @@ class TermManagerDryRun {
     switch ($operation->action) {
       case DENNIS_TERM_MANAGER_ACTION_MERGE:
         try {
-          $this->merge($operation->term_name, $operation->vocabulary_name, $operation->target_term_name, $operation->target_vocabulary_name);
+          $this->merge($operation->term_name, $operation->vocabulary_name, $operation->target_term_name, $operation->target_vocabulary_name, $operation->target_field);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();
