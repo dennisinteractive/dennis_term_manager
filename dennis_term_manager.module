@@ -299,27 +299,20 @@ function dennis_term_manager_file_download($uri, $field_type = 'file') {
     return;
   }
 
-  // Access denied by default.
-  $denied = TRUE;
-
   // If the file is used by dennis_term_manager, check that the current user has access.
-  //dennis_term_manager
   $usage = file_usage_list($file);
-  if (!empty($usage['dennis_term_manager']['dennis_term_manager_csv_file'])) {
+  if (isset($usage['dennis_term_manager']['dennis_term_manager_csv_file'])) {
     if (user_access('administer dennis term manager')) {
       // Grant access to user with term manager permissions.
-      $denied = FALSE;
+      $headers = file_get_content_headers($file);
+      return $headers;
     }
-  }
-
-  // Access specifically denied.
-  if ($denied) {
+    // Access specifically denied.
     return -1;
   }
 
-  // Access is granted.
-  $headers = file_get_content_headers($file);
-  return $headers;
+  // Not a term manager file so return null.
+  return;
 }
 
 /**
