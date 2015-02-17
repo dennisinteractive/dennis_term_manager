@@ -87,6 +87,10 @@ class TermManagerOperationList implements Iterator, Countable  {
     }
     fclose($fp);
 
+    // Clear stat cache to get correct filesize.
+    clearstatcache(FALSE, $file->uri);
+
+    // Save managed file.
     file_save($file);
   }
 

@@ -42,11 +42,12 @@ Following are the assumptions made when developing this module:
 Examples
 ========
 
-| vocabulary_name | term_name    | parent_term | action      | target               | new_name | description                                        |
-| Category        | Android      | Server      | move parent |                      |          | Make "Android" child of "Mobile"                   |
-| Category        | Android      |             | move parent |                      |          | Make "Android" a root term                         |
-| Category        | Android      |             | rename      |                      | Robot    | Rename "Android" to "Robot"                        |
-| Category        | Teleporter   |             | create      |                      |          | Create new term "Teleporter"                       |
-| Category        | Teleporter   | Mobile      | create      |                      |          | Create new term "Teleporter" with parent "Mobile"  |
-| Category        | Android      |             | delete      |                      |          | Delete "Android"                                   |
-| Category        | Apps         |             | merge       | Category >-> Android |          | Merge "Android" content into "Apps"                |
+| vocabulary_name | term_name    | parent_term_name | action      | target_vocabulary_name | target_term_name     | new_name | description                                        |
+| Category        | Android      | Server           | move parent |                        |                      |          | Make "Android" child of "Mobile"                   |
+| Category        | Android      |                  | move parent |                        |                      |          | Make "Android" a root term                         |
+| Category        | Android      |                  | rename      |                        |                      | Robot    | Rename "Android" to "Robot"                        |
+| Category        | Teleporter   |                  | create      |                        |                      |          | Create new term "Teleporter"                       |
+| Category        | Teleporter   | Mobile           | create      |                        |                      |          | Create new term "Teleporter" with parent "Mobile"  |
+| Category        | Android      |                  | delete      |                        |                      |          | Delete "Android"                                   |
+| Category        | Apps         |                  | merge       | Category               | Android              |          | Merge "Android" content into "Apps"                |
+| Tags            | .com         |                  | merge       | Category               | Android              |          | Merge ".com" content into "Android"                |

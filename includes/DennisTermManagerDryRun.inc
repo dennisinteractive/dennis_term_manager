@@ -460,6 +460,7 @@ class TermManagerDryRun {
     // Output resulting taxonomy.
     foreach ($this->termTree as $vocabulary_name => $items) {
       foreach ($items as $term_name => $item) {
+        // Exclude terms that no longer exist.
         $exclude_operations = array(
           DENNIS_TERM_MANAGER_ACTION_DELETE,
           DENNIS_TERM_MANAGER_ACTION_MERGE,
@@ -468,6 +469,7 @@ class TermManagerDryRun {
         if (in_array($item->action, $exclude_operations)) {
           continue 1;
         }
+        // Add term to report.
         $row = array();
         foreach ($columns as $key) {
           $row[] = $item->{$key};
@@ -476,7 +478,10 @@ class TermManagerDryRun {
       }
     }
     fclose($fp);
-  
+
+    // Clear stat cache to get correct filesize.
+    clearstatcache(FALSE, $file->uri);
+
     // Saved managed file.
     file_save($file);
   }
