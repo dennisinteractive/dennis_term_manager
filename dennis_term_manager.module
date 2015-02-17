@@ -205,6 +205,15 @@ function dennis_term_manager_help($path, $arg) {
 function dennis_term_manager_form($form, &$form_state) {
   $form = array();
 
+  // Display current process.
+  if ($item = dennis_term_manager_get_current_queue_item()) {
+    $report_file = file_load($item->data['report_fid']);
+    $message = t('There is currently an active process. !report_link &raquo;', array(
+      '!report_link' => l('View report', file_create_url($report_file->uri)),
+    ));
+    drupal_set_message($message, 'warning');
+  }
+
   // Store CSV/TSV files and reports in private file location if available.
   if (variable_get('file_private_path', '')) {
     $location = 'private://';
@@ -714,6 +723,16 @@ function _dennis_term_manager_get_vocabulary_allowed_fields($vid) {
   }
 
   return $allowed_fields;
+}
+
+/**
+ * Get the process currently running.
+ */
+function dennis_term_manager_get_current_queue_item() {
+  $queue = DrupalQueue::get('dennis_term_manager_queue');
+  if ($item = $queue->claimItem()) {
+    return $item;
+  }
 }
 
 /**
