@@ -429,6 +429,7 @@ function dennis_term_manager_queue_operation($options, &$context) {
       $data = $baseData;
       $data['action'] = $operationItem->action;
       $data['parent_tid'] = $operationItem->parent_tid;
+      $data['parent_term_name'] = $operationItem->parent_term_name;
       $q->createItem($data);
       break;
 
@@ -436,6 +437,7 @@ function dennis_term_manager_queue_operation($options, &$context) {
       $data = $baseData;
       $data['action'] = $operationItem->action;
       $data['parent_tid'] = $operationItem->parent_tid;
+      $data['parent_term_name'] = $operationItem->parent_term_name;
       $q->createItem($data);
       break;
 
@@ -729,8 +731,18 @@ function _dennis_term_manager_get_vocabulary_allowed_fields($vid) {
  * Get the process currently running.
  */
 function dennis_term_manager_get_current_queue_item() {
-  $queue = DrupalQueue::get('dennis_term_manager_queue');
-  if ($item = $queue->claimItem()) {
+  $query = db_query_range('SELECT data, item_id
+    FROM {queue} q
+    WHERE
+      expire = 0 AND
+      name = :name
+    ORDER BY created ASC',
+    0, 1,
+    array(':name' => 'dennis_term_manager_queue')
+  );
+
+  if ($item = $query->fetchObject()) {
+    $item->data = unserialize($item->data);
     return $item;
   }
 }

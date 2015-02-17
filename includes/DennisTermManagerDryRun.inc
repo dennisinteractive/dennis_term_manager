@@ -130,12 +130,6 @@ class TermManagerDryRun {
     // Assert that parents are valid.
     if (!empty($parent_term_name)) {
       $parent = $this->getTreeItem($parent_term_name, $vocabulary_name);
-      if (empty($parent->tid)) {
-        throw new Exception(t('!vocab > !name has not been created yet', array(
-          '!vocab' => $vocabulary_name,
-          '!name' => $parent_term_name,
-        )));
-      }
     }
     // Check that vocabulary is valid.
     $vocabulary = _dennis_term_manager_get_vocabulary($vocabulary_name);
@@ -163,12 +157,6 @@ class TermManagerDryRun {
   protected function moveParent($term_name, $vocabulary_name, $parent_term_name) {
     $term = $this->getTreeItem($term_name, $vocabulary_name);
 
-    // Get parent and check it's not the same term.
-    $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name);
-    if ($parent_term->tid == $term->tid) {
-      throw new Exception(t('Cannot be parent of self'));
-    }
-
     // Prevent terms being moved more than once per run.
     if ($term->action == DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT) {
       throw new Exception(t('!term_name has already been moved to !parent_term_name', array(
@@ -177,14 +165,32 @@ class TermManagerDryRun {
       )));
     }
 
-    // Get parent's parent.
-    $parents = $this->getParents($parent_term);
-    // Throw exception if term is is the parent of the new parent.
-    if (isset($parents[$term->term_name])) {
-      throw new Exception(t('!term is a parent of !parent', array(
-        '!term' => $term->term_name,
-        '!parent' => $parent_term->term_name,
-      )));
+    // Get parent and check it's not the same term.
+    if (!empty($parent_term_name)) {
+      $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name);
+      $tids_match = $parent_term->tid == $term->tid;
+
+      // Check that names don't match.
+      $names_match = $this->formatKey($term_name) == $this->formatKey($parent_term_name);
+
+      if ($tids_match || $names_match) {
+        throw new Exception(t('!term cannot be parent of self', array(
+          '!term' => $term->term_name,
+        )));
+      }
+
+      // Get parent's parent.
+      $parents = $this->getParents($parent_term);
+      // Throw exception if term is is the parent of the new parent.
+      if (isset($parents[$term->term_name])) {
+        throw new Exception(t('!term is a parent of !parent', array(
+          '!term' => $term->term_name,
+          '!parent' => $parent_term->term_name,
+        )));
+      }
+
+      // Add child to new parent.
+      $parent_term->addChild($term->tid);
     }
 
     // Get current parent.
@@ -192,8 +198,6 @@ class TermManagerDryRun {
       $current_parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
       // Remove child from current parent.
       $current_parent_term->removeChild($term->tid);
-      // Add child to new parent.
-      $parent_term->addChild($term->tid);
     }
 
     // Store parent term data.
