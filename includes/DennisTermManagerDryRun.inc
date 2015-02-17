@@ -232,17 +232,29 @@ class TermManagerDryRun {
    * @param $new_name
    */
   protected function rename($term_name, $vocabulary_name, $new_name) {
+    // Don't allow empty names.
+    $new_name = trim($new_name);
+    if (empty($new_name)) {
+     throw new Exception(t('New name for !vocab > !term_name is empty', array(
+        '!vocab' => $vocabulary_name,
+        '!term_name' => $term_name,
+      )));
+    }
+
+    // Get term to rename.
     $term = $this->getTreeItem($term_name, $vocabulary_name);
+
     // Assert that the new name doesn't already exist.
     if ($existingTerm =  $this->getOriginalTreeItem($new_name, $vocabulary_name)) {
-      // If it's the same term, we are probably changing the casing.
-      if ($existingTerm->tid != $term->tid) {
+      // Throw exception if another term exists with the same name or the name isn't being changed.
+      if ($existingTerm->tid != $term->tid || $term_name === $new_name) {
         throw new Exception(t('!vocab > !name already exists', array(
           '!vocab' => $vocabulary_name,
           '!name' => $new_name,
         )));
       }
     }
+
     // Copy term.
     $renamedTerm = clone $term;
     // Rename term.
@@ -250,6 +262,7 @@ class TermManagerDryRun {
     $renamedTerm->description = t('Renamed from !name', array('!name' => $term_name));
     // Add renamed term to tree (keyed with new name).
     $this->addTreeItem($renamedTerm);
+
     // Update original term with action.
     $term->action = DENNIS_TERM_MANAGER_ACTION_RENAME;
     $term->new_name = $new_name;
@@ -434,8 +447,6 @@ class TermManagerDryRun {
    * @param $str
    */
   protected function formatKey($str) {
-    // Lowercase.
-    $str = strtolower($str);
     // Trim.
     $str = trim($str);
     return $str;
