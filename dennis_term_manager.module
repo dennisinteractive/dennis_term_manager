@@ -132,16 +132,13 @@ function _dennis_term_manager_export_terms_query() {
   $query->addField('t', 'tid', 'tid');
 
   // Get node count for term.
-  $query->addExpression('COUNT(DISTINCT i.nid)', 'node_count');
+  $query->addExpression('(SELECT COUNT(1) FROM taxonomy_index i WHERE i.tid = t.tid)', 'node_count');
 
   // Parent term name.
   $query->addExpression('IF(p.name IS NULL, \'\', p.name)', 'parent_term_name');
 
   // Join on vocabulary of term.
   $query->leftJoin('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
-
-  // Join taxonomy_index to get node usage.
-  $query->leftJoin('taxonomy_index', 'i', 'i.tid = t.tid');
 
   // Parent information.
   $query->leftJoin('taxonomy_term_hierarchy', 'h', 'h.tid = t.tid');
