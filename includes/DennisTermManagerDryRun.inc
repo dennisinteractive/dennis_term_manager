@@ -235,16 +235,19 @@ class TermManagerDryRun {
     $term = $this->getTreeItem($term_name, $vocabulary_name);
     // Assert that the new name doesn't already exist.
     if ($existingTerm =  $this->getOriginalTreeItem($new_name, $vocabulary_name)) {
-      throw new Exception(t('!vocab > !name already exists', array(
-        '!vocab' => $vocabulary_name,
-        '!name' => $new_name,
-      )));
+      // If it's the same term, we are probably changing the casing.
+      if ($existingTerm->tid != $term->tid) {
+        throw new Exception(t('!vocab > !name already exists', array(
+          '!vocab' => $vocabulary_name,
+          '!name' => $new_name,
+        )));
+      }
     }
     // Copy term.
     $renamedTerm = clone $term;
     // Rename term.
     $renamedTerm->term_name = $new_name;
-    $renamedTerm->description = t('Renamed from %name', array('%name' => $term_name));
+    $renamedTerm->description = t('Renamed from !name', array('!name' => $term_name));
     // Add renamed term to tree (keyed with new name).
     $this->addTreeItem($renamedTerm);
     // Update original term with action.

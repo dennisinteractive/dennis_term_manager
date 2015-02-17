@@ -444,16 +444,13 @@ function dennis_term_manager_queue_operation($options, &$context) {
     case DENNIS_TERM_MANAGER_ACTION_DELETE:
       $data = $baseData;
       $data['action'] = $operationItem->action;
-      $data['tid'] = $operationItem->tid;
       $q->createItem($data);
       break;
 
     case DENNIS_TERM_MANAGER_ACTION_RENAME:
+      $data = $baseData;
       $data['action'] = $operationItem->action;
-      $data['tid'] = $operationItem->tid;
       $data['new_name'] = $operationItem->new_name;
-      $data['row'] = $options['row'];
-      $data['report_file_name'] = $report_file_name;
       $q->createItem($data);
       break;
 
