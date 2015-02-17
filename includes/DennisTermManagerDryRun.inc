@@ -98,7 +98,7 @@ class TermManagerDryRun {
     if ($errorList = $this->operationList->getErrorList()) {
       drupal_set_message('Please address the following errors: ', 'error');
       foreach ($errorList as $error) {
-        drupal_set_message($error['vocabulary_name'] . ' > ' . $error['term_name'] . ': ' . $error['message'], 'error');
+        drupal_set_message($error['message'], 'error');
       }
       $this->operationList->outputCSV($file_path, $delimiter);
     }
@@ -167,6 +167,14 @@ class TermManagerDryRun {
     $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name);
     if ($parent_term->tid == $term->tid) {
       throw new Exception(t('Cannot be parent of self'));
+    }
+
+    // Prevent terms being moved more than once per run.
+    if ($term->action == DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT) {
+      throw new Exception(t('!term_name has already been moved to !parent_term_name', array(
+        '!term_name' => $term->term_name,
+        '!parent_term_name' => $term->parent_term_name,
+      )));
     }
 
     // Get parent's parent.
