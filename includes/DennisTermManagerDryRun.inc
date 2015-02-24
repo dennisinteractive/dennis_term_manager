@@ -322,18 +322,15 @@ class TermManagerDryRun {
 
     // Ensure target vocabulary is allowed in target field.
     if ($target_vocabulary_name != $vocabulary_name) {
+      // Get target vocabulary by name.
+      $target_vocabulary = _dennis_term_manager_get_vocabulary($target_vocabulary_name);
       if (empty($target_field)) {
-        // Get target vocabulary by name.
-        $target_vocabulary = _dennis_term_manager_get_vocabulary($vocabulary_name);
         $valid_fields = _dennis_term_manager_get_vocabulary_allowed_fields($target_vocabulary->vid);
         throw new ErrorException(t('You must specify a target_field when merge across vocabularies: !valid_fields', array(
           '!valid_fields' => implode(', ', $valid_fields),
         )));
       }
       else {
-        // Get target vocabulary by name.
-        $target_vocabulary = _dennis_term_manager_get_vocabulary($target_vocabulary_name);
-
         // Check that target vocabulary is allowed in the target field.
         $target_fields = array_map('trim', explode(',', $target_field));
         foreach ($target_fields as $field_name) {
