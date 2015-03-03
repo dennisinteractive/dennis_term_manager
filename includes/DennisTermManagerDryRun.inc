@@ -276,13 +276,6 @@ class TermManagerDryRun {
    */
   protected function delete($term_name, $vocabulary_name) {
     $term = $this->getTreeItem($term_name, $vocabulary_name);
-    if ($term->node_count > 0) {
-      throw new Exception(t('!vocab > !name cannot be deleted as it has !node_count nodes', array(
-        '!vocab' => $vocabulary_name,
-        '!name' => $term_name,
-        '!node_count' => $term->node_count,
-      )));
-    }
     // Prevent deleted terms with children.
     if ($term->isParent()) {
       throw new Exception(t('!vocab > !name cannot be deleted as it has children', array(

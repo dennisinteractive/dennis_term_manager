@@ -439,6 +439,21 @@ function dennis_term_manager_queue_operation($options, &$context) {
       break;
 
     case DENNIS_TERM_MANAGER_ACTION_DELETE:
+
+      // Get all nodes with source term reference.
+      $nodes = _dennis_term_manager_get_associated_nodes($operationItem->tid);
+      if (!empty($nodes)) {
+        $nodeData = $baseData;
+        $nodeData['action'] = $operationItem->action;
+        $nodeData['target_tid'] = $operationItem->target_tid;
+        // Create queue for each node.
+        foreach ($nodes as $node) {
+          $nodeData['nid'] = $node->nid;
+          // Queue item for Merge action.
+          $q->createItem($nodeData);
+        }
+      }
+
       $data = $baseData;
       $data['action'] = $operationItem->action;
       $q->createItem($data);
