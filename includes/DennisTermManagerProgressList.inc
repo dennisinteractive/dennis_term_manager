@@ -10,7 +10,7 @@ class TermManagerProgressList implements Iterator, Countable {
   private $position = 0;
 
   /**
-   * List of OperationItem.
+   * List of ProgressItem.
    * @var array
    */
   protected $progressList = array();

@@ -1,6 +1,6 @@
 <?php
 /**
- * TermManagerProgress
+ * TermManagerProgressItem
  */
 class TermManagerProgressItem {
 
