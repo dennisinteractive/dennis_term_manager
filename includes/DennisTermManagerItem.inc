@@ -35,6 +35,7 @@ class TermManagerItem {
       case 'vocabulary_name':
       case 'term_name':
       case 'node_count':
+      case 'term_child_count':
       case 'parent_term_name':
       case 'target_term_name':
       case 'target_vocabulary_name':

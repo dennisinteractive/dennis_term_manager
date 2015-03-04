@@ -135,6 +135,9 @@ function _dennis_term_manager_export_terms_query() {
   // Get node count for term.
   $query->addExpression('(SELECT COUNT(1) FROM taxonomy_index i WHERE i.tid = t.tid)', 'node_count');
 
+  // Get child term count for term.
+  $query->addExpression('(SELECT COUNT(1) FROM taxonomy_term_hierarchy h WHERE h.parent = t.tid)', 'term_child_count');
+
   // Parent term name.
   $query->addExpression('IF(p.name IS NULL, \'\', p.name)', 'parent_term_name');
 
@@ -403,19 +406,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
 
   switch ($operationItem->action) {
     case DENNIS_TERM_MANAGER_ACTION_MERGE:
-
-      // Find all child terms of source term.
-      $children = taxonomy_get_children($operationItem->tid);
-      if (!empty($children)) {
-        foreach ($children as $child) {
-          // Change parent of each child term to target term.
-          $childData = $baseData;
-          $childData['action'] = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT;
-          $childData['parent_tid'] =  $operationItem->target_tid;
-          // Push each "merge move parent" action into the queue.
-          $q->createItem($childData);
-        }
-      }
 
       // Get all nodes with source term reference.
       $nodes = _dennis_term_manager_get_associated_nodes($operationItem->tid);
@@ -812,6 +802,7 @@ function dennis_term_manager_default_columns() {
     'vocabulary_name',
     'term_name',
     'node_count',
+    'term_child_count',
     'parent_term_name',
     'action',
     'target_term_name',
