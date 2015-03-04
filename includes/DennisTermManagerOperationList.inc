@@ -2,7 +2,7 @@
 /**
  * @file TermManagerOperationList
  */
-class TermManagerOperationList implements Iterator, Countable  {
+class TermManagerOperationList implements Iterator, Countable {
   /**
    * Iterator position.
    * @var integer

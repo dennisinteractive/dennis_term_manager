@@ -10,3 +10,5 @@ files[] = includes/DennisTermManagerDryRun.inc
 files[] = includes/DennisTermManagerDryRunItem.inc
 files[] = includes/DennisTermManagerOperationList.inc
 files[] = includes/DennisTermManagerOperationItem.inc
+files[] = includes/DennisTermManagerProgressList.inc
+files[] = includes/DennisTermManagerProgressItem.inc

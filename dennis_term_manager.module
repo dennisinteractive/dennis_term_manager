@@ -198,30 +198,16 @@ function dennis_term_manager_help($path, $arg) {
 }
 
 /**
- * Show current processes.
- */
-function dennis_term_manager_display_current_processes() {
-  $in_progress = variable_get('dennis_term_manager_in_progress', array());
-  foreach ($in_progress as $fid => $item) {
-    if ($item_count = dennis_term_manager_get_queue_count($item['offset_queue_id'], $item['final_queue_id'])) {
-      $report_file = file_load($item['report_fid']);
-      $message = t('There is currently an active process with !item_count items left to process. !report_link &raquo;', array(
-        '!report_link' => l('View report', file_create_url($report_file->uri)),
-        '!item_count' => $item_count,
-      ));
-      drupal_set_message($message, 'warning');
-    }
-  }
-}
-
-/**
  * Dennis Term Manager Form.
  */
 function dennis_term_manager_form($form, &$form_state) {
   $form = array();
 
   // Display current process.
-  dennis_term_manager_display_current_processes();
+  $progress = new TermManagerProgressList();
+  foreach ($progress as $progress_item) {
+    $progress_item->displayStatus();
+  }
 
   // Store CSV/TSV files and reports in private file location if available.
   if (variable_get('file_private_path', '')) {
@@ -336,6 +322,12 @@ function _dennis_term_manager_batch_init($file) {
   $dryRun->execute($file->uri);
   $operationList = $dryRun->getOperationList();
 
+  // Prevent batch if there are no operation items.
+  if (count($operationList) == 0) {
+    drupal_set_message('There were no valid operations');
+    return;
+  }
+
   if ($operationList->getErrorList()) {
     // Halt batch.
     return;
@@ -348,13 +340,10 @@ function _dennis_term_manager_batch_init($file) {
   $report_file = _dennis_term_manager_open_report($report_file_name);
 
   // Add file in progress.
-  $in_progress = variable_get('dennis_term_manager_in_progress', array());
-  $in_progress[$file->fid] = array(
-    'fid' => $file->fid,
-    'report_fid' => $report_file->fid,
-    'offset_queue_id' => dennis_term_manager_get_last_queue_id(),
-  );
-  variable_set('dennis_term_manager_in_progress', $in_progress);
+  $progress_item = new TermManagerProgressItem($file->fid);
+  $progress_item->setReportFid($report_file->fid);
+  $progress_item->setOffsetQueueId();
+  $progress_item->save();
 
   // Add each operation to the batch.
   $operations = array();
@@ -378,6 +367,7 @@ function _dennis_term_manager_batch_init($file) {
     array(
       array(
         'fid' => $file->fid,
+        'report_fid' => $report_file->fid,
       )
     ),
   );
@@ -506,13 +496,19 @@ function dennis_term_manager_queue_operation_complete($data) {
   // Fid of uploaded file.
   $fid = $data['fid'];
 
+  // Fid of report file.
+  $report_fid = $data['report_fid'];
+
   // Register last queue item ID.
-  dennis_term_manager_in_progress_set_final_queue_id($fid);
+  $progress_item = new TermManagerProgressItem($fid);
+  $progress_item->setFinalQueueId();
+  $progress_item->save();
 
   // Create queue item to clean up this process.
   $queue_data = array(
     'action' => 'complete',
     'fid' => $fid,
+    'report_fid' => $report_fid,
   );
   $q = DrupalQueue::get('dennis_term_manager_queue');
   $q->createItem($queue_data);
@@ -700,6 +696,10 @@ function _dennis_term_manager_write_report($fid, $error_message) {
   if (isset($file->uri) && ($report_handle = fopen($file->uri, "a")) != FALSE) {
     fwrite($report_handle, $error_message . PHP_EOL);
     fclose($report_handle);
+
+    // Clear stat cache to get correct filesize.
+    clearstatcache(FALSE, $file->uri);
+
     file_save($file);
   }
   else {
@@ -788,75 +788,20 @@ function _dennis_term_manager_get_vocabulary_allowed_fields($vid) {
 }
 
 /**
- * Get the qid of the last queue item.
- *
- * - Returns 0 if not available.
- */
-function dennis_term_manager_get_last_queue_id() {
-  $query = db_query_range('SELECT item_id
-    FROM {queue} q
-    WHERE
-      expire = 0 AND
-      name = :name
-    ORDER BY created DESC',
-    0, 1,
-    array(':name' => 'dennis_term_manager_queue')
-  );
-
-  if ($item = $query->fetchObject()) {
-    return $item->item_id;
-  }
-
-  return 0;
-}
-
-/**
- * Get the number of items left to process.
- */
-function dennis_term_manager_get_queue_count($offset, $final) {
-  $query = db_query('SELECT COUNT(item_id) AS item_count
-    FROM {queue} q
-    WHERE
-      expire = 0 AND
-      name = :name AND
-      item_id > :offset AND
-      item_id <= :final',
-    array(
-      ':name' => 'dennis_term_manager_queue',
-      ':offset' => $offset,
-      ':final' => $final,
-    )
-  );
-
-  if ($row = $query->fetchObject()) {
-    return $row->item_count;
-  }
-
-  return 0;
-}
-
-/**
- * Set final queue ID to help reporting.
- */
-function dennis_term_manager_in_progress_set_final_queue_id($fid) {
-  $in_progress = variable_get('dennis_term_manager_in_progress', array());
-  $in_progress[$fid]['final_queue_id'] = dennis_term_manager_get_last_queue_id();
-  variable_set('dennis_term_manager_in_progress', $in_progress);
-}
-
-/**
  * Clean up current process.
  *
  * @param $data
  */
 function _dennis_term_manager_process_action_complete($data) {
-  // fid of uploaded file.
-  $fid = $data['fid'];
-
   // Remove from in progress.
-  $in_progress = variable_get('dennis_term_manager_in_progress', array());
-  unset($in_progress[$fid]);
-  variable_set('dennis_term_manager_in_progress', $in_progress);
+  try {
+    $progress_item = new TermManagerProgressItem($data['fid']);
+    $progress_item->delete();
+  }
+  catch (Exception $e) {
+    // Send to error report.
+    _dennis_term_manager_write_report($data['report_fid'], $e->getMessage());
+  }
 }
 
 /**
