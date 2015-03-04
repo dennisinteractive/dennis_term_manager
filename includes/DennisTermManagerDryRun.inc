@@ -564,7 +564,6 @@ class TermManagerDryRun {
         $operation->target_vid = $term->target_vid;
         $operation->target_tid = $term->target_tid;
         $operation->parent_tid = $term->parent_tid;
-        $operation->parent_term_name = $term->parent_term_name;
       }
 
       // Add operationItem to operationList.
