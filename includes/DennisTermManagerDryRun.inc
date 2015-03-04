@@ -129,7 +129,7 @@ class TermManagerDryRun {
     }
     // Assert that parents are valid.
     if (!empty($parent_term_name)) {
-      $parent = $this->getTreeItem($parent_term_name, $vocabulary_name);
+      $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name);
     }
     // Check that vocabulary is valid.
     $vocabulary = _dennis_term_manager_get_vocabulary($vocabulary_name);
@@ -146,6 +146,13 @@ class TermManagerDryRun {
     $term->parent_term_name = $parent_term_name;
     $term->action = DENNIS_TERM_MANAGER_ACTION_CREATE;
     $this->addTreeItem($term);
+
+    // Add as child of parent item.
+    if (!empty($parent_term_name)) {
+      $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name);
+      // Using term name for new children.
+      $parent_term->addChild($term_name);
+    }
   }
 
   /**
@@ -303,6 +310,13 @@ class TermManagerDryRun {
 
     // Ensure target term can be retrieved.
     $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name);
+    if (empty($target_term->tid)) {
+      throw new Exception(t('!vocab > !name has not been created yet', array(
+        '!vocab' => $target_vocabulary_name,
+        '!name' => $target_term_name,
+      )));
+    }
+
     $term = $this->getTreeItem($term_name, $vocabulary_name);
 
     // Prevent merging terms with children.
