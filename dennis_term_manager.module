@@ -214,10 +214,10 @@ function dennis_term_manager_form($form, &$form_state) {
 
   // Store CSV/TSV files and reports in private file location if available.
   if (variable_get('file_private_path', '')) {
-    $location = 'private://';
+    $location = 'private://term_manager';
   }
   else {
-    $location = 'public://';
+    $location = 'public://term_manager';
     // Warn user that files will be publicly accessible.
     $config_link = l(
         'Please configure the private file system path to store report privately',
@@ -810,4 +810,14 @@ function dennis_term_manager_default_columns() {
     'target_field',
     'new_name',
   );
+}
+
+/**
+ * Implements hook_fe_paths_file_process_available_alter().
+ */
+function dennis_term_manager_fe_paths_file_process_available_alter(&$allow_move, $file) {
+  // Prevent fe_paths from moving the uploaded CSV files.
+  if (strpos($file->uri, '/term_manager/') !== FALSE) {
+    $allow_move = FALSE;
+  }
 }
