@@ -96,7 +96,6 @@ class TermManagerDryRun {
   
     // Display dry run errors to the end user.
     if ($errorList = $this->operationList->getErrorList()) {
-      drupal_set_message('Please address the following errors: ', 'error');
       foreach ($errorList as $error) {
         drupal_set_message($error['message'], 'error');
       }
@@ -380,6 +379,14 @@ class TermManagerDryRun {
    */
   protected function getTreeItem($term_name, $vocabulary_name) {
     if ($term = $this->getOriginalTreeItem($term_name, $vocabulary_name)) {
+
+      if ($term->duplicated) {
+        throw new Exception(t('!vocab > !name is duplicated. This needs to be fixed manually.', array(
+          '!name' => $term->term_name,
+          '!vocab' => $term->vocabulary_name,
+        )));
+      }
+
       switch ($term->action) {
         case DENNIS_TERM_MANAGER_ACTION_DELETE:
           // If term has been marked for delete, it cannot be returned.
@@ -442,7 +449,20 @@ class TermManagerDryRun {
     $vocabulary_key = $this->formatKey($item->vocabulary_name);
     $term_key = $this->formatKey($item->term_name);
     // Add item to tree.
-    $this->termTree[$vocabulary_key][$term_key] = $item;
+    if (!isset($this->termTree[$vocabulary_key][$term_key])) {
+      $this->termTree[$vocabulary_key][$term_key] = $item;
+    }
+    else {
+      $this->termTree[$vocabulary_key][$term_key]->duplicated = TRUE;
+      $message = (t('!vocab > !name is duplicated. This needs to be fixed manually.',
+        array(
+          '!name' => $item->term_name,
+          '!vocab' => $item->vocabulary_name,
+        )
+      ));
+      drupal_set_message($message, 'warning'
+      );
+    }
   }
 
   /**
