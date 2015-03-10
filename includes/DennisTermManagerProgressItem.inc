@@ -53,9 +53,11 @@ class TermManagerProgressItem {
       unset($in_progress[$this->fid]);
       variable_set('dennis_term_manager_in_progress', $in_progress);
     }
-    throw new Exception(t('File !fid does not exist', array(
-      '!fid' => $this->fid,
-    )));
+    else {
+      throw new Exception(t('File !fid does not exist', array(
+        '!fid' => $this->fid,
+      )));
+    }
   }
 
   /**
@@ -164,7 +166,7 @@ class TermManagerProgressItem {
       '!report_link' => $report_link,
       '!item_count' => $this->getQueueCount(),
     ));
-    drupal_set_message($message, 'warning');
+    drupal_set_message($message, 'status');
   }
 
   /**
