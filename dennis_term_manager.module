@@ -828,6 +828,8 @@ function _dennis_term_manager_process_action_complete($data) {
   try {
     $progress_item = new TermManagerProgressItem($data['fid']);
     $progress_item->delete();
+    // Update report.
+    _dennis_term_manager_write_report($data['report_fid'], t('Completed'));
   }
   catch (Exception $e) {
     // Send to error report.
