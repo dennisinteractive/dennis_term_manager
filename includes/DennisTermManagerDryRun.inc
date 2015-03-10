@@ -289,6 +289,18 @@ class TermManagerDryRun {
         '!name' => $term_name,
       )));
     }
+
+    // Remove term from parent.
+    if (!empty($term->parent_term_name)) {
+      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      if (!empty($term->tid)) {
+        $parent_term->removeChild($term->tid);
+      }
+      else {
+        $parent_term->removeChild($term->term_name);
+      }
+    }
+
     $term->action = DENNIS_TERM_MANAGER_ACTION_DELETE;
   }
 
@@ -356,6 +368,17 @@ class TermManagerDryRun {
     // Update new count on target.
     $target_term->node_count += $term->node_count;
     $term->node_count = 0;
+
+    // Remove term from parent.
+    if (!empty($term->parent_term_name)) {
+      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      if (!empty($term->tid)) {
+        $parent_term->removeChild($term->tid);
+      }
+      else {
+        $parent_term->removeChild($term->term_name);
+      }
+    }
 
     // Set action.
     $term->action = DENNIS_TERM_MANAGER_ACTION_MERGE;
