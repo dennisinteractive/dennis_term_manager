@@ -257,32 +257,31 @@ function dennis_term_manager_form($form, &$form_state) {
 
             var count = jQuery(selector + " ul").children().length;
 
-            // Drupal outputs UL for multiple errors but no wrapper for single error.
-            if (count == 0) { count = 1 };
+            if (count > 1) {
+              var element = jQuery(selector);
 
-            var element = jQuery(selector);
+              var button = jQuery("<button/>", {
+                  text: "+",
+                  click: function () {
+                      if (jQuery(this).text() == "+") {
+                          jQuery(this).text("-");
+                          element.slideDown();
+                      }
+                      else {
+                          jQuery(this).text("+");
+                          element.slideUp();
+                      }
+                  }
+              });
 
-            var button = jQuery("<button/>", {
-                text: "+",
-                click: function () {
-                    if (jQuery(this).text() == "+") {
-                        jQuery(this).text("-");
-                        element.slideDown();
-                    }
-                    else {
-                        jQuery(this).text("+");
-                        element.slideUp();
-                    }
-                }
-            });
+              var message = jQuery("<div/>", {
+                  title: "Expand/Collapse",
+                  text: "There were " + count + " " + type + " message(s). ",
+                  class: type
+              }).append(button);
 
-            var message = jQuery("<div/>", {
-                title: "Expand/Collapse",
-                text: "There were " + count + " " + type + " message(s). ",
-                class: type
-            }).append(button);
-
-            element.hide().before(message);
+              element.hide().before(message);
+            }
         });
       });',
     'type' => 'inline',
@@ -303,7 +302,7 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
   // Load the file.
   $file = file_load($form_state['values']['csv_file']);
   if (!$file) {
-    drupal_set_message(t('file not found'));
+    drupal_set_message(t('Please upload the CSV/TSV file first.'), 'error');
   }
   else {
     // Make file permanent.
