@@ -32,24 +32,13 @@ function _dennis_term_manager_process_action_merge($data) {
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
     return;
   }
+  $data['allowed_target_fields'] = $allowed_target_fields;
 
-  // Get node data.
+  // Load the node.
   $node = node_load($data['nid']);
 
-  // Set node change status.
-  $node_changed = FALSE;
-
-  // Get info of each field on the current node type.
-  $taxonomy_fields = array();
-  if ($entity_info = field_info_instances('node', $node->type)) {
-    foreach ($entity_info as $field) {
-      $field_name = $field['field_name'];
-      $field_info = field_info_field($field_name);
-      if ($field_info['type'] == 'taxonomy_term_reference') {
-        $taxonomy_fields[$field_name] = $field_info;
-      }
-    }
-  }
+  // Get list of term reference fields for the node type in context.
+  $taxonomy_fields = _dennis_term_manager_get_taxonomy_fields($node->type);
 
   // If target fields were provided, move them to the top of the list.
   $target_fields = array_reverse(array_map('trim', explode(',', $data['target_field'])));
@@ -62,8 +51,40 @@ function _dennis_term_manager_process_action_merge($data) {
     }
   }
 
-  // Loop the term reference fields and swap tids.
+  // Store term reference fields.
+  $data['taxonomy_fields'] = $taxonomy_fields;
+
+  // Flag to check if there were changed made on the current node.
+  $data['node_changed'] = FALSE;
+
+  _dennis_term_manager_swap_tids($node, $data);
+
+  // If any tid has changed, then save the node.
+  if ($data['node_changed']) {
+    $node->path['pathauto'] = FALSE;
+    node_save($node);
+  }
+}
+
+/**
+ * Helper to swap tids on nodes.
+ *
+ * @param $node
+ *    The node object
+ * @param $data
+ *    Stores the information related to the current action being executed.
+ */
+function _dennis_term_manager_swap_tids($node, &$data) {
+  $taxonomy_fields = $data['taxonomy_fields'];
+  $node_changed = $data['node_changed'];
+  $target_id = $data['target_tid'];
+  $tid = $data['tid'];
+  $allowed_target_fields = $data['allowed_target_fields'];
+
+  // Flag to inform when the tid in context has is already found in any term reference field.
   $tid_used = array();
+
+  // Loop the term reference fields and swap tids.
   foreach ($taxonomy_fields as $field_name => $field_info) {
     if (isset($node->{$field_name})) {
       // If the node has been changed, stop here.
@@ -74,20 +95,20 @@ function _dennis_term_manager_process_action_merge($data) {
       // Check if target tid already exists in this field.
       if (isset($node->{$field_name}[LANGUAGE_NONE][0])) {
         foreach ($node->{$field_name}[LANGUAGE_NONE] as $key => $value) {
-          if ($value['tid'] == $data['target_tid']) {
-            $tid_used[] = $data['target_tid'];
+          if ($value['tid'] == $target_id) {
+            $tid_used[] = $target_id;
           }
         }
       }
 
       // Assign term to node if not already being used and field is allowed target vocab.
-      if (!in_array($data['target_tid'], $tid_used) && in_array($field_name, $allowed_target_fields)) {
+      if (!in_array($target_id, $tid_used) && in_array($field_name, $allowed_target_fields)) {
         // Swap tid if merging terms from the same vocabulary.
         if (isset($node->{$field_name}[LANGUAGE_NONE][0])) {
           foreach ($node->{$field_name}[LANGUAGE_NONE] as $key => $value) {
-            if ($value['tid'] == $data['tid']) {
+            if ($value['tid'] == $tid) {
               // Replace source tid with target tid.
-              $node->{$field_name}[LANGUAGE_NONE][$key]['tid'] = $data['target_tid'];
+              $node->{$field_name}[LANGUAGE_NONE][$key]['tid'] = $target_id;
               $node_changed = TRUE;
             }
           }
@@ -98,7 +119,7 @@ function _dennis_term_manager_process_action_merge($data) {
           $field_full = count($node->{$field_name}[LANGUAGE_NONE]) >= $field_info['cardinality'];
           $unlimited = $field_info['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
           if (!$field_full || $unlimited) {
-            $node->{$field_name}[LANGUAGE_NONE][]['tid'] = $data['target_tid'];
+            $node->{$field_name}[LANGUAGE_NONE][]['tid'] = $target_id;
             $node_changed = TRUE;
           }
         }
@@ -106,24 +127,10 @@ function _dennis_term_manager_process_action_merge($data) {
     }
   }
 
-  // Remove source tid from field.
-  foreach ($taxonomy_fields as $field_name => $field_info) {
-    // Check each node field for term reference.
-    if (isset($node->{$field_name}[LANGUAGE_NONE][0])) {
-      foreach ($node->{$field_name}[LANGUAGE_NONE] as $key => $value) {
-        if ($value['tid'] == $data['tid']) {
-          unset($node->{$field_name}[LANGUAGE_NONE][$key]);
-          $node_changed = TRUE;
-        }
-      }
-    }
-  }
+  $data['node_changed'] = $node_changed;
 
-krumo($node);
+  // Remove any left over tids.
+  $node_changed = _dennis_term_manager_clean_tids($node, $data);
 
-  // If any tid has changed, then save the node.
-  if ($node_changed) {
-    $node->path['pathauto'] = FALSE;
-    node_save($node);
-  }
+  return $node_changed;
 }
