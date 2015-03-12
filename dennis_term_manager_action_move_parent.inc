@@ -28,6 +28,7 @@ function _dennis_term_manager_process_action_move_parent($data) {
         '@parent' => $data['parent_tid'],
       ));
       _dennis_term_manager_write_report($data['report_fid'], $error_message);
+      return;
     }
   }
   elseif (!empty($data['parent_term_name'])) {
@@ -46,6 +47,7 @@ function _dennis_term_manager_process_action_move_parent($data) {
         '@row' => $data['row'],
       ));
       _dennis_term_manager_write_report($data['report_fid'], $error_message);
+      return;
     }
   }
   else {
@@ -61,5 +63,6 @@ function _dennis_term_manager_process_action_move_parent($data) {
       '@parent' => $data['parent_tid'],
     ));
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
+    return;
   }
 }
