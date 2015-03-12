@@ -503,6 +503,11 @@ function _dennis_term_manager_batch_init($file) {
   $progress_item->setOffsetQueueId();
   $progress_item->save();
 
+  // Get a list of nodes that are not published but are scheduled to be published.
+  $unpublished_sheduled_nodes = _dennis_term_manager_get_scheduled_nodes();
+  // Get list of tids vs nodes. This is used to queue nodes that have any of the tids used by actions.
+  $extra_nodes = _dennis_term_manager_list_node_tids($unpublished_sheduled_nodes);
+
   // Add each operation to the batch.
   $operations = array();
   foreach ($operationList as $i => $operationItem) {
@@ -511,6 +516,7 @@ function _dennis_term_manager_batch_init($file) {
       'operation_item' => $operationItem,
       'report_fid' => $report_file->fid,
       'row' => $i,
+      'extra_nodes' => $extra_nodes,
     );
 
     $operations[] = array(
@@ -561,21 +567,26 @@ function dennis_term_manager_queue_operation($options, &$context) {
 
   switch ($operationItem->action) {
     case DENNIS_TERM_MANAGER_ACTION_MERGE:
+      $nodeData = $baseData;
+      $nodeData['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
+      $nodeData['target_tid'] = $operationItem->target_tid;
+      $nodeData['target_vid'] = $operationItem->target_vid;
+      $nodeData['target_field'] = $operationItem->target_field;
 
       // Get all nodes with source term reference.
       $nodes = _dennis_term_manager_get_associated_nodes($operationItem->tid);
-      if (!empty($nodes)) {
-        $nodeData = $baseData;
-        $nodeData['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
-        $nodeData['target_tid'] = $operationItem->target_tid;
-        $nodeData['target_vid'] = $operationItem->target_vid;
-        $nodeData['target_field'] = $operationItem->target_field;
-        // Create queue for each node.
-        foreach ($nodes as $node) {
-          $nodeData['nid'] = $node->nid;
-          // Queue item for Merge action.
-          $q->createItem($nodeData);
-        }
+
+      // Get list of extra nodes to queue if they use the tid in this context.
+      $extra_nodes = $options['extra_nodes'];
+      if (isset($extra_nodes[$operationItem->tid])) {
+        $nodes = array_merge($nodes, $extra_nodes[$operationItem->tid]);
+      }
+
+      // Create queue for each node.
+      foreach ($nodes as $node) {
+        $nodeData['nid'] = $node->nid;
+        // Queue item for Merge action.
+        $q->createItem($nodeData);
       }
 
       // Delete term once after nodes have been assigned to the target.
@@ -602,19 +613,24 @@ function dennis_term_manager_queue_operation($options, &$context) {
       break;
 
     case DENNIS_TERM_MANAGER_ACTION_DELETE:
+      $nodeData = $baseData;
+      $nodeData['action'] = $operationItem->action;
+      $nodeData['target_tid'] = $operationItem->target_tid;
 
       // Get all nodes with source term reference.
       $nodes = _dennis_term_manager_get_associated_nodes($operationItem->tid);
-      if (!empty($nodes)) {
-        $nodeData = $baseData;
-        $nodeData['action'] = $operationItem->action;
-        $nodeData['target_tid'] = $operationItem->target_tid;
-        // Create queue for each node.
-        foreach ($nodes as $node) {
-          $nodeData['nid'] = $node->nid;
-          // Queue item for Merge action.
-          $q->createItem($nodeData);
-        }
+
+      // Get list of extra nodes to queue if they use the tid in this context.
+      $extra_nodes = $options['extra_nodes'];
+      if (isset($extra_nodes[$operationItem->tid])) {
+        $nodes = array_merge($nodes, $extra_nodes[$operationItem->tid]);
+      }
+
+      // Create queue for each node.
+      foreach ($nodes as $node) {
+        $nodeData['nid'] = $node->nid;
+        // Queue item for Merge action.
+        $q->createItem($nodeData);
       }
 
       $data = $baseData;
@@ -765,6 +781,15 @@ function _dennis_term_manager_get_vocabulary($vocabulary_name) {
 /**
  * Helper to retrieve nodes associated with Term ID.
  *
+ * We use the table taxonomy_index to avoid having to do join on every term reference field.
+ * The problem with this is that nodes that are not published will not be included.
+ * This causes a problem with nodes that are scheduled to be published, where the term ref fields
+ * can be completely wipped out when the term actions are performed, i.e. term merge.
+ * We have a workaround where we collect all these nodes using _dennis_term_manager_get_scheduled_nodes()
+ * to create a list of nodes, with _dennis_term_manager_list_node_tids() that creates a list of these nodes
+ * keyed by tid. Before we submit the items to the queue, we check this list to see if any of the
+ * unpublished nodes will be affected by the action and queue them too.
+ *
  * @param : $tid
  *   Taxonomy Term ID.
  *   
@@ -779,6 +804,30 @@ function _dennis_term_manager_get_associated_nodes($tid) {
   ));
   $query->condition('ti.tid', $tid, '=');
   $nodes = $query->execute()->fetchAll();
+
+  return $nodes;
+}
+
+/**
+ * Helper to retrieve nodes that are not published and scheduled to be published.
+ *
+ * Since we use the taxonomy_index table on _dennis_term_manager_get_associated_nodes(),
+ * it will only return nodes that are published. This is a workaround to get the unpublished
+ * nodes that are scheduled to be published.
+ *
+ * @return array
+ *   List of nodes.
+ */
+function _dennis_term_manager_get_scheduled_nodes() {
+  $query = db_select('node', 'n');
+  $query->fields('n', array(
+    'nid',
+  ));
+  $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
+  $query->condition('n.status', 0, '=');
+  $query->condition('s.field_schedule_publish_value', 1, '=');
+  $nodes = $query->execute()->fetchCol('nid');
+
   return $nodes;
 }
 
@@ -949,6 +998,103 @@ function _dennis_term_manager_process_action_complete($data) {
     // Send to error report.
     _dennis_term_manager_write_report($data['report_fid'], $e->getMessage());
   }
+}
+
+/**
+ * Helper to get list of term reference fields.
+ *
+ * @param $node_type
+ *    The node type.
+ * @return
+ *    List of term reference field names.
+ */
+function _dennis_term_manager_get_taxonomy_fields($node_type) {
+  $taxonomy_fields = &drupal_static(__FUNCTION__ . $node_type, array());
+  if (!empty($taxonomy_fields[$node_type])) {
+    return $taxonomy_fields[$node_type];
+  }
+
+  if ($entity_info = field_info_instances('node', $node_type)) {
+    foreach ($entity_info as $field) {
+      $field_name = $field['field_name'];
+      $field_info = field_info_field($field_name);
+      if ($field_info['type'] == 'taxonomy_term_reference') {
+        $taxonomy_fields[$node_type][$field_name] = $field_info;
+      }
+    }
+  }
+
+  return $taxonomy_fields[$node_type];
+}
+
+/**
+ * Helper clean left over tids on term reference fields after a delete or merge action.
+ *
+ * @param $node
+ *    The node to be cleaned up.
+ * @param $data
+ *    Stores the information related to the current action being executed.
+ * @return
+ *    A flag to inform when the node has been changed.
+ */
+function _dennis_term_manager_clean_tids($node, &$data) {
+
+  $taxonomy_fields = _dennis_term_manager_get_taxonomy_fields($node->type);
+
+  // Remove source tid from fields.
+  foreach ($taxonomy_fields as $field_name => $field_info) {
+    // Check each node field for term reference.
+    if (isset($node->{$field_name}[LANGUAGE_NONE][0])) {
+      foreach ($node->{$field_name}[LANGUAGE_NONE] as $key => $value) {
+        if ($value['tid'] == $data['tid']) {
+          unset($node->{$field_name}[LANGUAGE_NONE][$key]);
+          $data['node_changed'] = TRUE;
+        }
+      }
+    }
+  }
+
+  return $data['node_changed'];
+}
+
+/**
+ * Helper to find tids used on nodes that are not published but scheduled to be published.
+ *
+ * @param $node
+ *    The node to be cleaned up.
+ * @param $list
+ *    The list of tids used by the recursive call.
+ * @retun $nodes
+ *    A list of nodes keyed by tid.
+  */
+function _dennis_term_manager_list_node_tids($nodes, $list = array()) {
+
+  if ($nid = array_shift($nodes)) {
+    $node = node_load($nid);
+
+    $taxonomy_fields = _dennis_term_manager_get_taxonomy_fields($node->type);
+
+    // Remove source tid from fields.
+    foreach ($taxonomy_fields as $field_name => $field_info) {
+      // Check each node field for term reference.
+      if (isset($node->{$field_name}[LANGUAGE_NONE][0])) {
+        foreach ($node->{$field_name}[LANGUAGE_NONE] as $key => $value) {
+          if (!empty($value['tid'])) {
+            $tid = $value['tid'];
+
+            // No need to return the full node, just nid will be enough.
+            $new_node = new stdClass();
+            $new_node->nid = $node->nid;
+
+            $list[$tid][] = $new_node;// $node
+          }
+        }
+      }
+    }
+    return _dennis_term_manager_list_node_tids($nodes, $list);
+  }
+
+  return $list;
 }
 
 /**
