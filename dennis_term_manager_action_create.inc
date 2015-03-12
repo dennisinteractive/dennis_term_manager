@@ -20,45 +20,47 @@ function _dennis_term_manager_process_action_create($data) {
       '@row' => $data['row'],
     ));
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
+    return;
   }
-  else {
-    // Create new term.
-    $term = new stdClass();
-    $term->name = $data['term_name'];
-    $term->vid = $data['vid'];
 
-    // Assign parent if it still exists.
-    if (!empty($data['parent_tid'])) {
-      // Load parent if tid is available.
-      if ($parent_term = taxonomy_term_load($data['parent_tid'])) {
+  // Create new term.
+  $term = new stdClass();
+  $term->name = $data['term_name'];
+  $term->vid = $data['vid'];
+
+  // Assign parent if it still exists.
+  if (!empty($data['parent_tid'])) {
+    // Load parent if tid is available.
+    if ($parent_term = taxonomy_term_load($data['parent_tid'])) {
+      $term->parent = $parent_term->tid;
+    }
+  }
+  elseif (!empty($data['parent_term_name'])) {
+    // Try to get parent by name.
+    $vocabulary = taxonomy_vocabulary_load($data['vid']);
+    if ($parent_terms = taxonomy_get_term_by_name($data['parent_term_name'], $vocabulary->machine_name)) {
+      $parent_term = reset($parent_terms);
+      if (isset($parent_term->tid)) {
         $term->parent = $parent_term->tid;
       }
     }
-    elseif (!empty($data['parent_term_name'])) {
-      // Try to get parent by name.
-      $vocabulary = taxonomy_vocabulary_load($data['vid']);
-      if ($parent_terms = taxonomy_get_term_by_name($data['parent_term_name'], $vocabulary->machine_name)) {
-        $parent_term = reset($parent_terms);
-        if (isset($parent_term->tid)) {
-          $term->parent = $parent_term->tid;
-        }
-      }
-      else {
-        // Could not find parent term.
-        $error_message = t("Parent term '@term_name' could not be found in row @row", array(
-          '@term_name' => $data['parent_term_name'],
-          '@row' => $data['row'],
-        ));
-        _dennis_term_manager_write_report($data['report_fid'], $error_message);
-      }
-    }
-    if (!taxonomy_term_save($term)) {
-      // Write error message into the report file.
-      $error_message = t('Not able to create term @term_name in row @row', array(
-        '@term_name' => $data['term_name'],
+    else {
+      // Could not find parent term.
+      $error_message = t("Parent term '@term_name' could not be found in row @row. @term_name has been created without a parent.", array(
+        '@term_name' => $data['parent_term_name'],
         '@row' => $data['row'],
       ));
       _dennis_term_manager_write_report($data['report_fid'], $error_message);
     }
+  }
+
+  if (!taxonomy_term_save($term)) {
+    // Write error message into the report file.
+    $error_message = t('Not able to create term @term_name in row @row', array(
+      '@term_name' => $data['term_name'],
+      '@row' => $data['row'],
+    ));
+    _dennis_term_manager_write_report($data['report_fid'], $error_message);
+    return;
   }
 }
