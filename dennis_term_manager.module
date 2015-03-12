@@ -109,7 +109,7 @@ function dennis_term_manager_menu() {
 function dennis_term_manager_download_template($delimiter = "\t") {
   // Send correct header to download file.
   $extension = $delimiter == ',' ? 'csv' : 'tsv';
-  drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
+  drupal_add_http_header('Content-Type', 'text/' . $extension . '; charset=utf-8');
   $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s') . '.' . $extension;
   drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
 
