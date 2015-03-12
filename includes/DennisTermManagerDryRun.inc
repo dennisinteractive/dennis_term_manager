@@ -83,7 +83,7 @@ class TermManagerDryRun {
           if (isset($columns[$column])) {
             $index = $columns[$column];
             try {
-              $operation->{$column} = isset($data[$index]) ? $data[$index] : '';
+              $operation->{$column} = isset($data[$index]) ? trim($data[$index]) : '';
             }
             catch (Exception $e) {
               $operation->error = $e->getMessage();
@@ -329,6 +329,12 @@ class TermManagerDryRun {
     }
 
     $term = $this->getTreeItem($term_name, $vocabulary_name);
+    if ($term->locked) {
+      throw new Exception(t('!vocab > !name is locked. This may be due to a chained merge.', array(
+        '!name' => $term->term_name,
+        '!vocab' => $term->vocabulary_name,
+      )));
+    }
 
     // Prevent merging terms with children.
     if ($term->isParent()) {
@@ -388,6 +394,9 @@ class TermManagerDryRun {
     $term->target_vocabulary_name = $target_term->vocabulary_name;
     $term->target_vid = $target_term->vid;
     $term->target_tid = $target_term->tid;
+
+    // Lock target term from being used in other actions.
+    $target_term->locked = TRUE;
   }
 
   /**

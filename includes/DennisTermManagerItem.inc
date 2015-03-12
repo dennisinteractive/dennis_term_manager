@@ -49,6 +49,7 @@ class TermManagerItem {
       case 'target_vid':
       case 'parent_tid':
       case 'duplicated':
+      case 'locked':
         break;
       default:
         throw new Exception(t('!key is not a valid TermManagerItem property', array('!key' => $key)));
