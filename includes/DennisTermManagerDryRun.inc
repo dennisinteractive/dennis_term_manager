@@ -207,8 +207,10 @@ class TermManagerDryRun {
     }
 
     // Store parent term data.
-    $term->parent_term_name = $parent_term->term_name;
-    $term->parent_tid = $parent_term->tid;
+    if (isset($parent_term)) {
+      $term->parent_term_name = $parent_term->term_name;
+      $term->parent_tid = $parent_term->tid;
+    }
     $term->action = DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT;
   }
 
