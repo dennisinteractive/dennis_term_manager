@@ -687,23 +687,6 @@ function dennis_term_manager_cron_queue_info() {
 }
 
 /**
- * Process the queue of terms, if any. Does what drupal_cron_run() does.
- *
- * @see drupal_cron_run()
- * 
- * @param int $max_time
- *   No of seconds
- */
-function dennis_term_manager_process_queue($max_time = 15) {
-  $end = time() + $max_time;
-  $queue = DrupalQueue::get('dennis_term_manager_queue');
-  while (time() < $end && ($item = $queue->claimItem())) {
-    dennis_term_manager_process_queue_item($item->data);
-    $queue->deleteItem($item);
-  }
-}
-
-/**
  * Perform action on each queue item.
  * 
  * @param array $data
