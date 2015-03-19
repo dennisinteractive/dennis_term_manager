@@ -13,6 +13,7 @@ class TermManagerDryRunItem extends TermManagerItem {
    */
   public function addChild($tid) {
     $this->childTids[$tid] = $tid;
+    $this->data['term_child_count'] = count($this->childTids);
   }
 
   /**
@@ -20,6 +21,7 @@ class TermManagerDryRunItem extends TermManagerItem {
    */
   public function removeChild($tid) {
     unset($this->childTids[$tid]);
+    $this->data['term_child_count'] = count($this->childTids);
   }
 
   /**
