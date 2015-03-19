@@ -100,6 +100,17 @@ function dennis_term_manager_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => $weight++,
   );
+  $items['admin/structure/taxonomy/term_manager/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Configure Dennis Term Manager.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dennis_term_manager_admin_settings_form'),
+    'access arguments' => array('administer dennis term manager'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'dennis_term_manager.admin.inc',
+    'weight' => $weight++,
+  );
+
   return $items;
 }
 
@@ -318,6 +329,9 @@ function dennis_term_manager_help($path, $arg) {
  * Dennis Term Manager Form.
  */
 function dennis_term_manager_form($form, &$form_state) {
+  // Set the current page title.
+  drupal_set_title(t('Term Manager'));
+
   $form = array();
 
   // Display current process.
@@ -679,9 +693,13 @@ function dennis_term_manager_queue_operation_complete($data) {
  * Implements hook_cron_queue_info().
  */
 function dennis_term_manager_cron_queue_info() {
+  // Only process queue if term manager is enabled.
+  if (!variable_get('dennis_term_manager_enabled', 1)) {
+    return;
+  }
   $queues['dennis_term_manager_queue'] = array(
     'worker callback' => 'dennis_term_manager_process_queue_item',
-    'time' => 60,
+    'time' => (int) variable_get('dennis_term_manager_process_time', 60),
   );
   return $queues;
 }
