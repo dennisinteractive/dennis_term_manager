@@ -284,6 +284,10 @@ class TermManagerDryRun {
    */
   protected function delete($term_name, $vocabulary_name) {
     $term = $this->getTreeItem($term_name, $vocabulary_name);
+
+    // Assert that the term is not locked.
+    $this->assertNotLocked($term);
+
     // Prevent deleted terms with children.
     if ($term->isParent()) {
       throw new Exception(t('!vocab > !name cannot be deleted as it has children', array(
@@ -331,12 +335,9 @@ class TermManagerDryRun {
     }
 
     $term = $this->getTreeItem($term_name, $vocabulary_name);
-    if ($term->locked) {
-      throw new Exception(t('!vocab > !name is locked. This may be due to a chained merge.', array(
-        '!name' => $term->term_name,
-        '!vocab' => $term->vocabulary_name,
-      )));
-    }
+
+    // Assert that the term is not locked.
+    $this->assertNotLocked($term);
 
     // Prevent merging terms with children.
     if ($term->isParent()) {
@@ -622,6 +623,21 @@ class TermManagerDryRun {
 
       // Add operationItem to operationList.
       $this->operationList->add($operation);
+    }
+  }
+
+  /**
+   * Asserts that a term is not locked.
+   *
+   * @param TermManagerDryRunItem $term
+   * @throws Exception
+   */
+  protected function assertNotLocked(TermManagerDryRunItem $term) {
+    if ($term->locked) {
+      throw new Exception(t('!vocab > !name is locked. This may be due to a chained action.', array(
+        '!name' => $term->term_name,
+        '!vocab' => $term->vocabulary_name,
+      )));
     }
   }
 }
