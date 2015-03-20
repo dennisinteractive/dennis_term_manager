@@ -12,6 +12,74 @@
  *   An array containing source and target taxonomy term data
  */
 function _dennis_term_manager_process_action_merge($data) {
+  if (isset($data['nid'])) {
+    // Reassign node to target term.
+    _dennis_term_manager_process_action_merge_move_node($data);
+  }
+  else {
+    // Merge term to target term.
+    _dennis_term_manager_process_action_merge_term($data);
+  }
+}
+
+/**
+ * Operations required to merge a term into another before it is deleted.
+ *
+ * @param array $data
+ *   An array containing source and target taxonomy term data
+ */
+function _dennis_term_manager_process_action_merge_term($data) {
+  // Handle redirects.
+  _dennis_term_manager_process_action_merge_term_redirect($data);
+}
+
+/**
+ * Handle redirects.
+ *
+ * @param array $data
+ *   An array containing source and target taxonomy term data
+ */
+function _dennis_term_manager_process_action_merge_term_redirect($data) {
+  $allowed_redirect_codes = array(
+    '301',
+  );
+  if (isset($data['redirect']) && in_array($data['redirect'], $allowed_redirect_codes)) {
+    $status_code = (int) $data['redirect'];
+
+    // Move redirects from source term to target term.
+    $source_path = 'taxonomy/term/' . $data['tid'];
+    $target_path = 'taxonomy/term/' . $data['target_tid'];
+    foreach (redirect_load_multiple(array(), array('redirect' => $source_path)) as $redirect) {
+      $redirect->redirect = $target_path;
+      $redirect->status_code = $status_code;
+      redirect_save($redirect);
+    }
+
+    // Create new redirect from source term alias to target term.
+    if ($alias = drupal_get_path_alias($source_path)) {
+      // Only create redirect if the source term has an alias.
+      if ($alias != $source_path) {
+        // Remove alias from current term.
+        path_delete(array('alias' => $alias));
+        // Redirect alias to target term.
+        $redirect = new stdClass();
+        redirect_object_prepare($redirect);
+        $redirect->source = $alias;
+        $redirect->redirect = $target_path;
+        $redirect->status_code = $status_code;
+        redirect_save($redirect);
+      }
+    }
+  }
+}
+
+/**
+ * Reassign node to target term.
+ *
+ * @param array $data
+ *   An array containing source and target taxonomy term data
+ */
+function _dennis_term_manager_process_action_merge_move_node($data) {
 
   if (!isset($data['nid'])) {
     // Send to error report.

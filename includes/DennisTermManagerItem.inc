@@ -32,6 +32,31 @@ class TermManagerItem {
           throw new Exception(t('!value is not a valid action', array('!value' => $value)));
         }
         break;
+      case 'redirect':
+        // Array of allowed redirect values.
+        $allowed_redirect_values = array(
+          '301',
+          'y',
+          'n',
+        );
+
+        // Lowercase incoming values.
+        $value = strtolower($value);
+
+        // Convert 'y' and empty values to 301 by default.
+        if ($value == 'y' || empty($value)) {
+          $value = '301';
+        }
+
+        // Error if the redirect value is not valid.
+        if (!in_array($value, $allowed_redirect_values)) {
+           throw new Exception(t('!value is not a valid redirect value. The following values are allowed: !allowed', array(
+            '!value' => $value,
+            '!allowed' => '"' . implode('", "', $allowed_redirect_values) . '"',
+           )));
+        }
+        $this->data[$key] = $value;
+        break;
       case 'vocabulary_name':
       case 'term_name':
       case 'node_count':

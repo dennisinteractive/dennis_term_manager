@@ -79,7 +79,9 @@ class TermManagerDryRun {
       while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
         // Create operationList item.
         $operation = new TermManagerOperationItem();
-        foreach (dennis_term_manager_default_columns() as $column) {
+        // Get list of operation columns.
+        $operation_columns = array_merge(dennis_term_manager_default_columns(), array('redirect'));
+        foreach ($operation_columns as $column) {
           if (isset($columns[$column])) {
             $index = $columns[$column];
             try {
@@ -527,7 +529,7 @@ class TermManagerDryRun {
     $fp = fopen($file->uri, 'w');
 
     // Add Headings.
-    $columns = array_merge(dennis_term_manager_default_columns(), array('description'));
+    $columns = array_merge(dennis_term_manager_default_columns(), array('redirect', 'description'));
     fputcsv($fp, $columns, $delimiter, '"');
 
     // Output resulting taxonomy.

@@ -7,7 +7,7 @@
 
 /**
  * Helper to process delete taxonomy term action.
- * 
+ *
  * @param array $data
  *   An array containing source and target taxonomy term data
  */

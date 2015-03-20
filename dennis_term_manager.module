@@ -603,6 +603,14 @@ function dennis_term_manager_queue_operation($options, &$context) {
         $q->createItem($nodeData);
       }
 
+      // Merge term operation before it is deleted.
+      $mergeData = $baseData;
+      $mergeData['action'] = DENNIS_TERM_MANAGER_ACTION_MERGE;
+      $mergeData['target_tid'] = $operationItem->target_tid;
+      $mergeData['target_vid'] = $operationItem->target_vid;
+      $mergeData['redirect'] = $operationItem->redirect;
+      $q->createItem($mergeData);
+
       // Delete term once after nodes have been assigned to the target.
       $deleteData = $baseData;
       $deleteData['action'] = DENNIS_TERM_MANAGER_ACTION_DELETE;
