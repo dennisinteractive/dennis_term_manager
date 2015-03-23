@@ -199,9 +199,33 @@ function dennis_term_manager_export_terms($delimiter = "\t") {
 function dennis_term_manager_help($path, $arg) {
   $output = '';
 
+  // CSS to display lists correctly.
+  $css = '
+  <style type="text/css">
+    .import-notes ul {
+       list-style-type: disc;
+       list-style-position: inside;
+    }
+    .import-notes ol {
+       list-style-type: decimal;
+       list-style-position: inside;
+    }
+    .import-notes li {
+      display: list-item;
+      list-style: inherit;
+    }
+    .import-notes ul ul {
+       list-style-type: circle;
+       list-style-position: inside;
+       margin-left: 15px;
+    }
+  </style>';
+
   switch ($path) {
     case 'admin/structure/taxonomy/term_manager':
-      $output = '<p><strong>How to use it</strong></p>
+      $output .= $css;
+      $output .= '<div class="import-notes">';
+      $output .= '<p><strong>How to use it</strong></p>
 
                 <ol>
                   <li>Click on <em>Manage -&gt;&nbsp;TSV/CSV&nbsp;Template</em> to use as starting point from an empty file. Or click <em>Manage -&gt; TSV/CSV Export</em> to have list of the full taxonomy usage.</li>
@@ -209,9 +233,11 @@ function dennis_term_manager_help($path, $arg) {
                   <li>Click <strong>Choose file</strong> and Upload</li>
                   <li>Click <strong>Import</strong></li>
                 </ol>';
+      $output .= '</div>';
       break;
 
     case 'admin/help#dennis_term_manager':
+      $output .= $css;
       $output .= '<div class="import-notes">';
       $output .= '<p><strong>vocabulary_name</strong></p>
                     <ul>
@@ -265,6 +291,7 @@ function dennis_term_manager_help($path, $arg) {
                       <li>"merge"
                       <ul>
                         <li>Requires: vocabulary_name, term_name, target_vocabulary_name, target_term_name</li>
+                        <li>Optional columns: redirect</li>
                         <li>When merging across vocabularies you must also specify target_field list</li>
                       </ul>
                       </li>
@@ -318,6 +345,20 @@ function dennis_term_manager_help($path, $arg) {
                     <ul>
                       <li>New term name</li>
                       <li>Used by "rename"</li>
+                    </ul>
+
+                    <p>&nbsp;</p>
+
+                    <p><strong>redirect</strong></p>
+
+                    <ul>
+                      <li>Redirect to target term
+                        <ul>
+                          <li>"301", "Y" or "": 301 redirect to target term</li>
+                          <li>"N": do not redirect to target term</li>
+                        </ul>
+                      </li>
+                      <li>Used by "merge"</li>
                     </ul>';
       $output .= '</div>';
   }

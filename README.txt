@@ -39,12 +39,14 @@ Following are the assumptions made when developing this module:
 Examples
 ========
 
-| vocabulary_name | term_name    | parent_term_name | action      | target_vocabulary_name | target_term_name     | new_name | description                                        |
-| Category        | Android      | Server           | move parent |                        |                      |          | Make "Android" child of "Mobile"                   |
-| Category        | Android      |                  | move parent |                        |                      |          | Make "Android" a root term                         |
-| Category        | Android      |                  | rename      |                        |                      | Robot    | Rename "Android" to "Robot"                        |
-| Category        | Teleporter   |                  | create      |                        |                      |          | Create new term "Teleporter"                       |
-| Category        | Teleporter   | Mobile           | create      |                        |                      |          | Create new term "Teleporter" with parent "Mobile"  |
-| Category        | Android      |                  | delete      |                        |                      |          | Delete "Android"                                   |
-| Category        | Apps         |                  | merge       | Category               | Android              |          | Merge "Android" content into "Apps"                |
-| Tags            | .com         |                  | merge       | Category               | Android              |          | Merge ".com" content into "Android"                |
+| vocabulary_name | term_name    | parent_term_name | action      | target_vocabulary_name | target_term_name     | new_name | redirect   | description                                                                        |
+| Category        | Android      | Server           | move parent |                        |                      |          |            | Make "Android" child of "Mobile"                                                   |
+| Category        | Android      |                  | move parent |                        |                      |          |            | Make "Android" a root term                                                         |
+| Category        | Android      |                  | rename      |                        |                      | Robot    |            | Rename "Android" to "Robot"                                                        |
+| Category        | Teleporter   |                  | create      |                        |                      |          |            | Create new term "Teleporter"                                                       |
+| Category        | Teleporter   | Mobile           | create      |                        |                      |          |            | Create new term "Teleporter" with parent "Mobile"                                  |
+| Category        | Android      |                  | delete      |                        |                      |          |            | Delete "Android"                                                                   |
+| Category        | Apps         |                  | merge       | Category               | Android              |          | N          | Merge "Android" content into "Apps" without redirect                               |
+| Tags            | .com         |                  | merge       | Category               | Android              |          | 301        | Merge ".com" content into "Android" with 301 redirect                              |
+| Tags            | .co.uk       |                  | merge       | Category               | Android              |          | Y          | Merge ".co.uk" content into "Android" with 301 redirect                            |
+| Tags            | .net         |                  | merge       | Category               | Android              |          |            | Merge ".net" content into "Android" with 301 redirect (default redirect behaviour) |
