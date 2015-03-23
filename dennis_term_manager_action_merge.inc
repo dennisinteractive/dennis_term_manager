@@ -40,11 +40,16 @@ function _dennis_term_manager_process_action_merge_term($data) {
  *   An array containing source and target taxonomy term data
  */
 function _dennis_term_manager_process_action_merge_term_redirect($data) {
-  $allowed_redirect_codes = array(
-    '301',
-  );
-  if (isset($data['redirect']) && in_array($data['redirect'], $allowed_redirect_codes)) {
-    $status_code = (int) $data['redirect'];
+ // If redirect option was not specified, default to 301.
+  if (empty($data['redirect'])) {
+    $data['redirect'] = 301;
+  }
+
+  // Cast as integer.
+  $status_code = (int) $data['redirect'];
+
+  // Process if redirect code is allowed.
+  if (in_array($status_code, array(301))) {
 
     // Move redirects from source term to target term.
     $source_path = 'taxonomy/term/' . $data['tid'];
