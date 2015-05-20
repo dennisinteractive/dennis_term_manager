@@ -60,6 +60,7 @@ class TermManagerItem {
       case 'vocabulary_name':
       case 'term_name':
       case 'node_count':
+      case 'path':
       case 'term_child_count':
       case 'parent_term_name':
       case 'target_term_name':

@@ -139,6 +139,10 @@ function _dennis_term_manager_export_terms_query() {
   $query->addField('v', 'name', 'vocabulary_name');
   $query->addField('t', 'name', 'term_name');
 
+  // Join alias.
+  $query->leftJoin('url_alias', 'ua', "ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))");
+  $query->addField('ua', 'alias', 'path');
+
   // TID and VID
   $query->addField('v', 'vid', 'vid');
   $query->addField('t', 'tid', 'tid');
@@ -325,6 +329,7 @@ function dennis_term_manager_help($path, $arg) {
                     <ul>
                       <li>Name of target term</li>
                       <li>Used by "merge"</li>
+                      <p><strong>PS: When there is more than one target term with the same name, you can specify the path between parenthesis to disambiguate the target term. <i>i.e. Banana(fruits/banana)</i>.</strong></p>
                     </ul>
 
                     <p>&nbsp;</p>
@@ -1154,6 +1159,7 @@ function dennis_term_manager_default_columns() {
   return array(
     'vocabulary_name',
     'term_name',
+    'path',
     'node_count',
     'term_child_count',
     'parent_term_name',
