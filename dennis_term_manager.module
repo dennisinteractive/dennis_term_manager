@@ -329,7 +329,6 @@ function dennis_term_manager_help($path, $arg) {
                     <ul>
                       <li>Name of target term</li>
                       <li>Used by "merge"</li>
-                      <p><strong>PS: When there is more than one target term with the same name, you can specify the path between parenthesis to disambiguate the target term. <i>i.e. Banana(fruits/banana)</i>.</strong></p>
                     </ul>
 
                     <p>&nbsp;</p>
@@ -538,6 +537,7 @@ function _dennis_term_manager_batch_init($file) {
   // Dry Run to validate and get operation list.
   $dryRun = new TermManagerDryRun();
   $dryRun->execute($file->uri);
+
   $operationList = $dryRun->getOperationList();
 
   // Prevent batch if there are no operation items.

@@ -491,15 +491,13 @@ class TermManagerDryRun {
     }
     else {
       $this->termTree[$vocabulary_key][$term_key]->duplicated = TRUE;
-      $message = (t('!vocab > !name is duplicated. You can either fix it manually or specify the destination using the term name with the <i>target_term_name</i> path between parenthesis, <i>i.e. !name(!path)</i>.',
+      $message = t('!vocab > !name is duplicated. This needs to be fixed manually.',
         array(
           '!name' => $item->term_name,
           '!vocab' => $item->vocabulary_name,
-          '!path' => $this->termTree[$vocabulary_key][$term_key]->path,
         )
-      ));
-      drupal_set_message($message, 'warning'
       );
+      drupal_set_message($message, 'warning');
     }
   }
 
