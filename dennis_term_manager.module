@@ -533,7 +533,6 @@ function dennis_term_manager_file_download($uri, $field_type = 'file') {
  * Prepare a batch definition that will process the file rows.
  */
 function _dennis_term_manager_batch_init($file) {
-
   // Dry Run to validate and get operation list.
   $dryRun = new TermManagerDryRun();
   $dryRun->execute($file->uri);

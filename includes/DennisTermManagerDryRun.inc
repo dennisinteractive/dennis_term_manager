@@ -95,7 +95,7 @@ class TermManagerDryRun {
         $this->processOperation($operation);
       }
     }
-  
+
     // Display dry run errors to the end user.
     if ($errorList = $this->operationList->getErrorList()) {
       foreach ($errorList as $error) {
@@ -412,18 +412,12 @@ class TermManagerDryRun {
    *
    * @param $term_name
    * @param $vocabulary_name
+   * @param $tid
+   *    Optional
    * @throws Exception
    */
-  protected function getTreeItem($term_name, $vocabulary_name) {
-    if ($term = $this->getOriginalTreeItem($term_name, $vocabulary_name)) {
-
-      if ($term->duplicated) {
-        throw new Exception(t('!vocab > !name is duplicated. This needs to be fixed manually.', array(
-          '!name' => $term->term_name,
-          '!vocab' => $term->vocabulary_name,
-        )));
-      }
-
+  protected function getTreeItem($term_name, $vocabulary_name, $target_tid  = '') {
+    if ($term = $this->getOriginalTreeItem($term_name, $vocabulary_name, $target_tid)) {
       switch ($term->action) {
         case DENNIS_TERM_MANAGER_ACTION_DELETE:
           // If term has been marked for delete, it cannot be returned.
@@ -466,13 +460,35 @@ class TermManagerDryRun {
    * @param $term_name
    * @param $vocabulary_name
    */
-  protected function getOriginalTreeItem($term_name, $vocabulary_name) {
+  protected function getOriginalTreeItem($term_name, $vocabulary_name, $target_tid = '') {
+
     // Format keys.
     $vocabulary_key = $this->formatKey($vocabulary_name);
     $term_key = $this->formatKey($term_name);
+
     // Return tree item if it exists.
     if (isset($this->termTree[$vocabulary_key][$term_key])) {
-      return $this->termTree[$vocabulary_key][$term_key];
+
+      if (count($this->termTree[$vocabulary_key][$term_key]) > 1) {
+        if (empty($target_tid)) {
+          throw new Exception(t('!vocab > !name is duplicated. Please provide a target_tid.', array(
+            '!name' => $term_name,
+            '!vocab' => $vocabulary_name,
+          )));
+        }
+
+        if (!isset($this->termTree[$vocabulary_key][$term_key][$target_tid])) {
+          throw new Exception(t('!target_tid is not valid for !vocab > !name.', array(
+            '!target_tid' => $target_tid,
+            '!name' => $term_name,
+            '!vocab' => $vocabulary_name,
+          )));
+        }
+
+        return $this->termTree[$vocabulary_key][$term_key][$target_tid];
+      }
+
+      return reset($this->termTree[$vocabulary_key][$term_key]);
     }
   }
 
@@ -486,19 +502,7 @@ class TermManagerDryRun {
     $vocabulary_key = $this->formatKey($item->vocabulary_name);
     $term_key = $this->formatKey($item->term_name);
     // Add item to tree.
-    if (!isset($this->termTree[$vocabulary_key][$term_key])) {
-      $this->termTree[$vocabulary_key][$term_key] = $item;
-    }
-    else {
-      $this->termTree[$vocabulary_key][$term_key]->duplicated = TRUE;
-      $message = t('!vocab > !name is duplicated. This needs to be fixed manually.',
-        array(
-          '!name' => $item->term_name,
-          '!vocab' => $item->vocabulary_name,
-        )
-      );
-      drupal_set_message($message, 'warning');
-    }
+    $this->termTree[$vocabulary_key][$term_key][$item->tid] = $item;
   }
 
   /**
@@ -612,14 +616,20 @@ class TermManagerDryRun {
     }
     // Only add actions to the operationList.
     if (!empty($operation->action)) {
+
       // Get original item from term tree.
-      if ($term = $this->getOriginalTreeItem($operation->term_name, $operation->vocabulary_name)) {
-        // Add ID data to operation.
-        $operation->tid = $term->tid;
-        $operation->vid = $term->vid;
-        $operation->target_vid = $term->target_vid;
-        $operation->target_tid = $term->target_tid;
-        $operation->parent_tid = $term->parent_tid;
+      try {
+        if ($term = $this->getOriginalTreeItem($operation->term_name, $operation->vocabulary_name)) {
+          // Add ID data to operation.
+          $operation->tid = $term->tid;
+          $operation->vid = $term->vid;
+          $operation->target_vid = $term->target_vid;
+          $operation->target_tid = $term->target_tid;
+          $operation->parent_tid = $term->parent_tid;
+        }
+      }
+      catch (Exception $e) {
+        $operation->error = $e->getMessage();
       }
 
       // Add operationItem to operationList.
