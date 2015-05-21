@@ -537,22 +537,24 @@ class TermManagerDryRun {
 
     // Output resulting taxonomy.
     foreach ($this->termTree as $vocabulary_name => $items) {
-      foreach ($items as $term_name => $item) {
-        // Exclude terms that no longer exist.
-        $exclude_operations = array(
-          DENNIS_TERM_MANAGER_ACTION_DELETE,
-          DENNIS_TERM_MANAGER_ACTION_MERGE,
-          DENNIS_TERM_MANAGER_ACTION_RENAME,
-        );
-        if (in_array($item->action, $exclude_operations)) {
-          continue 1;
+      foreach ($items as $term_name => $item_array) {
+        foreach ($item_array as $item) {
+          // Exclude terms that no longer exist.
+          $exclude_operations = array(
+            DENNIS_TERM_MANAGER_ACTION_DELETE,
+            DENNIS_TERM_MANAGER_ACTION_MERGE,
+            DENNIS_TERM_MANAGER_ACTION_RENAME,
+          );
+          if (in_array($item->action, $exclude_operations)) {
+            continue 1;
+          }
+          // Add term to report.
+          $row = array();
+          foreach ($columns as $key) {
+            $row[] = $item->{$key};
+          }
+          fputcsv($fp, $row, $delimiter, '"');
         }
-        // Add term to report.
-        $row = array();
-        foreach ($columns as $key) {
-          $row[] = $item->{$key};
-        }
-        fputcsv($fp, $row, $delimiter, '"');
       }
     }
     fclose($fp);
