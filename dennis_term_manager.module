@@ -12,6 +12,8 @@ define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
 define('DENNIS_TERM_MANAGER_ACTION_COMPLETE', 'complete');
 
+require_once "tests/dennis_term_manager.tests.inc";
+
 /**
  * Implements hook_views_api().
  */

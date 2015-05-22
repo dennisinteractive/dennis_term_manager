@@ -1,0 +1,123 @@
+<?php
+/**
+ * @file
+ * Testing suite for Dennis Term Manager.
+ */
+
+/**
+ * Runs the whole test suite.
+ *
+ * @return bool
+ */
+function dennis_term_manager_test_suite() {
+  // Create vocabs.
+  _dennis_term_manager_create_vocabulary('Term Manager Vocab 1');
+  _dennis_term_manager_create_vocabulary('Term Manager Vocab 2');
+
+  // Create terms.
+  // _dennis_term_manager_create_term($vocabulary_name, $term_name, $parent_name = NULL, $description = '', $format = 'filtered_html') {
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Fruits');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Simple', 'Fruits');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Berries', 'Simple');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Grapes', 'Berries');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Hesperidiums', 'Simple');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Lemon', 'Hesperidiums');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Orange', 'Hesperidiums');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Pepos', 'Simple');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Melon', 'Pepos');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Pumpkin', 'Pepos');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Drupes', 'Simple');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Peach', 'Drupes');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Plum', 'Drupes');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Pomes', 'Simple');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Apple', 'Pomes');
+  _dennis_term_manager_create_term('Term Manager Vocab 1', 'Pear', 'Pomes');
+
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Fruits');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Aggregate', 'Fruits');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Strawberry', 'Aggregate');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Blackberry', 'Aggregate');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Raspberry', 'Aggregate');
+
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Multiple', 'Fruits');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Pineapple', 'Multiple');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Fig', 'Multiple');
+  _dennis_term_manager_create_term('Term Manager Vocab 2', 'Mulberry', 'Multiple');
+
+  // Clean up vocabs.
+  //_dennis_term_manager_delete_vocabulary('Term Manager Vocab 1');
+  //_dennis_term_manager_delete_vocabulary('Term Manager Vocab 2');
+
+  //throw new \Exception(sprintf("aaaa", 'aa'));
+}
+
+/**
+ *
+ * Helper to create vocabs.
+ * @param $name
+ * @return bool|int
+ */
+function _dennis_term_manager_create_vocabulary($name) {
+  $machine_name = _dennis_term_manager_machine_name($name);
+
+  if (!taxonomy_vocabulary_machine_name_load($machine_name)) {
+    $new_vocab = (object) array(
+      'name' => $name,
+      'description' => 'This vocabulary is used to test Term manager',
+      'machine_name' => $machine_name,
+    );
+
+   return taxonomy_vocabulary_save($new_vocab);
+  }
+}
+
+/**
+ * Helper to delete vocabs.
+ *
+ * @param $name
+ */
+function _dennis_term_manager_delete_vocabulary($name) {
+  $machine_name = _dennis_term_manager_machine_name($name);
+  $vocab = taxonomy_vocabulary_machine_name_load($machine_name);
+
+  return taxonomy_vocabulary_delete($vocab->vid);
+}
+
+/**
+ * Helper to generate machine names.
+ *
+ * @param $name
+ * @return string
+ */
+function _dennis_term_manager_machine_name($name) {
+  return strtolower(preg_replace('@[^a-zA-Z0-9_]+@','_', $name));
+}
+
+/**
+ * Helper to Create terms.
+ */
+function _dennis_term_manager_create_term($vocabulary_name, $term_name, $parent_name = NULL, $description = '', $format = 'filtered_html') {
+  $vocabulary_name = _dennis_term_manager_machine_name($vocabulary_name);
+
+  $term = taxonomy_get_term_by_name($term_name, $vocabulary_name);
+  if (empty($term)) {
+    // Create term
+    $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_name);
+    $term_data = array(
+      'name' => $term_name,
+      'description' => $description,
+      'format' => $format,
+      'vid' => $vocabulary->vid,
+    );
+    if ($parent_name) {
+      $parent = taxonomy_get_term_by_name($parent_name, $vocabulary_name);
+      $term_data['parent'] = array_keys($parent);
+    }
+    if (!taxonomy_term_save((object) $term_data)) {
+      return FALSE;
+    }
+    $term = taxonomy_get_term_by_name($term_name, $vocabulary_name);
+  }
+  $keys = array_keys($term);
+  return $term[$keys[0]];
+}
