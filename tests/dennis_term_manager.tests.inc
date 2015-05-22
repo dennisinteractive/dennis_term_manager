@@ -23,12 +23,14 @@ function dennis_term_manager_test_suite() {
   $expected = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_original.csv';
   $outputted = drupal_realpath($location) . '/term_manager_test_original.csv';
 
+  //_dennis_term_manager_cleanup();
+
   $diff = shell_exec("diff $expected $outputted");
   if (strlen($diff) > 0) {
     throw new \Exception(sprintf('"%s" files don\'t match "%s"', $diff, $expected . ' vs ' . $outputted));
   }
 
-  //_dennis_term_manager_cleanup();
+
 
   //throw new \Exception(sprintf("aaaa", 'aa'));
 }
