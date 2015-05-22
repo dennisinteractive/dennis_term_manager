@@ -10,6 +10,28 @@
  * @return bool
  */
 function dennis_term_manager_test_suite() {
+  // Create taxonomy tree.
+  _dennis_term_manager_create_taxonomy();
+
+  // Export CSV of taxonomy tree.
+  dennis_term_manager_export_terms(',', DENNIS_TERM_MANAGER_DESTINATION_FILE);
+
+  //_dennis_term_manager_cleanup();
+
+  //throw new \Exception(sprintf("aaaa", 'aa'));
+}
+
+/**
+ * Test csv export.
+ */
+function _dennis_term_manager_test_csv_export() {
+
+}
+
+/**
+ * Helper to create the initial taxonomy tree.
+ */
+function _dennis_term_manager_create_taxonomy() {
   // Create vocabs.
   _dennis_term_manager_create_vocabulary('Term Manager Vocab 1');
   _dennis_term_manager_create_vocabulary('Term Manager Vocab 2');
@@ -43,12 +65,15 @@ function dennis_term_manager_test_suite() {
   _dennis_term_manager_create_term('Term Manager Vocab 2', 'Pineapple', 'Multiple');
   _dennis_term_manager_create_term('Term Manager Vocab 2', 'Fig', 'Multiple');
   _dennis_term_manager_create_term('Term Manager Vocab 2', 'Mulberry', 'Multiple');
+}
 
+/**
+ * Helper to clean up after tests run.
+ */
+function _dennis_term_manager_cleanup() {
   // Clean up vocabs.
-  //_dennis_term_manager_delete_vocabulary('Term Manager Vocab 1');
-  //_dennis_term_manager_delete_vocabulary('Term Manager Vocab 2');
-
-  //throw new \Exception(sprintf("aaaa", 'aa'));
+  _dennis_term_manager_delete_vocabulary('Term Manager Vocab 1');
+  _dennis_term_manager_delete_vocabulary('Term Manager Vocab 2');
 }
 
 /**
@@ -100,6 +125,7 @@ function _dennis_term_manager_create_term($vocabulary_name, $term_name, $parent_
   $vocabulary_name = _dennis_term_manager_machine_name($vocabulary_name);
 
   $term = taxonomy_get_term_by_name($term_name, $vocabulary_name);
+
   if (empty($term)) {
     // Create term
     $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_name);
@@ -114,10 +140,11 @@ function _dennis_term_manager_create_term($vocabulary_name, $term_name, $parent_
       $term_data['parent'] = array_keys($parent);
     }
     if (!taxonomy_term_save((object) $term_data)) {
-      return FALSE;
+      throw new \Exception(sprintf("Error saving term '%s'", $term_data['name']));
     }
     $term = taxonomy_get_term_by_name($term_name, $vocabulary_name);
   }
   $keys = array_keys($term);
+
   return $term[$keys[0]];
 }

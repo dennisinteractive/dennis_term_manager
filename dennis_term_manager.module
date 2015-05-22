@@ -11,6 +11,10 @@ define('DENNIS_TERM_MANAGER_ACTION_MERGE', 'merge');
 define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
 define('DENNIS_TERM_MANAGER_ACTION_COMPLETE', 'complete');
+define('DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD', '1');
+define('DENNIS_TERM_MANAGER_DESTINATION_FILE', '2');
+define('DENNIS_TERM_MANAGER_PUBLIC_FOLDER', 'public://term_manager');
+define('DENNIS_TERM_MANAGER_PRIVATE_FOLDER', 'private://term_manager');
 
 require_once "tests/dennis_term_manager.tests.inc";
 
@@ -170,19 +174,32 @@ function _dennis_term_manager_export_terms_query() {
 /**
  * Export current taxonomy.
  */
-function dennis_term_manager_export_terms($delimiter = "\t") {
+function dennis_term_manager_export_terms($delimiter = "\t", $destination = DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD) {
   $query = _dennis_term_manager_export_terms_query();
   $result = $query->execute();
 
   // Send correct header to download file.
   $extension = $delimiter == ',' ? 'csv' : 'tsv';
-  drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
   $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s') . '.' . $extension;
-  drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
 
   // Add default CSV/TSV headings.
   $columns = dennis_term_manager_default_columns();
-  $out = fopen('php://output', 'w');
+
+  switch ($destination) {
+    case DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD :
+      drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
+      drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
+
+      $out = fopen('php://output', 'w');
+      break;
+
+    case DENNIS_TERM_MANAGER_DESTINATION_FILE:
+      $location = _dennis_term_manager_get_files_folder();
+
+      $out = fopen($location . '/term_manager_test_original.csv', 'w');
+      break;
+  }
+
   fputcsv($out, $columns, $delimiter, '"');
 
   while ($row = $result->fetchObject()) {
@@ -383,20 +400,8 @@ function dennis_term_manager_form($form, &$form_state) {
     $progress_item->displayStatus();
   }
 
-  // Store CSV/TSV files and reports in private file location if available.
-  if (variable_get('file_private_path', '')) {
-    $location = 'private://term_manager';
-  }
-  else {
-    $location = 'public://term_manager';
-    // Warn user that files will be publicly accessible.
-    $config_link = l(
-        'Please configure the private file system path to store report privately',
-        'admin/config/media/file-system'
-    );
-    $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
-    drupal_set_message($warning_message, 'warning');
-  }
+  $location = _dennis_term_manager_get_files_folder();
+
   $form['csv_file'] = array(
     '#title' => t('Import'),
     '#type' => 'managed_file',
@@ -1175,4 +1180,26 @@ function dennis_term_manager_fe_paths_file_process_available_alter(&$allow_move,
   if (strpos($file->uri, '/term_manager/') !== FALSE) {
     $allow_move = FALSE;
   }
+}
+
+/**
+ * Helper to retrieve the files folder.
+ */
+function _dennis_term_manager_get_files_folder() {
+  // Store CSV/TSV files and reports in private file location if available.
+  if (variable_get('file_private_path', '')) {
+    $location = DENNIS_TERM_MANAGER_PRIVATE_FOLDER;
+  }
+  else {
+    $location = DENNIS_TERM_MANAGER_PUBLIC_FOLDER;
+    // Warn user that files will be publicly accessible.
+    $config_link = l(
+      'Please configure the private file system path to store report privately',
+      'admin/config/media/file-system'
+    );
+    $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
+    drupal_set_message($warning_message, 'warning');
+  }
+
+  return $location;
 }
