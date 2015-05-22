@@ -10,6 +10,8 @@
  * @return bool
  */
 function dennis_term_manager_test_suite() {
+  $location = _dennis_term_manager_get_files_folder();
+
   // Create taxonomy tree.
   _dennis_term_manager_create_taxonomy();
 
@@ -19,27 +21,32 @@ function dennis_term_manager_test_suite() {
   // Compare exported CSV against the CSV saved on the repo.
   // If you modify the tree, you will have to replace the file /tests/term_manager_test_original.csv
   // with the modified version and commit it to the repo.
-  $location = _dennis_term_manager_get_files_folder();
   $expected = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_original.csv';
   $outputted = drupal_realpath($location) . '/term_manager_test_original.csv';
 
+  // Compare exported tree against tree saved on repo.
+  dennis_term_manager_diff($expected, $outputted);
+
+  // Load CSV containing actions and execute it.
+  $actions = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_actions_pass.csv';
+
+  // Process the file.
+  $file = new stdClass();
+  $file->uri = $actions;
+  $batch = _dennis_term_manager_batch_init($file);
+  batch_set($batch);
+
   //_dennis_term_manager_cleanup();
-
-  $diff = shell_exec("diff $expected $outputted");
-  if (strlen($diff) > 0) {
-    throw new \Exception(sprintf('"%s" files don\'t match "%s"', $diff, $expected . ' vs ' . $outputted));
-  }
-
-
-
-  //throw new \Exception(sprintf("aaaa", 'aa'));
 }
 
 /**
- * Test csv export.
+ * Helper to do a Diff between files.
  */
-function _dennis_term_manager_test_csv_export() {
-
+function dennis_term_manager_diff($file1, $file2) {
+  $diff = shell_exec("diff $file1 $file2");
+  if (strlen($diff) > 0) {
+    throw new \Exception(sprintf('"%s" files don\'t match "%s"', $diff, $file1 . ' vs ' . $file2));
+  }
 }
 
 /**
