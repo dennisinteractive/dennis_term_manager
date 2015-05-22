@@ -137,13 +137,25 @@ function dennis_term_manager_download_template($delimiter = "\t") {
 
 /**
  * Get existing taxonomy usage.
+ *
+ * @param $vocabs
+ *    Array of vocabulary names, used to limit the results.
  */
-function _dennis_term_manager_export_terms_query() {
+function _dennis_term_manager_export_terms_query($vocabs = array()) {
   $query = db_select('taxonomy_term_data', 't');
 
   // Term vocabulary and name.
   $query->addField('v', 'name', 'vocabulary_name');
   $query->addField('t', 'name', 'term_name');
+
+  // Filter by vocabulary
+  $machine_names = array();
+  if (!empty($vocabs)) {
+    foreach ($vocabs as $name) {
+      $machine_names[] = _dennis_term_manager_machine_name($name);
+    }
+    $query->condition('v.machine_name', $machine_names, 'IN');
+  }
 
   // TID and VID
   $query->addField('v', 'vid', 'vid');
@@ -174,8 +186,8 @@ function _dennis_term_manager_export_terms_query() {
 /**
  * Export current taxonomy.
  */
-function dennis_term_manager_export_terms($delimiter = "\t", $destination = DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD) {
-  $query = _dennis_term_manager_export_terms_query();
+function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), $destination = DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD) {
+  $query = _dennis_term_manager_export_terms_query($vocabs);
   $result = $query->execute();
 
   // Send correct header to download file.
@@ -1202,4 +1214,14 @@ function _dennis_term_manager_get_files_folder() {
   }
 
   return $location;
+}
+
+/**
+ * Helper to generate machine names.
+ *
+ * @param $name
+ * @return string
+ */
+function _dennis_term_manager_machine_name($name) {
+  return strtolower(preg_replace('@[^a-zA-Z0-9_]+@','_', $name));
 }

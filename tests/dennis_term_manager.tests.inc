@@ -14,7 +14,7 @@ function dennis_term_manager_test_suite() {
   _dennis_term_manager_create_taxonomy();
 
   // Export CSV of taxonomy tree.
-  dennis_term_manager_export_terms(',', DENNIS_TERM_MANAGER_DESTINATION_FILE);
+  dennis_term_manager_export_terms(',', array('Term Manager Vocab 1', 'Term Manager Vocab 2'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
 
   //_dennis_term_manager_cleanup();
 
@@ -106,16 +106,6 @@ function _dennis_term_manager_delete_vocabulary($name) {
   $vocab = taxonomy_vocabulary_machine_name_load($machine_name);
 
   return taxonomy_vocabulary_delete($vocab->vid);
-}
-
-/**
- * Helper to generate machine names.
- *
- * @param $name
- * @return string
- */
-function _dennis_term_manager_machine_name($name) {
-  return strtolower(preg_replace('@[^a-zA-Z0-9_]+@','_', $name));
 }
 
 /**
