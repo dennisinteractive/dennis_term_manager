@@ -95,7 +95,7 @@ class TermManagerDryRun {
         $this->processOperation($operation);
       }
     }
-  
+
     // Display dry run errors to the end user.
     if ($errorList = $this->operationList->getErrorList()) {
       foreach ($errorList as $error) {
@@ -103,6 +103,7 @@ class TermManagerDryRun {
       }
       $this->operationList->outputCSV($file_path, $delimiter);
     }
+
     // Output dry run errors in operation CSV.
     $this->outputCSV($file_path, $delimiter);
   }
@@ -525,7 +526,11 @@ class TermManagerDryRun {
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-dry_run.$1", $file_path);
 
     // Create managed file and open for writing.
-    $file = _dennis_term_manager_open_report($file_name);
+    if ($file = !_dennis_term_manager_open_report($file_name)) {
+      drupal_set_message(t('Could not open %file', array('%file' => $file_name)));
+      return;
+    }
+
     $fp = fopen($file->uri, 'w');
 
     // Add Headings.
@@ -556,7 +561,6 @@ class TermManagerDryRun {
 
     // Clear stat cache to get correct filesize.
     clearstatcache(FALSE, $file->uri);
-
     // Saved managed file.
     file_save($file);
   }

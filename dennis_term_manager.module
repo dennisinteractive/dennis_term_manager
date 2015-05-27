@@ -550,13 +550,13 @@ function dennis_term_manager_file_download($uri, $field_type = 'file') {
 function _dennis_term_manager_batch_init($file) {
   // Dry Run to validate and get operation list.
   $dryRun = new TermManagerDryRun();
-return;
   $dryRun->execute($file->uri);
+
   $operationList = $dryRun->getOperationList();
 
   // Prevent batch if there are no operation items.
   if (count($operationList) == 0) {
-    drupal_set_message('There were no valid operations');
+    drupal_set_message(t('There were no valid operations'));
     return;
   }
 
@@ -569,7 +569,11 @@ return;
   // - Use the same file name and change extenstion.
   $date = date('Y-m-d_H-i-s', REQUEST_TIME);
   $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $file->uri);
-  $report_file = _dennis_term_manager_open_report($report_file_name);
+
+  if ($report_file != _dennis_term_manager_open_report($report_file_name)) {
+    drupal_set_message(t('Could not open %file', array('%file' => $report_file_name)));
+    return;
+  }
 
   // Add file in progress.
   $progress_item = new TermManagerProgressItem($file->fid);
@@ -980,10 +984,12 @@ function _dennis_term_manager_write_report($fid, $error_message) {
  */
 function _dennis_term_manager_open_report($file_path) {
   // Create new managed file.
-  $file = file_save_data('', $file_path, FILE_EXISTS_RENAME);
-  // Add file usage.
-  file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
-  return $file;
+  if ($file = file_save_data('', $file_path, FILE_EXISTS_RENAME)) {
+    // Add file usage.
+    file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
+    return $file;
+  }
+  return FALSE;
 }
 
 /**
