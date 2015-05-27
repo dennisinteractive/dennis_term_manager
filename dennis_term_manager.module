@@ -1233,3 +1233,47 @@ function _dennis_term_manager_get_files_folder() {
 function _dennis_term_manager_machine_name($name) {
   return strtolower(preg_replace('@[^a-zA-Z0-9_]+@','_', $name));
 }
+
+/**
+ * Helper to count delimiters and see what is the mostly used.
+ */
+function _dennis_term_manager_detect_delimiter($str, $delimiter = null) {
+  // Get number of rows.
+  preg_match_all("/\n/", $str, $matches);
+  $rows = count($matches[0]);
+
+  $cur_cnt = 0;
+  foreach(_dennis_term_manager_get_delimiters() as $key => $value) {
+    preg_match_all("/\\$value/", $str, $matches);
+    $count = count($matches[0]);
+
+    //echo "$key($value) = " . count($matches[0]) . PHP_EOL;
+
+    if ($count > $cur_cnt) {
+      $cur_cnt = $count;
+
+      // Only use this delimiter if it happens at least once per row.
+      if ($count > $rows) {
+        $delimiter = $value;
+      }
+    }
+  }
+
+  return $delimiter;
+}
+
+/**
+ * Helper to return list of delimiters.
+ */
+function _dennis_term_manager_get_delimiters() {
+  $delimiters = array(
+    'comma' => ",",
+    'semicolon' => ";",
+    'tab' => "\t",
+    'pipe' => "|",
+    'colon' => ":",
+    'space' => " ",
+  );
+
+  return $delimiters;
+}

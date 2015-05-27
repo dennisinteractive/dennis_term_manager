@@ -67,12 +67,12 @@ class TermManagerDryRun {
   public function execute($file_path) {
     // Get file info.
     $file_info = pathinfo($file_path);
-    $delimiter = $file_info['extension'] == 'csv' ? ',' : "\t";
 
     // Detect line endings.
     ini_set('auto_detect_line_endings',TRUE);
 
     if (($handle = fopen($file_path, "r")) !== FALSE) {
+      $delimiter = _dennis_term_manager_detect_delimiter(file_get_contents($file_path));
       $heading_row = fgetcsv($handle, 1000, $delimiter);
       $columns = array_flip($heading_row);
 
