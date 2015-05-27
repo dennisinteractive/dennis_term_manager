@@ -28,11 +28,12 @@ function dennis_term_manager_test_suite() {
   dennis_term_manager_diff($expected, $outputted);
 
   // Load CSV containing actions and execute it.
-  $actions = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_actions_pass.csv';
+  $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_actions_pass.csv';
+  $uri = file_unmanaged_copy($actions_file, $location, FILE_EXISTS_REPLACE);
 
   // Process the file.
   $file = new stdClass();
-  $file->uri = $actions;
+  $file->uri = $uri;
   $batch = _dennis_term_manager_batch_init($file);
   batch_set($batch);
 

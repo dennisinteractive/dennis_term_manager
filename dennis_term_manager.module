@@ -568,10 +568,9 @@ function _dennis_term_manager_batch_init($file) {
   // Create file for reporting error.
   // - Use the same file name and change extenstion.
   $date = date('Y-m-d_H-i-s', REQUEST_TIME);
-  $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $file->uri);
 
-  if ($report_file != _dennis_term_manager_open_report($report_file_name)) {
-    drupal_set_message(t('Could not open %file', array('%file' => $report_file_name)));
+  $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $file->uri);
+  if (!$report_file = _dennis_term_manager_open_report($report_file_name)) {
     return;
   }
 
@@ -989,7 +988,10 @@ function _dennis_term_manager_open_report($file_path) {
     file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
     return $file;
   }
-  return FALSE;
+  else {
+    drupal_set_message(t('Could not open %file', array('%file' => $file_path)));
+    return FALSE;
+  }
 }
 
 /**

@@ -526,8 +526,7 @@ class TermManagerDryRun {
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-dry_run.$1", $file_path);
 
     // Create managed file and open for writing.
-    if ($file = !_dennis_term_manager_open_report($file_name)) {
-      drupal_set_message(t('Could not open %file', array('%file' => $file_name)));
+    if (!$file = _dennis_term_manager_open_report($file_name)) {
       return;
     }
 
