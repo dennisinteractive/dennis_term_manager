@@ -10,7 +10,7 @@
  * @return bool
  */
 function dennis_term_manager_test_suite() {
-  $location = _dennis_term_manager_get_files_folder();
+  $destination = _dennis_term_manager_get_files_folder();
 
   // Create taxonomy tree.
   _dennis_term_manager_create_taxonomy();
@@ -22,18 +22,21 @@ function dennis_term_manager_test_suite() {
   // If you modify the tree, you will have to replace the file /tests/term_manager_test_original.csv
   // with the modified version and commit it to the repo.
   $expected = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_original.csv';
-  $outputted = drupal_realpath($location) . '/term_manager_test_original.csv';
+  $outputted = drupal_realpath($destination) . '/term_manager_test_original.csv';
 
   // Compare exported tree against tree saved on repo.
   dennis_term_manager_diff($expected, $outputted);
 
   // Load CSV containing actions and execute it.
   $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/term_manager_test_actions_pass.csv';
-  $uri = file_unmanaged_copy($actions_file, $location, FILE_EXISTS_REPLACE);
+  $file = dennis_term_manager_file_copy($actions_file, $destination);
+
+  $date = date('Y-m-d_H-i-s', REQUEST_TIME);
+  $errors_file = preg_replace("/(.*)[.](.*)/", "$1-$date-errors.$2", $file->uri);
+  $dry_run_file = preg_replace("/(.*)[.](.*)/", "$1-$date-dry_run.$2", $file->uri);
+  $report_file = preg_replace("/(.*)[.](.*)/", "$1-$date-report.txt", $file->uri);
 
   // Process the file.
-  $file = new stdClass();
-  $file->uri = $uri;
   $batch = _dennis_term_manager_batch_init($file);
   batch_set($batch);
 

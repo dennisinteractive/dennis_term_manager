@@ -125,9 +125,9 @@ function dennis_term_manager_menu() {
  */
 function dennis_term_manager_download_template($delimiter = "\t") {
   // Send correct header to download file.
-  $extension = $delimiter == ',' ? 'csv' : 'tsv';
+  $extension = $delimiter == "\t" ? 'tsv' : 'csv';
   drupal_add_http_header('Content-Type', 'text/' . $extension . '; charset=utf-8');
-  $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s') . '.' . $extension;
+  $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s', REQUEST_TIME) . '.' . $extension;
   drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
 
   $columns = dennis_term_manager_default_columns();
@@ -191,8 +191,8 @@ function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), 
   $result = $query->execute();
 
   // Send correct header to download file.
-  $extension = $delimiter == ',' ? 'csv' : 'tsv';
-  $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s') . '.' . $extension;
+  $extension = $delimiter == "\t" ? 'tsv' : 'csv';
+  $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s', REQUEST_TIME) . '.' . $extension;
 
   // Add default CSV/TSV headings.
   $columns = dennis_term_manager_default_columns();
@@ -493,17 +493,72 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
     drupal_set_message(t('Please upload the CSV/TSV file first.'), 'error');
   }
   else {
+    // Save the file.
+    dennis_term_manager_file_save($file);
+
+    // Process the file.
+    $batch = _dennis_term_manager_batch_init($file);
+    batch_set($batch);
+  }
+}
+
+/**
+ * Helper to copy the csv/tsv files and add an entry into the file usage table.
+ *
+ * @param $file_name
+ *    The full path of the source file
+ * @param $destination
+ *    The uri of the destination
+ * @param $replace
+ *    The action to take when the file exists
+ * @return $file
+ *    The file object.
+ */
+function dennis_term_manager_file_copy($file_name, $destination, $replace = FILE_EXISTS_REPLACE) {
+  $file = new stdClass();
+  $file->uri = file_unmanaged_copy($file_name, $destination, $replace);
+  $file->filename = basename($file->uri);
+
+  if ($replace == FILE_EXISTS_REPLACE) {
+    // Since we are replacing an existing file re-use its database record.
+    $existing_files = file_load_multiple(array(), array('uri' => $file->uri));
+    if (count($existing_files)) {
+      $existing = reset($existing_files);
+      $file->fid = $existing->fid;
+    }
+  }
+
+  // Save the file.
+  dennis_term_manager_file_save($file);
+
+  return $file;
+}
+
+/**
+ * Helper to save the csv/tsv files and add an entry to the file usage table.
+ *
+ * @param $file
+ *    The file object to be saved.
+ * @return $file
+ *    The file object.
+ */
+function dennis_term_manager_file_save($file) {
+  if (is_object($file)) {
+
     // Make file permanent.
     $file->status = FILE_STATUS_PERMANENT;
     file_save($file);
 
     // Add file usage.
     file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
-
-    // Process the file.
-    $batch = _dennis_term_manager_batch_init($file);
-    batch_set($batch);
   }
+  else {
+    throw new Exception(t('!file_name cannot be saved', array(
+      '!file_name' => $file->uri,
+    )));
+  }
+
+  return $file;
 }
 
 /**
