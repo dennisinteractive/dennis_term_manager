@@ -39,6 +39,9 @@ function dennis_term_manager_test_suite() {
   // Process the file.
   $batch = _dennis_term_manager_batch_init($file);
   batch_set($batch);
+  $batch =& batch_get();
+  $batch['progressive'] = FALSE;
+  drush_backend_batch_process();
 
   //_dennis_term_manager_cleanup();
 }
