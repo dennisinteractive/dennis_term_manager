@@ -208,7 +208,7 @@ function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), 
     case DENNIS_TERM_MANAGER_DESTINATION_FILE:
       $location = _dennis_term_manager_get_files_folder();
 
-      $out = fopen($location . '/term_manager_test_original.csv', 'w');
+      $out = fopen($location . '/term_manager_test_tree.csv', 'w');
       break;
   }
 
@@ -816,6 +816,22 @@ function dennis_term_manager_queue_operation_complete($data) {
 }
 
 /**
+ * Implements hook_cron().
+ */
+function dennis_term_manager_cron() {
+  // Process the queue.
+  foreach (dennis_term_manager_cron_queue_info() as $queue_name => $info) {
+    $function = $info['worker callback'];
+    if ($queue = DrupalQueue::get($queue_name)) {
+      while ($item = $queue->claimItem()) {
+        $function($item->data);
+        $queue->deleteItem($item);
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_cron_queue_info().
  */
 function dennis_term_manager_cron_queue_info() {
@@ -970,11 +986,12 @@ function _dennis_term_manager_get_scheduled_nodes() {
  *   Taxonomy Term ID or false in case not found
  */
 function _dennis_term_manager_get_tid($term_name, $vid) {
-  $vocabulary = taxonomy_vocabulary_load($vid);
-  $term_name = _dennis_term_manager_decode_specific_chars($term_name);
-  if ($term = taxonomy_get_term_by_name($term_name, $vocabulary->machine_name)) {
-    $first_term = array_values($term);
-    return $first_term[0]->tid;
+  if ($vocabulary = taxonomy_vocabulary_load($vid)) {
+    $term_name = _dennis_term_manager_decode_specific_chars($term_name);
+    if ($term = taxonomy_get_term_by_name($term_name, $vocabulary->machine_name)) {
+      $first_term = array_values($term);
+      return $first_term[0]->tid;
+    }
   }
 }
 
