@@ -65,10 +65,8 @@ function _dennis_term_manager_process_action_delete_term($data) {
   }
   else {
     // Send to error report.
-    $error_message = t('Term @term_name (tid:@tid) not found in row @row', array(
+    $error_message = t('Term \'@term_name\' not found in \'delete\' action', array(
       '@term_name' => $data['term_name'],
-      '@tid' => $data['tid'],
-      '@row' => $data['row'],
     ));
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
     return;

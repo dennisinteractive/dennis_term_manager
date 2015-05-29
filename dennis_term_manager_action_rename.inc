@@ -47,9 +47,8 @@ function _dennis_term_manager_process_action_rename($data) {
   }
   else {
     // Send to error report.
-    $error_message = t("Term '@term_name' does not exist in vocabulary @vocab", array(
+    $error_message = t('Term \'@term_name\' not found in \'rename\' action', array(
       '@term_name' => $data['term_name'],
-      '@vocab' => $data['vid'],
     ));
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
     return;
