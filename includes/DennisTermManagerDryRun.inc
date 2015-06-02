@@ -65,6 +65,10 @@ class TermManagerDryRun {
    * @param $file_path
    */
   public function execute($file_path) {
+    if (empty($file_path)) {
+      return;
+    }
+
     // Get file info.
     $file_info = pathinfo($file_path);
 
@@ -103,7 +107,6 @@ class TermManagerDryRun {
       }
       $this->operationList->outputCSV($file_path, $delimiter);
     }
-
     // Output dry run errors in operation CSV.
     $this->outputCSV($file_path, $delimiter);
   }
@@ -330,6 +333,7 @@ class TermManagerDryRun {
 
     // Ensure target term can be retrieved.
     $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name);
+
     if (empty($target_term->tid)) {
       throw new Exception(t('!vocab > !name has not been created yet', array(
         '!vocab' => $target_vocabulary_name,
@@ -471,6 +475,7 @@ class TermManagerDryRun {
     // Format keys.
     $vocabulary_key = $this->formatKey($vocabulary_name);
     $term_key = $this->formatKey($term_name);
+
     // Return tree item if it exists.
     if (isset($this->termTree[$vocabulary_key][$term_key])) {
       return $this->termTree[$vocabulary_key][$term_key];
