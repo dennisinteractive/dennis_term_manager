@@ -14,13 +14,20 @@
 function dennis_term_manager_drush_command() {
   $items = array();
 
-  $items['term-manager-tests'] = array(
-      'description' => "Runs the Term manager test suite",
+  $items['term-manager-cleanup'] = array(
+    'description' => "Clean testing taxonomy tree.",
+    'drupal dependencies' => array('dennis_term_manager'),
+    'callback' => '_dennis_term_manager_cleanup',
+  );
+  $items['term-manager-init'] = array(
+      'description' => "Creates the initial tree for testings.",
   		'drupal dependencies' => array('dennis_term_manager'),
-      'callback' => 'drush_dennis_term_manager_tests',
-  		'options' => array(
-  				'all' => "Run all tests",
-  				),
+      'callback' => 'dennis_term_manager_test_create_tree',
+  );
+  $items['term-manager-actions'] = array(
+    'description' => "Runs the actions CSV.",
+    'drupal dependencies' => array('dennis_term_manager'),
+    'callback' => 'dennis_term_manager_test_actions',
   );
   
   return $items;
@@ -31,19 +38,11 @@ function dennis_term_manager_drush_command() {
  */
 function dennis_term_manager_drush_help($section) {
   switch ($section) {
-    case 'drush:term-manager-test':
-      return dt("Runs the Term manager test suite");
+    case 'drush:term-manager-cleanup':
+      return dt("Clean testing taxonomy tree.");
+    case 'drush:term-manager-init':
+      return dt("Creates the initial tree for testings.");
+    case 'drush:term-manager-init':
+      return dt("Runs the actions CSV.");
   }
-}
-
-/**
- * Helper to do the actions.
- */
-function drush_dennis_term_manager_tests() {
-	if (drush_get_option('all')) {
-		drush_print('Running all tests');
-	}
-
-  dennis_term_manager_test_suite();
-  //drush_print('call main function here');
 }
