@@ -208,7 +208,7 @@ function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), 
     case DENNIS_TERM_MANAGER_DESTINATION_FILE:
       $location = _dennis_term_manager_get_files_folder();
 
-      $out = fopen($location . '/term_manager_test_tree.csv', 'w');
+      $out = fopen($location . '/taxonomy_export.csv', 'w');
       break;
   }
 
