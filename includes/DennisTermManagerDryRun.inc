@@ -162,8 +162,8 @@ class TermManagerDryRun {
    * @param $term_name
    * @param $vocabulary_name
    */
-  protected function moveParent($term_name, $vocabulary_name, $parent_term_name) {
-    $term = $this->getTreeItem($term_name, $vocabulary_name);
+  protected function moveParent($term_name, $vocabulary_name, $parent_term_name, $target_tid) {
+    $term = $this->getTreeItem($term_name, $vocabulary_name, $target_tid);
 
     // Prevent terms being moved more than once per run.
     if ($term->action == DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT) {
@@ -175,7 +175,7 @@ class TermManagerDryRun {
 
     // Get parent and check it's not the same term.
     if (!empty($parent_term_name)) {
-      $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name);
+      $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name, $target_tid);
       $tids_match = $parent_term->tid == $term->tid;
 
       // Check that names don't match.
@@ -241,7 +241,7 @@ class TermManagerDryRun {
    * @param $vocabulary_name
    * @param $new_name
    */
-  protected function rename($term_name, $vocabulary_name, $new_name) {
+  protected function rename($term_name, $vocabulary_name, $new_name, $target_tid) {
     // Don't allow empty names.
     $new_name = trim($new_name);
     if (empty($new_name)) {
@@ -252,10 +252,10 @@ class TermManagerDryRun {
     }
 
     // Get term to rename.
-    $term = $this->getTreeItem($term_name, $vocabulary_name);
+    $term = $this->getTreeItem($term_name, $vocabulary_name, $target_tid);
 
     // Assert that the new name doesn't already exist.
-    if ($existingTerm =  $this->getOriginalTreeItem($new_name, $vocabulary_name)) {
+    if ($existingTerm =  $this->getOriginalTreeItem($new_name, $vocabulary_name, $target_tid)) {
       // Throw exception if another term exists with the same name or the name isn't being changed.
       if ($existingTerm->tid != $term->tid || $term_name === $new_name) {
         throw new Exception(t('!vocab > !name already exists', array(
@@ -284,8 +284,8 @@ class TermManagerDryRun {
    * @param $term_name
    * @param $vocabulary_name
    */
-  protected function delete($term_name, $vocabulary_name) {
-    $term = $this->getTreeItem($term_name, $vocabulary_name);
+  protected function delete($term_name, $vocabulary_name, $tid) {
+    $term = $this->getTreeItem($term_name, $vocabulary_name, $tid);
 
     // Assert that the term is not locked.
     $this->assertNotLocked($term);
@@ -321,14 +321,14 @@ class TermManagerDryRun {
    * @param $target_vocabulary_name
    * @throws Exception
    */
-  protected function merge($term_name, $vocabulary_name, $target_term_name, $target_vocabulary_name, $target_field = '') {
+  protected function merge($term_name, $vocabulary_name, $target_term_name, $target_vocabulary_name, $target_field = '', $tid = '', $target_tid = '') {
     // Prevent merge with self.
-    if ($term_name == $target_term_name && $vocabulary_name == $target_vocabulary_name) {
-      throw new Exception(t('Cannot merge with self'));
+    if ($term_name == $target_term_name && $vocabulary_name == $target_vocabulary_name && ($tid == $target_tid)) {
+      throw new Exception(t('Cannot merge with self, you need to provide a tid.'));
     }
 
     // Ensure target term can be retrieved.
-    $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name);
+    $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name, $target_tid);
     if (empty($target_term->tid)) {
       throw new Exception(t('!vocab > !name has not been created yet', array(
         '!vocab' => $target_vocabulary_name,
@@ -336,7 +336,7 @@ class TermManagerDryRun {
       )));
     }
 
-    $term = $this->getTreeItem($term_name, $vocabulary_name);
+    $term = $this->getTreeItem($term_name, $vocabulary_name, $tid);
 
     // Assert that the term is not locked.
     $this->assertNotLocked($term);
@@ -412,10 +412,11 @@ class TermManagerDryRun {
    *
    * @param $term_name
    * @param $vocabulary_name
+   * @param $tid
    * @throws Exception
    */
-  protected function getTreeItem($term_name, $vocabulary_name) {
-    if ($term = $this->getOriginalTreeItem($term_name, $vocabulary_name)) {
+  protected function getTreeItem($term_name, $vocabulary_name, $tid  = '') {
+    if ($term = $this->getOriginalTreeItem($term_name, $vocabulary_name, $tid)) {
 
       if ($term->duplicated) {
         throw new Exception(t('!vocab > !name is duplicated. This needs to be fixed manually.', array(
@@ -456,7 +457,7 @@ class TermManagerDryRun {
     // Cannot find requested term in tree.
     throw new Exception(t('!vocab => !name does not exist', array(
       '!name' => $term_name,
-      '!vocab' => $vocabulary_name
+      '!vocab' => (empty($vocabulary_name)) ? t('Unset') : $vocabulary_name,
     )));
   }
 
@@ -466,13 +467,33 @@ class TermManagerDryRun {
    * @param $term_name
    * @param $vocabulary_name
    */
-  protected function getOriginalTreeItem($term_name, $vocabulary_name) {
+  protected function getOriginalTreeItem($term_name, $vocabulary_name, $tid = '') {
     // Format keys.
     $vocabulary_key = $this->formatKey($vocabulary_name);
     $term_key = $this->formatKey($term_name);
     // Return tree item if it exists.
     if (isset($this->termTree[$vocabulary_key][$term_key])) {
-      return $this->termTree[$vocabulary_key][$term_key];
+      //return $this->termTree[$vocabulary_key][$term_key];
+      // Check if tid exists.
+      if (!empty($tid)) {
+        if (!isset($this->termTree[$vocabulary_key][$term_key][$tid])) {
+          throw new Exception(t('This !tid doesn\'t exist in !vocab > !name.', array(
+            '!tid' => $tid,
+            '!vocab' => $vocabulary_name,
+            '!name' => $term_name,
+          )));
+        }
+        return $this->termTree[$vocabulary_key][$term_key][$tid];
+      }
+
+      // Multiple check.
+      if (count($this->termTree[$vocabulary_key][$term_key]) > 1) {
+        throw new Exception(t('!vocab > !name is duplicated. Please specify a tid.', array(
+          '!name' => $term_name,
+          '!vocab' => $vocabulary_name,
+        )));
+      }
+      return reset($this->termTree[$vocabulary_key][$term_key]);
     }
   }
 
@@ -486,20 +507,7 @@ class TermManagerDryRun {
     $vocabulary_key = $this->formatKey($item->vocabulary_name);
     $term_key = $this->formatKey($item->term_name);
     // Add item to tree.
-    if (!isset($this->termTree[$vocabulary_key][$term_key])) {
-      $this->termTree[$vocabulary_key][$term_key] = $item;
-    }
-    else {
-      $this->termTree[$vocabulary_key][$term_key]->duplicated = TRUE;
-      $message = (t('!vocab > !name is duplicated. This needs to be fixed manually.',
-        array(
-          '!name' => $item->term_name,
-          '!vocab' => $item->vocabulary_name,
-        )
-      ));
-      drupal_set_message($message, 'warning'
-      );
-    }
+    $this->termTree[$vocabulary_key][$term_key][$item->tid] = $item;
   }
 
   /**
@@ -534,25 +542,27 @@ class TermManagerDryRun {
 
     // Output resulting taxonomy.
     foreach ($this->termTree as $vocabulary_name => $items) {
-      foreach ($items as $term_name => $item) {
-        // Exclude terms that no longer exist.
-        $exclude_operations = array(
-          DENNIS_TERM_MANAGER_ACTION_DELETE,
-          DENNIS_TERM_MANAGER_ACTION_MERGE,
-          DENNIS_TERM_MANAGER_ACTION_RENAME,
-        );
-        if (in_array($item->action, $exclude_operations)) {
-          continue 1;
+      foreach ($items as $term_name => $array_item) {
+        foreach ($array_item as $item) {
+          // Exclude terms that no longer exist.
+          $exclude_operations = array(
+            DENNIS_TERM_MANAGER_ACTION_DELETE,
+            DENNIS_TERM_MANAGER_ACTION_MERGE,
+            DENNIS_TERM_MANAGER_ACTION_RENAME,
+          );
+          if (in_array($item->action, $exclude_operations)) {
+            continue 1;
+          }
+          // Add term to report.
+          $row = array();
+          foreach ($columns as $key) {
+            $row[] = $item->{$key};
+          }
+          fputcsv($fp, $row, $delimiter, '"');
         }
-        // Add term to report.
-        $row = array();
-        foreach ($columns as $key) {
-          $row[] = $item->{$key};
-        }
-        fputcsv($fp, $row, $delimiter, '"');
       }
     }
-    fclose($fp);
+      fclose($fp);
 
     // Clear stat cache to get correct filesize.
     clearstatcache(FALSE, $file->uri);
@@ -568,7 +578,7 @@ class TermManagerDryRun {
     switch ($operation->action) {
       case DENNIS_TERM_MANAGER_ACTION_MERGE:
         try {
-          $this->merge($operation->term_name, $operation->vocabulary_name, $operation->target_term_name, $operation->target_vocabulary_name, $operation->target_field);
+          $this->merge($operation->term_name, $operation->vocabulary_name, $operation->target_term_name, $operation->target_vocabulary_name, $operation->target_field, $operation->tid, $operation->target_tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();
@@ -577,7 +587,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
         try {
-          $this->moveParent($operation->term_name, $operation->vocabulary_name, $operation->parent_term_name);
+          $this->moveParent($operation->term_name, $operation->vocabulary_name, $operation->parent_term_name,$operation->target_tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();
@@ -595,7 +605,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_DELETE:
         try {
-          $this->delete($operation->term_name, $operation->vocabulary_name);
+          $this->delete($operation->term_name, $operation->vocabulary_name, $operation->tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();
@@ -604,7 +614,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_RENAME:
         try {
-          $this->rename($operation->term_name, $operation->vocabulary_name, $operation->new_name);
+          $this->rename($operation->term_name, $operation->vocabulary_name, $operation->new_name,$operation->target_tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();

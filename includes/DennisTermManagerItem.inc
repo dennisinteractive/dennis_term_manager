@@ -73,7 +73,7 @@ class TermManagerItem {
       case 'target_tid':
       case 'target_vid':
       case 'parent_tid':
-      case 'duplicated':
+      case 'path':
       case 'locked':
         break;
       default:
