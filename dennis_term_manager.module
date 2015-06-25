@@ -123,7 +123,6 @@ function dennis_term_manager_download_template($delimiter = "\t") {
   drupal_add_http_header('Content-Type', 'text/' . $extension . '; charset=utf-8');
   $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s') . '.' . $extension;
   drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
-
   $columns = dennis_term_manager_default_columns();
   $out = fopen('php://output', 'w');
   fputcsv($out, $columns, $delimiter, '"');
@@ -138,6 +137,9 @@ function _dennis_term_manager_export_terms_query() {
   // Term vocabulary and name.
   $query->addField('v', 'name', 'vocabulary_name');
   $query->addField('t', 'name', 'term_name');
+
+   $query->leftJoin('url_alias', 'ua', "ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))");
+   $query->addField('ua', 'alias', 'path');
 
   // TID and VID
   $query->addField('v', 'vid', 'vid');
@@ -196,7 +198,7 @@ function dennis_term_manager_export_terms($delimiter = "\t") {
 /**
  * Implements hook_help().
  */
-function dennis_term_manager_help($path, $arg) {
+function dennis_term_manager_help($path) {
   $output = '';
 
   // CSS to display lists correctly.
@@ -225,142 +227,114 @@ function dennis_term_manager_help($path, $arg) {
     case 'admin/structure/taxonomy/term_manager':
       $output .= $css;
       $output .= '<div class="import-notes">';
-      $output .= '<p><strong>How to use it</strong></p>
-
-                <ol>
-                  <li>Click on <em>Manage -&gt;&nbsp;TSV/CSV&nbsp;Template</em> to use as starting point from an empty file. Or click <em>Manage -&gt; TSV/CSV Export</em> to have list of the full taxonomy usage.</li>
-                  <li>Edit the downloaded file and create the <strong>actions</strong>. To know what columns to use for each action, see the <a href="/admin/help/dennis_term_manager">help</a> page.</li>
-                  <li>Click <strong>Choose file</strong> and Upload</li>
-                  <li>Click <strong>Import</strong></li>
-                </ol>';
+      $output .= '<p><strong>How to use it</strong></p>';
+			$output .= '<ol>';
+			$output .= '<li>Click on <em>Manage -&gt;&nbsp;TSV/CSV&nbsp;Template</em> to use as starting point from an empty file. Or click <em>Manage -&gt; TSV/CSV Export</em> to have list of the full taxonomy usage.</li>';
+			$output .= '<li>Edit the downloaded file and create the <strong>actions</strong>. To know what columns to use for each action, see the <a href="/admin/help/dennis_term_manager">help</a> page.</li>';
+			$output .= '<li>Click <strong>Choose file</strong> and Upload</li>';
+			$output .= '<li>Click <strong>Import</strong></li>';
+			$output .= '</ol>';
       $output .= '</div>';
       break;
 
     case 'admin/help#dennis_term_manager':
       $output .= $css;
       $output .= '<div class="import-notes">';
-      $output .= '<p><strong>vocabulary_name</strong></p>
-                    <ul>
-                      <li>Vocabulary of existing/source term</li>
-                      <li>Used by all actions</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>term_name</strong></p>
-
-                    <ul>
-                      <li>Name of existing/source term</li>
-                      <li>Used by all actions</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>node_count</strong></p>
-
-                    <ul>
-                      <li>Count of existing term nodes</li>
-                      <li>Not used by any action</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>parent_term_name</strong></p>
-
-                    <ul>
-                      <li>Name of existing term parent</li>
-                      <li>Used by "move parent"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>action</strong></p>
-
-                    <ul>
-                      <li>"create"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name</li>
-                        <li>Optional: parent_term_name</li>
-                      </ul>
-                      </li>
-                      <li>"delete"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name</li>
-                      </ul>
-                      </li>
-                      <li>"merge"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name, target_vocabulary_name, target_term_name</li>
-                        <li>Optional columns: redirect</li>
-                        <li>When merging across vocabularies you must also specify target_field list</li>
-                      </ul>
-                      </li>
-                      <li>"rename"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name, new_name</li>
-                      </ul>
-                      </li>
-                      <li>"move parent"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name, parent_term_name</li>
-                        <li>Set parent_term_name to empty "" to make it a root item</li>
-                        <li>note: You can only move terms within same vocabulary</li>
-                      </ul>
-                      </li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>target_vocabulary_name</strong></p>
-
-                    <ul>
-                      <li>Vocabulary of target term</li>
-                      <li>Used by "merge"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>target_term_name</strong></p>
-
-                    <ul>
-                      <li>Name of target term</li>
-                      <li>Used by "merge"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>target_field</strong></p>
-
-                    <ul>
-                      <li>Comma separated list of fields to merge into</li>
-                      <li>Used by "merge"</li>
-                      <li>This is only required when merging across vocabularies</li>
-                      <li>Example: "field_category_primary,field_category_secondary" will try to set the node primary category first if not empty, otherwise will append to secondary</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>new_name</strong></p>
-
-                    <ul>
-                      <li>New term name</li>
-                      <li>Used by "rename"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>redirect</strong></p>
-
-                    <ul>
-                      <li>Redirect to target term
-                        <ul>
-                          <li>"301", "Y" or "": 301 redirect to target term</li>
-                          <li>"N": do not redirect to target term</li>
-                        </ul>
-                      </li>
-                      <li>Used by "merge"</li>
-                    </ul>';
-      $output .= '</div>';
+      $output .= '<p><strong>vocabulary_name</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Vocabulary of existing/source term</li>';
+			$output .= '<li>Used by all actions</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>term_name</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Name of existing/source term</li>';
+			$output .= '<li>Used by all actions</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>node_count</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Count of existing term nodes</li>';
+			$output .= '<li>Not used by any action</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>parent_term_name</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Name of existing term parent</li>';
+			$output .= '<li>Used by "move parent"</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>action</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>"create"';
+			$output .= '<ul>';
+			$output .= '<li>Requires: vocabulary_name, term_name</li>';
+			$output .= '<li>Optional: parent_term_name</li>';
+			$output .= '</ul>';
+			$output .= '</li>';
+			$output .= '<li>"delete"';
+			$output .= '<ul>';
+			$output .= '<li>Requires: vocabulary_name, term_name</li>';
+			$output .= '</ul>';
+			$output .= '</li>';
+			$output .= '<li>"merge"';
+			$output .= '<ul>';
+			$output .= '<li>Requires: vocabulary_name, term_name, target_vocabulary_name, target_term_name</li>';
+			$output .= '<li>Optional columns: redirect</li>';
+			$output .= '<li>When merging across vocabularies you must also specify target_field list</li>';
+			$output .= '</ul>';
+			$output .= '</li>';
+			$output .= '<li>"rename"';
+			$output .= '<ul>';
+			$output .= '<li>Requires: vocabulary_name, term_name, new_name</li>';
+			$output .= '</ul>';
+			$output .= '</li>';
+			$output .= '<li>"move parent"';
+			$output .= '<ul>';
+			$output .= '<li>Requires: vocabulary_name, term_name, parent_term_name</li>';
+			$output .= '<li>Set parent_term_name to empty "" to make it a root item</li>';
+			$output .= '<li>note: You can only move terms within same vocabulary</li>';
+			$output .= '</ul>';
+			$output .= '</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>target_vocabulary_name</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Vocabulary of target term</li>';
+			$output .= '<li>Used by "merge"</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>target_term_name</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Name of target term</li>';
+			$output .= '<li>Used by "merge"</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>target_field</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Comma separated list of fields to merge into</li>';
+			$output .= '<li>Used by "merge"</li>';
+			$output .= '<li>This is only required when merging across vocabularies</li>';
+			$output .= '<li>Example: "field_category_primary,field_category_secondary" will try to set the node primary category first if not empty, otherwise will append to secondary</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>new_name</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>New term name</li>';
+			$output .= '<li>Used by "rename"</li>';
+			$output .= '</ul>';
+			$output .= '<p>&nbsp;</p>';
+			$output .= '<p><strong>redirect</strong></p>';
+			$output .= '<ul>';
+			$output .= '<li>Redirect to target term';
+			$output .= '<ul>';
+			$output .= '<li>"301", "Y" or "": 301 redirect to target term</li>';
+			$output .= '<li>"N": do not redirect to target term</li>';
+			$output .= '</ul>';
+			$output .= '</li>';
+			$output .= '<li>Used by "merge"</li>';
+			$output .= '</ul>';
+			$output .= '</div>';
   }
 
   return $output;
@@ -372,8 +346,6 @@ function dennis_term_manager_help($path, $arg) {
 function dennis_term_manager_form($form, &$form_state) {
   // Set the current page title.
   drupal_set_title(t('Term Manager'));
-
-  $form = array();
 
   // Display current process.
   $progress = new TermManagerProgressList();
@@ -492,7 +464,7 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  *
  * Handle private file permissions.
  */
-function dennis_term_manager_file_download($uri, $field_type = 'file') {
+function dennis_term_manager_file_download($uri) {
   // Get the file record based on the URI. If not in the database just return.
   $files = file_load_multiple(array(), array('uri' => $uri));
   if (count($files)) {
@@ -559,9 +531,18 @@ function _dennis_term_manager_batch_init($file) {
   $progress_item->save();
 
   // Get a list of nodes that are not published but are scheduled to be published.
-  $unpublished_sheduled_nodes = _dennis_term_manager_get_scheduled_nodes();
-  // Get list of tids vs nodes. This is used to queue nodes that have any of the tids used by actions.
-  $extra_nodes = _dennis_term_manager_list_node_tids($unpublished_sheduled_nodes);
+	// Check first if the field field_data_field_schedule_publish exists in the db.
+	if(db_table_exists('field_data_field_schedule_publish')) {
+		$unpublished_scheduled_nodes = _dennis_term_manager_get_scheduled_nodes();
+		// Get list of tids vs nodes. This is used to queue nodes that have any of the tids used by actions.
+		$extra_nodes = _dennis_term_manager_list_node_tids($unpublished_scheduled_nodes);
+	}
+	else{
+		// Report on watchdog.
+		watchdog('DENNIS_TERM_MANAGER', t('Table field_data_field_schedule_publish doesn\'t exists in the db.'));
+		$extra_nodes = NULL;
+		drupal_set_message('Can\'t retrieve scheduled nodes because the table field_data_field_schedule_publish doesn\'t exists in the db');
+	}
 
   // Add each operation to the batch.
   $operations = array();
@@ -908,6 +889,7 @@ function _dennis_term_manager_get_tid($term_name, $vid) {
  *   Taxonomy Term id
  * @param int $term_id
  *   Taxonomy Term Id
+ * @return bool
  */
 function _dennis_term_manager_term_is_parent($target_term_id, $term_id) {
   $ancestors = taxonomy_get_parents_all($target_term_id);
@@ -958,6 +940,7 @@ function _dennis_term_manager_write_report($fid, $error_message) {
  * Opens a new report and return fid.
  *
  * @param $file_path
+ * @return bool|stdClass
  */
 function _dennis_term_manager_open_report($file_path) {
   // Create new managed file.
@@ -981,6 +964,7 @@ function _dennis_term_manager_decode_specific_chars($string) {
  * Get allowed vocabularies for specified field.
  *
  * @param $field_name
+ * @return array $allowed_vocabularies
  */
 function _dennis_term_manager_get_field_allowed_vocabularies($field_name) {
   // Return cached allowed vocabularies if available.
@@ -1010,6 +994,7 @@ function _dennis_term_manager_get_field_allowed_vocabularies($field_name) {
  * Get allowed fields for specified vocabulary.
  *
  * @param $vid
+ * @return array $allowed_fields
  */
 function _dennis_term_manager_get_vocabulary_allowed_fields($vid) {
   // Return cached allowed fields if available.
@@ -1110,13 +1095,14 @@ function _dennis_term_manager_clean_tids($node, &$data) {
 /**
  * Helper to find tids used on nodes that are not published but scheduled to be published.
  *
- * @param $node
+ * @param $nodes
  *    The node to be cleaned up.
- * @param $list
+ * @param array $list
  *    The list of tids used by the recursive call.
- * @retun $nodes
+ * @return array $list
  *    A list of nodes keyed by tid.
-  */
+ *
+ */
 function _dennis_term_manager_list_node_tids($nodes, $list = array()) {
 
   if ($nid = array_shift($nodes)) {
@@ -1162,6 +1148,9 @@ function dennis_term_manager_default_columns() {
     'target_vocabulary_name',
     'target_field',
     'new_name',
+    'tid',
+    'path',
+    'target_tid',
   );
 }
 
