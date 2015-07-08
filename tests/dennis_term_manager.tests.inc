@@ -109,8 +109,9 @@ function dennis_term_manager_diff($pass_tree, $exported_tree) {
 
   // Check if the pass tree is in the exported tree.
   if (strpos($tree_content, $test_content, 0) === FALSE) {
-    throw new Exception(t('Exported tree doesn\'t match !file_name', array(
-      '!file_name' => basename($pass_tree),
+    throw new Exception(t('Exported tree !file1 doesn\'t match !file2', array(
+      '!file1' => $exported_tree,
+      '!file2' => $pass_tree,
     )));
   }
 }
