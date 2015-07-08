@@ -46,17 +46,17 @@ function dennis_term_manager_test_actions() {
   dennis_term_manager_test_process($file);
 
   // Export CSV of taxonomy tree.
-  //dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
 
   // Get the exported terms.
-  //$exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
+  $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
 
   // Pass tree is stored in the repo
-  #$pass_tree = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_create_pass.csv';
+  $pass_tree = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_pass.csv';
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  #dennis_term_manager_diff($pass_tree, $exported_tree);
+  dennis_term_manager_diff($pass_tree, $exported_tree);
 }
 
 /**
@@ -109,7 +109,9 @@ function dennis_term_manager_diff($pass_tree, $exported_tree) {
 
   // Check if the pass tree is in the exported tree.
   if (strpos($tree_content, $test_content, 0) === FALSE) {
-    throw new \Exception(sprintf('Exported tree doesn\'t match "%s"', basename($pass_tree)));
+    throw new Exception(t('Exported tree doesn\'t match !file_name', array(
+      '!file_name' => basename($pass_tree),
+    )));
   }
 }
 
