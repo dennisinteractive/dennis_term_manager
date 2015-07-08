@@ -5,9 +5,9 @@
  */
 
 /**
- * Run CSV to create the initial tree. Then compare with the expected tree.
+ * Run CSV to create the initial tree.
  */
-function dennis_term_manager_test_create_tree() {
+function dennis_term_manager_tests_create() {
   $destination = _dennis_term_manager_get_files_folder();
   $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_create_run.csv';
 
@@ -22,6 +22,13 @@ function dennis_term_manager_test_create_tree() {
 
   // Export CSV of taxonomy tree.
   dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+}
+
+/**
+ * Compare with the created tree vs expected tree.
+ */
+function dennis_term_manager_tests_test_create() {
+  $destination = _dennis_term_manager_get_files_folder();
   $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
 
   // The pass tree is stored in the repo and used for the comparison with generated tree.
@@ -33,9 +40,9 @@ function dennis_term_manager_test_create_tree() {
 }
 
 /**
- * Run CSV to test actions against the initial tree.
+ * Run CSV with actions.
  */
-function dennis_term_manager_test_actions() {
+function dennis_term_manager_tests_actions() {
   $destination = _dennis_term_manager_get_files_folder();
   $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.csv';
 
@@ -47,6 +54,13 @@ function dennis_term_manager_test_actions() {
 
   // Export CSV of taxonomy tree.
   dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+}
+
+/**
+ * Test actions against the expected resulting tree.
+ */
+function dennis_term_manager_tests_test_actions() {
+  $destination = _dennis_term_manager_get_files_folder();
 
   // Get the exported terms.
   $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
