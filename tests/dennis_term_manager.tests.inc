@@ -95,6 +95,10 @@ function dennis_term_manager_test_process($file) {
 
 /**
  * Helper to do a Diff between files.
+ * @todo: Rename this function:
+ * Initially this function would do a diff,
+ * but now it just tests if the term tree matches
+ * the terms created.
  */
 function dennis_term_manager_diff($pass_tree, $exported_tree) {
   $test_content = file_get_contents($pass_tree);
