@@ -137,8 +137,8 @@ function _dennis_term_manager_cleanup() {
   // Delete terms created during tests.
   $term = reset(taxonomy_get_term_by_name('Temp', 'category'));
   taxonomy_term_delete($term->tid);
-  $term = reset(taxonomy_get_term_by_name('Fruits', 'category'));
+  $term = reset(taxonomy_get_term_by_name('TM-Fruits', 'category'));
   taxonomy_term_delete($term->tid);
-  $term = reset(taxonomy_get_term_by_name('Fruits2', 'category'));
+  $term = reset(taxonomy_get_term_by_name('TM-Fruits2', 'category'));
   taxonomy_term_delete($term->tid);
 }

@@ -3,7 +3,7 @@ Feature: Term manager
   As a SEO expert
   I want to upload a CSV file with bulk actions to be run against the taxonomy
 
-  @api @seo @smoke @term_manager_self_test
+  @api @seo @term_manager @term_manager_self_test
   Scenario: Check that term manager works as expected.
     # Initialize taxonomy tree.
     Given I run the drush command "tm-create"
