@@ -19,15 +19,15 @@ function dennis_term_manager_tests_create() {
 
   // Process file.
   dennis_term_manager_test_process($file);
-
-  // Export CSV of taxonomy tree.
-  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
 }
 
 /**
  * Compare with the created tree vs expected tree.
  */
 function dennis_term_manager_tests_test_create() {
+  // Export CSV of taxonomy tree.
+  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+
   $destination = _dennis_term_manager_get_files_folder();
   $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
 
@@ -36,7 +36,12 @@ function dennis_term_manager_tests_test_create() {
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  dennis_term_manager_diff($pass_tree, $exported_tree);
+  try {
+    dennis_term_manager_diff($pass_tree, $exported_tree);
+  }
+  catch (Exception $e) {
+    echo $e->getMessage() . PHP_EOL;
+  }
 }
 
 /**
@@ -51,15 +56,15 @@ function dennis_term_manager_tests_actions() {
 
   // Process file.
   dennis_term_manager_test_process($file);
-
-  // Export CSV of taxonomy tree.
-  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
 }
 
 /**
  * Test actions against the expected resulting tree.
  */
 function dennis_term_manager_tests_test_actions() {
+  // Export CSV of taxonomy tree.
+  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+
   $destination = _dennis_term_manager_get_files_folder();
 
   // Get the exported terms.
@@ -70,7 +75,12 @@ function dennis_term_manager_tests_test_actions() {
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  dennis_term_manager_diff($pass_tree, $exported_tree);
+  try {
+    dennis_term_manager_diff($pass_tree, $exported_tree);
+  }
+  catch (Exception $e) {
+    echo $e->getMessage() . PHP_EOL;
+  }
 }
 
 /**
@@ -115,17 +125,41 @@ function dennis_term_manager_test_process($file) {
  * the terms created.
  */
 function dennis_term_manager_diff($pass_tree, $exported_tree) {
+  if (!file_exists($pass_tree)) {
+    throw new Exception(t('!file doesn\'t exist', array(
+      '!file' => $pass_tree,
+    )));
+  }
   $test_content = file_get_contents($pass_tree);
+
+  if (!file_exists($exported_tree)) {
+    throw new Exception(t('!file doesn\'t exist', array(
+      '!file' => $exported_tree,
+    )));
+  }
   $tree_content = file_get_contents($exported_tree);
 
   // Remove heading.
-  $test_content = preg_replace('/^.+\n/', '', $test_content);
+  $test_content_lines = explode("\n", $test_content);
+  array_shift($test_content_lines);
+  $test_content = implode("\n", $test_content_lines);
 
   // Check if the pass tree is in the exported tree.
   if (strpos($tree_content, $test_content, 0) === FALSE) {
-    throw new Exception(t('Exported tree !file1 doesn\'t match !file2', array(
+    // Get the failing line.
+    $test_content_cumulative = '';
+    foreach ($test_content_lines as $line) {
+      $test_content_cumulative .= $line . "\n";
+      if (strpos($tree_content, $test_content_cumulative, 0) === FALSE) {
+        $failing_line = $line;
+        break;
+      }
+    }
+    // Throw exception with failing line.
+    throw new Exception(t('Exported tree !file1 doesn\'t match !file2 at row !line', array(
       '!file1' => $exported_tree,
       '!file2' => $pass_tree,
+      '!line' => $failing_line,
     )));
   }
 }
