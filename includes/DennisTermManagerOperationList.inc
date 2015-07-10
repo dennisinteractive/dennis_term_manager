@@ -70,7 +70,10 @@ class TermManagerOperationList implements Iterator, Countable {
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-errors.$1", $file_path);
 
     // Create managed file and open for writing.
-    $file = _dennis_term_manager_open_report($file_name);
+    if (!$file = _dennis_term_manager_open_report($file_name)) {
+      return;
+    }
+
     $fp = fopen($file->uri, 'w');
 
     // Add Headings.

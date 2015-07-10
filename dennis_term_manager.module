@@ -11,6 +11,12 @@ define('DENNIS_TERM_MANAGER_ACTION_MERGE', 'merge');
 define('DENNIS_TERM_MANAGER_ACTION_RENAME', 'rename');
 define('DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT', 'move parent');
 define('DENNIS_TERM_MANAGER_ACTION_COMPLETE', 'complete');
+define('DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD', '1');
+define('DENNIS_TERM_MANAGER_DESTINATION_FILE', '2');
+define('DENNIS_TERM_MANAGER_PUBLIC_FOLDER', 'public://term_manager');
+define('DENNIS_TERM_MANAGER_PRIVATE_FOLDER', 'private://term_manager');
+
+require_once "tests/dennis_term_manager.tests.inc";
 
 /**
  * Implements hook_views_api().
@@ -119,9 +125,9 @@ function dennis_term_manager_menu() {
  */
 function dennis_term_manager_download_template($delimiter = "\t") {
   // Send correct header to download file.
-  $extension = $delimiter == ',' ? 'csv' : 'tsv';
+  $extension = $delimiter == "\t" ? 'tsv' : 'csv';
   drupal_add_http_header('Content-Type', 'text/' . $extension . '; charset=utf-8');
-  $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s') . '.' . $extension;
+  $file_name = 'taxonomy_template_' . date('Y-m-d_H-i-s', REQUEST_TIME) . '.' . $extension;
   drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
 
   $columns = dennis_term_manager_default_columns();
@@ -131,13 +137,25 @@ function dennis_term_manager_download_template($delimiter = "\t") {
 
 /**
  * Get existing taxonomy usage.
+ *
+ * @param $vocabs
+ *    Array of vocabulary names, used to limit the results.
  */
-function _dennis_term_manager_export_terms_query() {
+function _dennis_term_manager_export_terms_query($vocabs = array()) {
   $query = db_select('taxonomy_term_data', 't');
 
   // Term vocabulary and name.
   $query->addField('v', 'name', 'vocabulary_name');
   $query->addField('t', 'name', 'term_name');
+
+  // Filter by vocabulary
+  $machine_names = array();
+  if (!empty($vocabs)) {
+    foreach ($vocabs as $name) {
+      $machine_names[] = _dennis_term_manager_machine_name($name);
+    }
+    $query->condition('v.machine_name', $machine_names, 'IN');
+  }
 
   // Join alias.
   $query->leftJoin('url_alias', 'ua', "ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))");
@@ -172,19 +190,32 @@ function _dennis_term_manager_export_terms_query() {
 /**
  * Export current taxonomy.
  */
-function dennis_term_manager_export_terms($delimiter = "\t") {
-  $query = _dennis_term_manager_export_terms_query();
+function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), $destination = DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD) {
+  $query = _dennis_term_manager_export_terms_query($vocabs);
   $result = $query->execute();
 
   // Send correct header to download file.
-  $extension = $delimiter == ',' ? 'csv' : 'tsv';
-  drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
-  $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s') . '.' . $extension;
-  drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
+  $extension = $delimiter == "\t" ? 'tsv' : 'csv';
+  $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s', REQUEST_TIME) . '.' . $extension;
 
   // Add default CSV/TSV headings.
   $columns = dennis_term_manager_default_columns();
-  $out = fopen('php://output', 'w');
+
+  switch ($destination) {
+    case DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD :
+      drupal_add_http_header('Content-Type', 'text/' . $extension . '; utf-8');
+      drupal_add_http_header('Content-Disposition', 'attachment; filename=' . $file_name);
+
+      $out = fopen('php://output', 'w');
+      break;
+
+    case DENNIS_TERM_MANAGER_DESTINATION_FILE:
+      $location = _dennis_term_manager_get_files_folder();
+
+      $out = fopen($location . '/taxonomy_export.csv', 'w');
+      break;
+  }
+
   fputcsv($out, $columns, $delimiter, '"');
 
   while ($row = $result->fetchObject()) {
@@ -385,20 +416,8 @@ function dennis_term_manager_form($form, &$form_state) {
     $progress_item->displayStatus();
   }
 
-  // Store CSV/TSV files and reports in private file location if available.
-  if (variable_get('file_private_path', '')) {
-    $location = 'private://term_manager';
-  }
-  else {
-    $location = 'public://term_manager';
-    // Warn user that files will be publicly accessible.
-    $config_link = l(
-        'Please configure the private file system path to store report privately',
-        'admin/config/media/file-system'
-    );
-    $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
-    drupal_set_message($warning_message, 'warning');
-  }
+  $location = _dennis_term_manager_get_files_folder();
+
   $form['csv_file'] = array(
     '#title' => t('Import'),
     '#type' => 'managed_file',
@@ -478,17 +497,72 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
     drupal_set_message(t('Please upload the CSV/TSV file first.'), 'error');
   }
   else {
+    // Save the file.
+    dennis_term_manager_file_save($file);
+
+    // Process the file.
+    $batch = _dennis_term_manager_batch_init($file);
+    batch_set($batch);
+  }
+}
+
+/**
+ * Helper to copy the csv/tsv files and add an entry into the file usage table.
+ *
+ * @param $file_name
+ *    The full path of the source file
+ * @param $destination
+ *    The uri of the destination
+ * @param $replace
+ *    The action to take when the file exists
+ * @return $file
+ *    The file object.
+ */
+function dennis_term_manager_file_copy($file_name, $destination, $replace = FILE_EXISTS_REPLACE) {
+  $file = new stdClass();
+  $file->uri = file_unmanaged_copy($file_name, $destination, $replace);
+  $file->filename = basename($file->uri);
+
+  if ($replace == FILE_EXISTS_REPLACE) {
+    // Since we are replacing an existing file re-use its database record.
+    $existing_files = file_load_multiple(array(), array('uri' => $file->uri));
+    if (count($existing_files)) {
+      $existing = reset($existing_files);
+      $file->fid = $existing->fid;
+    }
+  }
+
+  // Save the file.
+  dennis_term_manager_file_save($file);
+
+  return $file;
+}
+
+/**
+ * Helper to save the csv/tsv files and add an entry to the file usage table.
+ *
+ * @param $file
+ *    The file object to be saved.
+ * @return $file
+ *    The file object.
+ */
+function dennis_term_manager_file_save($file) {
+  if (is_object($file)) {
+
     // Make file permanent.
     $file->status = FILE_STATUS_PERMANENT;
     file_save($file);
 
     // Add file usage.
     file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
-
-    // Process the file.
-    $batch = _dennis_term_manager_batch_init($file);
-    batch_set($batch);
   }
+  else {
+    throw new Exception(t('!file_name cannot be saved', array(
+      '!file_name' => $file->uri,
+    )));
+  }
+
+  return $file;
 }
 
 /**
@@ -541,7 +615,7 @@ function _dennis_term_manager_batch_init($file) {
 
   // Prevent batch if there are no operation items.
   if (count($operationList) == 0) {
-    drupal_set_message('There were no valid operations');
+    drupal_set_message(t('There were no valid operations'));
     return;
   }
 
@@ -553,8 +627,11 @@ function _dennis_term_manager_batch_init($file) {
   // Create file for reporting error.
   // - Use the same file name and change extenstion.
   $date = date('Y-m-d_H-i-s', REQUEST_TIME);
+
   $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $file->uri);
-  $report_file = _dennis_term_manager_open_report($report_file_name);
+  if (!$report_file = _dennis_term_manager_open_report($report_file_name)) {
+    return;
+  }
 
   // Add file in progress.
   $progress_item = new TermManagerProgressItem($file->fid);
@@ -743,6 +820,22 @@ function dennis_term_manager_queue_operation_complete($data) {
 }
 
 /**
+ * Implements hook_cron().
+ */
+function dennis_term_manager_cron() {
+  // Process the queue.
+  foreach (dennis_term_manager_cron_queue_info() as $queue_name => $info) {
+    $function = $info['worker callback'];
+    if ($queue = DrupalQueue::get($queue_name)) {
+      while ($item = $queue->claimItem()) {
+        $function($item->data);
+        $queue->deleteItem($item);
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_cron_queue_info().
  */
 function dennis_term_manager_cron_queue_info() {
@@ -897,11 +990,12 @@ function _dennis_term_manager_get_scheduled_nodes() {
  *   Taxonomy Term ID or false in case not found
  */
 function _dennis_term_manager_get_tid($term_name, $vid) {
-  $vocabulary = taxonomy_vocabulary_load($vid);
-  $term_name = _dennis_term_manager_decode_specific_chars($term_name);
-  if ($term = taxonomy_get_term_by_name($term_name, $vocabulary->machine_name)) {
-    $first_term = array_values($term);
-    return $first_term[0]->tid;
+  if ($vocabulary = taxonomy_vocabulary_load($vid)) {
+    $term_name = _dennis_term_manager_decode_specific_chars($term_name);
+    if ($term = taxonomy_get_term_by_name($term_name, $vocabulary->machine_name)) {
+      $first_term = array_values($term);
+      return $first_term[0]->tid;
+    }
   }
 }
 
@@ -965,10 +1059,15 @@ function _dennis_term_manager_write_report($fid, $error_message) {
  */
 function _dennis_term_manager_open_report($file_path) {
   // Create new managed file.
-  $file = file_save_data('', $file_path, FILE_EXISTS_RENAME);
-  // Add file usage.
-  file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
-  return $file;
+  if ($file = file_save_data('', $file_path, FILE_EXISTS_RENAME)) {
+    // Add file usage.
+    file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
+    return $file;
+  }
+  else {
+    drupal_set_message(t('Could not open %file', array('%file' => $file_path)));
+    return FALSE;
+  }
 }
 
 /**
@@ -1180,4 +1279,80 @@ function dennis_term_manager_fe_paths_file_process_available_alter(&$allow_move,
   if (strpos($file->uri, '/term_manager/') !== FALSE) {
     $allow_move = FALSE;
   }
+}
+
+/**
+ * Helper to retrieve the files folder.
+ */
+function _dennis_term_manager_get_files_folder() {
+  // Store CSV/TSV files and reports in private file location if available.
+  if (variable_get('file_private_path', '')) {
+    $location = DENNIS_TERM_MANAGER_PRIVATE_FOLDER;
+  }
+  else {
+    $location = DENNIS_TERM_MANAGER_PUBLIC_FOLDER;
+    // Warn user that files will be publicly accessible.
+    $config_link = l(
+      'Please configure the private file system path to store report privately',
+      'admin/config/media/file-system'
+    );
+    $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
+    drupal_set_message($warning_message, 'warning');
+  }
+
+  return $location;
+}
+
+/**
+ * Helper to generate machine names.
+ *
+ * @param $name
+ * @return string
+ */
+function _dennis_term_manager_machine_name($name) {
+  return strtolower(preg_replace('@[^a-zA-Z0-9_]+@','_', $name));
+}
+
+/**
+ * Helper to count delimiters and see what is the mostly used.
+ */
+function _dennis_term_manager_detect_delimiter($str, $delimiter = null) {
+  // Get number of rows.
+  preg_match_all("/\n/", $str, $matches);
+  $rows = count($matches[0]);
+
+  $cur_cnt = 0;
+  foreach(_dennis_term_manager_get_delimiters() as $key => $value) {
+    preg_match_all("/\\$value/", $str, $matches);
+    $count = count($matches[0]);
+
+    //echo "$key($value) = " . count($matches[0]) . PHP_EOL;
+
+    if ($count > $cur_cnt) {
+      $cur_cnt = $count;
+
+      // Only use this delimiter if it happens at least once per row.
+      if ($count > $rows) {
+        $delimiter = $value;
+      }
+    }
+  }
+
+  return $delimiter;
+}
+
+/**
+ * Helper to return list of delimiters.
+ */
+function _dennis_term_manager_get_delimiters() {
+  $delimiters = array(
+    'comma' => ",",
+    'semicolon' => ";",
+    'tab' => "\t",
+    'pipe' => "|",
+    'colon' => ":",
+    'space' => " ",
+  );
+
+  return $delimiters;
 }

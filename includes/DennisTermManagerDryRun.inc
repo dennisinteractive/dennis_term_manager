@@ -65,14 +65,18 @@ class TermManagerDryRun {
    * @param $file_path
    */
   public function execute($file_path) {
+    if (empty($file_path)) {
+      return;
+    }
+
     // Get file info.
     $file_info = pathinfo($file_path);
-    $delimiter = $file_info['extension'] == 'csv' ? ',' : "\t";
 
     // Detect line endings.
     ini_set('auto_detect_line_endings',TRUE);
 
     if (($handle = fopen($file_path, "r")) !== FALSE) {
+      $delimiter = _dennis_term_manager_detect_delimiter(file_get_contents($file_path));
       $heading_row = fgetcsv($handle, 1000, $delimiter);
       $columns = array_flip($heading_row);
 
@@ -329,6 +333,7 @@ class TermManagerDryRun {
 
     // Ensure target term can be retrieved.
     $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name, $target_tid);
+
     if (empty($target_term->tid)) {
       throw new Exception(t('!vocab > !name has not been created yet', array(
         '!vocab' => $target_vocabulary_name,
@@ -531,7 +536,10 @@ class TermManagerDryRun {
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-dry_run.$1", $file_path);
 
     // Create managed file and open for writing.
-    $file = _dennis_term_manager_open_report($file_name);
+    if (!$file = _dennis_term_manager_open_report($file_name)) {
+      return;
+    }
+
     $fp = fopen($file->uri, 'w');
 
     // Add Headings.
@@ -564,7 +572,6 @@ class TermManagerDryRun {
 
     // Clear stat cache to get correct filesize.
     clearstatcache(FALSE, $file->uri);
-
     // Saved managed file.
     file_save($file);
   }
