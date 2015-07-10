@@ -592,7 +592,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
         try {
-          $this->moveParent($operation->term_name, $operation->vocabulary_name, $operation->parent_term_name);
+          $this->moveParent($operation->term_name, $operation->vocabulary_name, $operation->parent_term_name, $operation->target_tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();
@@ -619,7 +619,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_RENAME:
         try {
-          $this->rename($operation->term_name, $operation->vocabulary_name, $operation->new_name);
+          $this->rename($operation->term_name, $operation->vocabulary_name, $operation->new_name, $operation->target_tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();

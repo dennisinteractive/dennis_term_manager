@@ -39,7 +39,12 @@ function dennis_term_manager_drush_command() {
     'drupal dependencies' => array('dennis_term_manager'),
     'callback' => 'dennis_term_manager_tests_test_actions',
   );
-  
+  $items['tm-dupe-actions'] = array(
+    'description' => "Renames duplicated terms and dynamically generates a CSV file with actions, them processes the actions.",
+    'drupal dependencies' => array('dennis_term_manager'),
+    'callback' => 'dennis_term_manager_tests_dupe_actions',
+  );
+
   return $items;
 }
 

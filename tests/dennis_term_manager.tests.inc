@@ -88,6 +88,69 @@ function dennis_term_manager_tests_test_actions() {
 }
 
 /**
+ * Runs actions with duplicated terms, using the tid column.
+ * This function will find duplicated term names and create a CSV file with actions to merge them
+ * i.e. Raspberry-0 will be merged to Raspberry.
+ */
+function dennis_term_manager_tests_dupe_actions() {
+  // Updated duplicated names, by removing the '-0' suffix.
+  // This way we will end up with the same term name more than once. Useful to test the actions using tids.
+  if (!$result = db_query("UPDATE {taxonomy_term_data} SET name = REPLACE(name, '-0', '') WHERE name like 'TM-%-0'")) {
+    throw new Exception(t('Could not find/rename any term.'));
+  }
+
+  // Export tree.
+  dennis_term_manager_export_terms(',', array('Category'), array(), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+
+  // Load the exported tree.
+  $destination = _dennis_term_manager_get_files_folder();
+  $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
+
+  // Loop the CSV and add "merge" action to each duplicated term.
+  $processed = array();
+  $actions = array();
+  if (($handle = fopen($exported_tree, "r")) !== FALSE) {
+    $delimiter = _dennis_term_manager_detect_delimiter(file_get_contents($exported_tree));
+    $heading_row = fgetcsv($handle, 1000, $delimiter);
+    $columns = array_flip($heading_row);
+    $name_column = $columns['term_name'];
+    $tid_column = $columns['tid'];
+    $target_tid_column = $columns['target_tid'];
+    $action_column = $columns['action'];
+    $term_child_count = $columns['term_child_count'];
+
+    while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+      $term_name = $data[$name_column];
+      $tid = $data[$tid_column];
+
+      if (!isset($processed[$term_name])) {
+        // Store tid.
+        $processed[$term_name] = $tid;
+      }
+      else {
+        // Create action for duplicated term.
+        $data[$action_column] = 'merge';
+        $data[$target_tid_column] = $processed[$term_name];
+        $actions[] = $data;
+      }
+    }
+  }
+  print_r($actions);
+  // Sort actions by term_child_count, to make sure we process the children first.
+
+  return;
+
+  $destination = _dennis_term_manager_get_files_folder();
+  $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.tsv';
+
+  // Copy the file into files folder.
+  $file = dennis_term_manager_file_copy($actions_file, $destination);
+
+  // Process file.
+  dennis_term_manager_test_process($file);
+}
+
+/**
  * Process the file
  */
 function dennis_term_manager_test_process($file) {
