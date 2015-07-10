@@ -104,8 +104,16 @@ function dennis_term_manager_test_process($file) {
 
     drush_backend_batch_process();
 
-    // Run cron to proccess the queue.
-    dennis_term_manager_cron();
+    // Process the queue.
+    foreach (dennis_term_manager_cron_queue_info() as $queue_name => $info) {
+      $function = $info['worker callback'];
+      if ($queue = DrupalQueue::get($queue_name)) {
+        while ($item = $queue->claimItem()) {
+          $function($item->data);
+          $queue->deleteItem($item);
+        }
+      }
+    }
   }
 
   $date = date('Y-m-d_H-i-s', REQUEST_TIME);

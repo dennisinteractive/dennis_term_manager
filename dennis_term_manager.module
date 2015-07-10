@@ -829,22 +829,6 @@ function dennis_term_manager_queue_operation_complete($data) {
 }
 
 /**
- * Implements hook_cron().
- */
-function dennis_term_manager_cron() {
-  // Process the queue.
-  foreach (dennis_term_manager_cron_queue_info() as $queue_name => $info) {
-    $function = $info['worker callback'];
-    if ($queue = DrupalQueue::get($queue_name)) {
-      while ($item = $queue->claimItem()) {
-        $function($item->data);
-        $queue->deleteItem($item);
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_cron_queue_info().
  */
 function dennis_term_manager_cron_queue_info() {
