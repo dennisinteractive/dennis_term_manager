@@ -517,6 +517,13 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
 function dennis_term_manager_file_copy($file_name, $destination, $replace = FILE_EXISTS_REPLACE) {
   $file = new stdClass();
   $file->uri = file_unmanaged_copy($file_name, $destination, $replace);
+
+  if ($file->uri === FALSE) {
+    throw new Exception(t('!file_name cannot be saved', array(
+      '!file_name' => $file_name,
+    )));
+  }
+
   $file->filename = basename($file->uri);
 
   if ($replace == FILE_EXISTS_REPLACE) {
