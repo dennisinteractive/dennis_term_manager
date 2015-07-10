@@ -20,9 +20,9 @@ function dennis_term_manager_drush_command() {
     'callback' => '_dennis_term_manager_cleanup',
   );
   $items['tm-create'] = array(
-      'description' => "Creates the initial tree for testings.",
-  		'drupal dependencies' => array('dennis_term_manager'),
-      'callback' => 'dennis_term_manager_tests_create',
+    'description' => "Creates the initial tree for testings.",
+    'drupal dependencies' => array('dennis_term_manager'),
+    'callback' => 'dennis_term_manager_tests_create',
   );
   $items['tm-test-create'] = array(
     'description' => "Tests the result of initial tree creation.",
