@@ -1300,7 +1300,19 @@ function _dennis_term_manager_get_files_folder() {
     drupal_set_message($warning_message, 'warning');
   }
 
-  return $location;
+  // Test if folder exists.
+  $folder = drupal_realpath($location);
+  if (!file_exists($folder)) {
+    // Try to create a folder and add writting permissions.
+    @drupal_mkdir($folder, '775');
+  }
+  if (file_exists($folder) && @is_dir($folder) && is_writeable($folder)) {
+    return $location;
+  }
+
+  throw new Exception(t('Error trying to copy files to !name folder. Make sure the folder exists and you have writting permission.', array(
+    '!name' => $location,
+  )));
 }
 
 /**
