@@ -190,7 +190,7 @@ function _dennis_term_manager_export_terms_query($vocabs = array()) {
 /**
  * Export current taxonomy.
  */
-function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), $destination = DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD) {
+function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), $columns = array(), $destination = DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD) {
   $query = _dennis_term_manager_export_terms_query($vocabs);
   $result = $query->execute();
 
@@ -199,7 +199,9 @@ function dennis_term_manager_export_terms($delimiter = "\t", $vocabs = array(), 
   $file_name = 'taxonomy_export_' . date('Y-m-d_H-i-s', REQUEST_TIME) . '.' . $extension;
 
   // Add default CSV/TSV headings.
-  $columns = dennis_term_manager_default_columns();
+  if (empty($columns)) {
+    $columns = dennis_term_manager_default_columns();
+  }
 
   switch ($destination) {
     case DENNIS_TERM_MANAGER_DESTINATION_DOWNLOAD :

@@ -26,7 +26,14 @@ function dennis_term_manager_tests_create() {
  */
 function dennis_term_manager_tests_test_create() {
   // Export CSV of taxonomy tree.
-  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+  $columns = dennis_term_manager_default_columns();
+
+  // Need to exclude some columns because they will be different on each site.
+  $exclude = array('path', 'tid', 'target_tid');
+  foreach ($exclude as $item) {
+    unset ($columns[array_search($item, $columns)]);
+  }
+  dennis_term_manager_export_terms(',', array('Category'), $columns, DENNIS_TERM_MANAGER_DESTINATION_FILE);
 
   $destination = _dennis_term_manager_get_files_folder();
   $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
@@ -58,7 +65,14 @@ function dennis_term_manager_tests_actions() {
  */
 function dennis_term_manager_tests_test_actions() {
   // Export CSV of taxonomy tree.
-  dennis_term_manager_export_terms(',', array('Category'), DENNIS_TERM_MANAGER_DESTINATION_FILE);
+  $columns = dennis_term_manager_default_columns();
+
+  // Need to exclude some columns because they will be different on each site.
+  $exclude = array('path', 'tid', 'target_tid');
+  foreach ($exclude as $item) {
+    unset ($columns[array_search($item, $columns)]);
+  }
+  dennis_term_manager_export_terms(',', array('Category'), $columns, DENNIS_TERM_MANAGER_DESTINATION_FILE);
 
   $destination = _dennis_term_manager_get_files_folder();
 
