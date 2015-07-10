@@ -36,12 +36,7 @@ function dennis_term_manager_tests_test_create() {
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  try {
-    dennis_term_manager_diff($pass_tree, $exported_tree);
-  }
-  catch (Exception $e) {
-    echo $e->getMessage() . PHP_EOL;
-  }
+  dennis_term_manager_diff($pass_tree, $exported_tree);
 }
 
 /**
@@ -75,12 +70,7 @@ function dennis_term_manager_tests_test_actions() {
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  try {
-    dennis_term_manager_diff($pass_tree, $exported_tree);
-  }
-  catch (Exception $e) {
-    echo $e->getMessage() . PHP_EOL;
-  }
+  dennis_term_manager_diff($pass_tree, $exported_tree);
 }
 
 /**
