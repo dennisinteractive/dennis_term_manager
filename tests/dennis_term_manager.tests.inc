@@ -36,12 +36,7 @@ function dennis_term_manager_tests_test_create() {
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  try {
-    dennis_term_manager_diff($pass_tree, $exported_tree);
-  }
-  catch (Exception $e) {
-    echo $e->getMessage() . PHP_EOL;
-  }
+  dennis_term_manager_diff($pass_tree, $exported_tree);
 }
 
 /**
@@ -49,7 +44,7 @@ function dennis_term_manager_tests_test_create() {
  */
 function dennis_term_manager_tests_actions() {
   $destination = _dennis_term_manager_get_files_folder();
-  $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.csv';
+  $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.tsv';
 
   // Copy the file into files folder.
   $file = dennis_term_manager_file_copy($actions_file, $destination);
@@ -75,12 +70,7 @@ function dennis_term_manager_tests_test_actions() {
 
   // Compare exported CSV against the CSV saved on the repo.
   // Pass tree must be contained inside the exported tree in order for the test to pass.
-  try {
-    dennis_term_manager_diff($pass_tree, $exported_tree);
-  }
-  catch (Exception $e) {
-    echo $e->getMessage() . PHP_EOL;
-  }
+  dennis_term_manager_diff($pass_tree, $exported_tree);
 }
 
 /**
