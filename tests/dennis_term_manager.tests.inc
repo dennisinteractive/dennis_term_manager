@@ -44,7 +44,7 @@ function dennis_term_manager_tests_test_create() {
  */
 function dennis_term_manager_tests_actions() {
   $destination = _dennis_term_manager_get_files_folder();
-  $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.csv';
+  $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.tsv';
 
   // Copy the file into files folder.
   $file = dennis_term_manager_file_copy($actions_file, $destination);
