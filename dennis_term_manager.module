@@ -1361,3 +1361,16 @@ function _dennis_term_manager_get_delimiters() {
 
   return $delimiters;
 }
+
+/**
+ * Helper to sort the array descending by key;
+ */
+function _dennis_term_manager_sbk ($a, $b) {
+  global $dennis_term_manager_sbk;
+  $key = $dennis_term_manager_sbk;
+
+  if ($a[$key] == $b[$key]) {
+    return 0;
+  }
+  return ($a[$key] < $b[$key]) ? -1 : 1;
+}

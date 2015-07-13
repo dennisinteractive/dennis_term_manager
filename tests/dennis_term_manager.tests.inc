@@ -117,7 +117,7 @@ function dennis_term_manager_tests_dupe_actions() {
     $tid_column = $columns['tid'];
     $target_tid_column = $columns['target_tid'];
     $action_column = $columns['action'];
-    $term_child_count = $columns['term_child_count'];
+    $term_child_count_column = $columns['term_child_count'];
 
     while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
       $term_name = $data[$name_column];
@@ -135,8 +135,11 @@ function dennis_term_manager_tests_dupe_actions() {
       }
     }
   }
-  print_r($actions);
   // Sort actions by term_child_count, to make sure we process the children first.
+  global $dennis_term_manager_sbk;
+  $dennis_term_manager_sbk = $term_child_count_column;
+  uasort($actions, '_dennis_term_manager_sbk');
+  print_r($actions);
 
   return;
 
