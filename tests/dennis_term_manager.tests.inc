@@ -113,13 +113,17 @@ function dennis_term_manager_tests_dupe_actions() {
     $delimiter = _dennis_term_manager_detect_delimiter(file_get_contents($exported_tree));
     $heading_row = fgetcsv($handle, 1000, $delimiter);
     $columns = array_flip($heading_row);
+    $vocabulary_name_column = $columns['vocabulary_name'];
     $name_column = $columns['term_name'];
     $tid_column = $columns['tid'];
     $target_tid_column = $columns['target_tid'];
+    $target_term_name_column = $columns['target_term_name'];
+    $target_vocabulary_name_column = $columns['target_vocabulary_name'];
     $action_column = $columns['action'];
     $term_child_count_column = $columns['term_child_count'];
 
     while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+      $vocabulary_name = $data[$vocabulary_name_column];
       $term_name = $data[$name_column];
       $tid = $data[$tid_column];
 
@@ -131,6 +135,8 @@ function dennis_term_manager_tests_dupe_actions() {
         // Create action for duplicated term.
         $data[$action_column] = 'merge';
         $data[$target_tid_column] = $processed[$term_name];
+        $data[$target_term_name_column] = $term_name;
+        $data[$target_vocabulary_name_column] = $vocabulary_name;
         $actions[] = $data;
       }
     }
