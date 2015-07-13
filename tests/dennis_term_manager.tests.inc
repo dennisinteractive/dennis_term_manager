@@ -140,7 +140,7 @@ function dennis_term_manager_tests_dupe_actions() {
   $dennis_term_manager_sbk = $term_child_count_column;
   uasort($actions, '_dennis_term_manager_sbk');
 
-  $out_filename = $destination . '/dupe_actions.csv';
+  $out_filename = '/tmp/dupe_actions.csv';
 
   // Create new csv with actions.
   $out = fopen($out_filename, 'w');
@@ -150,10 +150,8 @@ function dennis_term_manager_tests_dupe_actions() {
   }
 
   // Process file.
-  $file = new stdClass();
-  $file->uri = $out_filename;
-  $file->filename = basename($out_filename);
-  $file = dennis_term_manager_file_save($file);
+  $file = dennis_term_manager_file_copy($out_filename, $destination);
+
   dennis_term_manager_test_process($file);
 }
 

@@ -453,7 +453,7 @@ class TermManagerDryRun {
       return $term;
     }
     // Cannot find requested term in tree.
-    throw new Exception(t('!vocab => !name does not exist', array(
+    throw new Exception(t('Vocabulary !vocab => !name does not exist', array(
       '!name' => $term_name,
       '!vocab' => (empty($vocabulary_name)) ? t('Unspecified') : $vocabulary_name,
     )));
