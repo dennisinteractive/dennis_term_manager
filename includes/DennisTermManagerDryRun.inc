@@ -636,7 +636,6 @@ class TermManagerDryRun {
           $operation->tid = $term->tid;
           $operation->vid = $term->vid;
           $operation->target_vid = $term->target_vid;
-          $operation->target_tid = $term->target_tid;
           $operation->parent_tid = $term->parent_tid;
         }
       }
