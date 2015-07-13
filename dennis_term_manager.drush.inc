@@ -44,6 +44,11 @@ function dennis_term_manager_drush_command() {
     'drupal dependencies' => array('dennis_term_manager'),
     'callback' => 'dennis_term_manager_tests_dupe_actions',
   );
+  $items['tm-test-dupe-actions'] = array(
+    'description' => "Test the result of the actions executed (Need to be called right after tm-actions).",
+    'drupal dependencies' => array('dennis_term_manager'),
+    'callback' => 'dennis_term_manager_tests_test_dupe_actions',
+  );
 
   return $items;
 }

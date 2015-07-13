@@ -162,6 +162,34 @@ function dennis_term_manager_tests_dupe_actions() {
 }
 
 /**
+ * Test actions against the expected resulting tree. This test will only work
+ * if you call tm-test-dupe-actions straight after tm-actions command.
+ */
+function dennis_term_manager_tests_test_dupe_actions() {
+  // Export CSV of taxonomy tree.
+  $columns = dennis_term_manager_default_columns();
+
+  // Need to exclude some columns because they will be different on each site.
+  $exclude = array('path', 'tid', 'target_tid');
+  foreach ($exclude as $item) {
+    unset ($columns[array_search($item, $columns)]);
+  }
+  dennis_term_manager_export_terms(',', array('Category'), $columns, DENNIS_TERM_MANAGER_DESTINATION_FILE);
+
+  $destination = _dennis_term_manager_get_files_folder();
+
+  // Get the exported terms.
+  $exported_tree = drupal_realpath($destination) . '/taxonomy_export.csv';
+
+  // Pass tree is stored in the repo
+  $pass_tree = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_dupe_actions_pass.csv';
+
+  // Compare exported CSV against the CSV saved on the repo.
+  // Pass tree must be contained inside the exported tree in order for the test to pass.
+  dennis_term_manager_diff($pass_tree, $exported_tree);
+}
+
+/**
  * Process the file
  */
 function dennis_term_manager_test_process($file) {

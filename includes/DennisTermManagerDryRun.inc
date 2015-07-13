@@ -37,7 +37,7 @@ class TermManagerDryRun {
     $result = $query->execute();
 
     // List of columns to include in tree items.
-    $id_columns = array('tid', 'vid', 'target_tid', 'target_vid');
+    $id_columns = array('tid', 'vid', 'target_tid', 'target_vid', 'parent_tid');
     $columns = array_merge(dennis_term_manager_default_columns(), $id_columns);
 
     while ($row = $result->fetchObject()) {
@@ -207,7 +207,7 @@ class TermManagerDryRun {
 
     // Get current parent.
     if (!empty($term->parent_term_name)) {
-      $current_parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      $current_parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $target_tid);
       // Remove child from current parent.
       $current_parent_term->removeChild($term->tid);
     }
@@ -304,7 +304,7 @@ class TermManagerDryRun {
 
     // Remove term from parent.
     if (!empty($term->parent_term_name)) {
-      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $tid);
       if (!empty($term->tid)) {
         $parent_term->removeChild($term->tid);
       }
@@ -387,7 +387,12 @@ class TermManagerDryRun {
 
     // Remove term from parent.
     if (!empty($term->parent_term_name)) {
-      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      if (isset($term->parent_tid)) {
+        $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $term->parent_tid);
+      }
+      else {
+        $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name);
+      }
       if (!empty($term->tid)) {
         $parent_term->removeChild($term->tid);
       }
@@ -486,10 +491,9 @@ class TermManagerDryRun {
         // If $tid not empty return tid item
         return $this->termTree[$vocabulary_key][$term_key][$tid];
       }
-
       // if more than one throw exception
       if (count($this->termTree[$vocabulary_key][$term_key]) > 1) {
-          throw new Exception(t('!vocab > !name is duplicated. Please provide a tid.', array(
+            throw new Exception(t('!vocab > !name is duplicated. Please provide a tid.', array(
             '!name' => $term_name,
             '!vocab' => $vocabulary_name,
           )));
@@ -619,7 +623,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_RENAME:
         try {
-          $this->rename($operation->term_name, $operation->vocabulary_name, $operation->new_name, $operation->target_tid);
+          $this->rename($operation->term_name, $operation->vocabulary_name, $operation->new_name, $operation->tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();

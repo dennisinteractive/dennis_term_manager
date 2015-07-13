@@ -180,6 +180,7 @@ function _dennis_term_manager_export_terms_query($vocabs = array()) {
   // Parent information.
   $query->leftJoin('taxonomy_term_hierarchy', 'h', 'h.tid = t.tid');
   $query->leftJoin('taxonomy_term_data', 'p', 'p.tid = h.parent');
+  $query->addField('p', 'tid', 'parent_tid');
 
   // Group by tid to get node counts for each term.
   $query->groupBy('t.tid');
