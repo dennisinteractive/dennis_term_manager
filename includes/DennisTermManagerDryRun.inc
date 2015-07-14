@@ -37,9 +37,8 @@ class TermManagerDryRun {
     $result = $query->execute();
 
     // List of columns to include in tree items.
-    $id_columns = array('tid', 'vid', 'target_tid', 'target_vid', 'parent_tid');
+    $id_columns = array('vid', 'target_vid', 'parent_tid');
     $columns = array_merge(dennis_term_manager_default_columns(), $id_columns);
-
     while ($row = $result->fetchObject()) {
       // Add report data to corresponding column.
       $row_data = array();
@@ -47,6 +46,7 @@ class TermManagerDryRun {
       foreach ($columns as $column) {
         $item->{$column} = isset($row->{$column}) ? $row->{$column} : '';
       }
+
       // Add children if available.
       if (!empty($row->child_tids)) {
         $tids = array_map('intval', explode(',', $row->child_tids));
@@ -96,7 +96,10 @@ class TermManagerDryRun {
             }
           }
         }
-        $this->processOperation($operation);
+        if (!empty($operation->action)) {
+          // Only process operations with actions.
+          $this->processOperation($operation);
+        }
       }
     }
 
@@ -630,26 +633,24 @@ class TermManagerDryRun {
         }
         break;
     }
+
     // Only add actions to the operationList.
-    if (!empty($operation->action)) {
-
-      // Get original item from term tree.
-      try {
-        if ($term = $this->getOriginalTreeItem($operation->term_name, $operation->vocabulary_name, $operation->tid)) {
-          // Add ID data to operation.
-          $operation->tid = $term->tid;
-          $operation->vid = $term->vid;
-          $operation->target_vid = $term->target_vid;
-          $operation->parent_tid = $term->parent_tid;
-        }
+    // Get original item from term tree.
+    try {
+      if ($term = $this->getOriginalTreeItem($operation->term_name, $operation->vocabulary_name, $operation->tid)) {
+        // Add ID data to operation.
+        $operation->tid = $term->tid;
+        $operation->vid = $term->vid;
+        $operation->target_vid = $term->target_vid;
+        $operation->parent_tid = $term->parent_tid;
       }
-      catch (Exception $e) {
-        $operation->error = $e->getMessage();
-      }
-
-      // Add operationItem to operationList.
-      $this->operationList->add($operation);
     }
+    catch (Exception $e) {
+      $operation->error = $e->getMessage();
+    }
+
+    // Add operationItem to operationList.
+    $this->operationList->add($operation);
   }
 
   /**

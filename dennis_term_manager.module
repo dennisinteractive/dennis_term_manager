@@ -770,7 +770,6 @@ function dennis_term_manager_queue_operation($options, &$context) {
       $nodeData = $baseData;
       $nodeData['action'] = $operationItem->action;
       $nodeData['target_tid'] = $operationItem->target_tid;
-
       // Get all nodes with source term reference.
       $nodes = _dennis_term_manager_get_associated_nodes($operationItem->tid);
 
