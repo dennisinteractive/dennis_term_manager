@@ -13,5 +13,9 @@ Feature: Term manager
     Given I run the drush command "tm-actions"
     # Test resulting actions.
     Given I run the drush command "tm-test-actions"
+    # Run dupe actions.
+    Given I run the drush command "tm-dupe-actions"
+    # Test resulting dupe actions.
+    Given I run the drush command "tm-test-dupe-actions"
     # Clean up.
     Then I run the drush command "tm-cleanup"
