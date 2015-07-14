@@ -643,6 +643,9 @@ class TermManagerDryRun {
         $operation->vid = $term->vid;
         $operation->target_vid = $term->target_vid;
         $operation->parent_tid = $term->parent_tid;
+        if (empty($operation->target_tid)) {
+          $operation->target_tid = $term->target_tid;
+        }
       }
     }
     catch (Exception $e) {
