@@ -93,6 +93,8 @@ function dennis_term_manager_tests_test_actions() {
  * i.e. Raspberry-0 will be merged to Raspberry.
  */
 function dennis_term_manager_tests_dupe_actions() {
+  $test_actions = array('merge', 'move parent');
+
   // Updated duplicated names, by removing the '-0' suffix.
   // This way we will end up with the same term name more than once. Useful to test the actions using tids.
   if (!$result = db_query("UPDATE {taxonomy_term_data} SET name = REPLACE(name, '-0', '') WHERE name like 'TM-%-0'")) {
@@ -122,6 +124,7 @@ function dennis_term_manager_tests_dupe_actions() {
     $action_column = $columns['action'];
     $term_child_count_column = $columns['term_child_count'];
 
+    $row = 0;
     while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
       $vocabulary_name = $data[$vocabulary_name_column];
       $term_name = $data[$name_column];
@@ -133,11 +136,17 @@ function dennis_term_manager_tests_dupe_actions() {
       }
       else {
         // Create action for duplicated term.
-        $data[$action_column] = 'merge';
+        $data[$action_column] = $test_actions[$row];
         $data[$target_tid_column] = $processed[$term_name];
         $data[$target_term_name_column] = $term_name;
         $data[$target_vocabulary_name_column] = $vocabulary_name;
         $actions[] = $data;
+
+        // This counter is used to alternate the actions that are dynamically created.
+        $row++;
+        if ($row >= count($test_actions)) {
+          $row = 0;
+        }
       }
     }
   }
