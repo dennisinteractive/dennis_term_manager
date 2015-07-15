@@ -322,7 +322,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '<p><strong>parent_term_name</strong></p>';
       $output .= '<ul>';
       $output .= '  <li>Name of existing term parent</li>';
-      $output .= '  <li>Used by "move parent"</li>';
+      $output .= '  <li>Used by "create"</li>';
       $output .= '</ul>';
 
       $output .= '<a name="action"></a><p>&nbsp;</p>';
@@ -353,7 +353,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '  </li>';
       $output .= '  <li>"move parent"';
       $output .= '  <ul>';
-      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#parent_term_name">parent_term_name</a></li>';
+      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#target_term_name">target_term_name</a></li>';
       $output .= '    <li>Optional: <a href="#target_tid">target_tid</a></li>';
       $output .= '    <li>Set <a href="#parent_term_name">parent_term_name</a> to empty "" to make it a root item</li>';
       $output .= '    <li>note: You can only move terms within same vocabulary</li>';
@@ -764,8 +764,8 @@ function dennis_term_manager_queue_operation($options, &$context) {
     case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
       $data = $baseData;
       $data['action'] = $operationItem->action;
-      $data['parent_tid'] = $operationItem->parent_tid;
-      $data['parent_term_name'] = $operationItem->parent_term_name;
+      $data['target_tid'] = $operationItem->target_tid;
+      $data['target_term_name'] = $operationItem->target_term_name;
       $q->createItem($data);
       break;
 

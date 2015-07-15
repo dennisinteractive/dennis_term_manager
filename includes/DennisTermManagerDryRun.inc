@@ -84,8 +84,7 @@ class TermManagerDryRun {
         // Create operationList item.
         $operation = new TermManagerOperationItem();
         // Get list of operation columns.
-        $operation_columns = array_merge(dennis_term_manager_default_columns(), array('redirect'));
-        foreach ($operation_columns as $column) {
+        foreach (dennis_term_manager_default_columns() as $column) {
           if (isset($columns[$column])) {
             $index = $columns[$column];
             try {
@@ -169,8 +168,8 @@ class TermManagerDryRun {
    * @param $term_name
    * @param $vocabulary_name
    */
-  protected function moveParent($term_name, $vocabulary_name, $parent_term_name, $target_tid) {
-    $term = $this->getTreeItem($term_name, $vocabulary_name);
+  protected function moveParent($term_name, $vocabulary_name, $tid = '', $target_term_name, $target_tid) {
+    $term = $this->getTreeItem($term_name, $vocabulary_name, $tid);
 
     // Prevent terms being moved more than once per run.
     if ($term->action == DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT) {
@@ -181,14 +180,11 @@ class TermManagerDryRun {
     }
 
     // Get parent and check it's not the same term.
-    if (!empty($parent_term_name)) {
-      $parent_term = $this->getTreeItem($parent_term_name, $vocabulary_name, $target_tid);
-      $tids_match = $parent_term->tid == $term->tid;
+    if (!empty($target_term_name)) {
+      $parent_term = $this->getTreeItem($target_term_name, $vocabulary_name, $target_tid);
 
-      // Check that names don't match.
-      $names_match = $this->formatKey($term_name) == $this->formatKey($parent_term_name);
-
-      if ($tids_match || $names_match) {
+      if ($parent_term->tid == $term->tid) {
+        debug(generateCallTrace());
         throw new Exception(t('!term cannot be parent of self', array(
           '!term' => $term->term_name,
         )));
@@ -550,7 +546,7 @@ class TermManagerDryRun {
     $fp = fopen($file->uri, 'w');
 
     // Add Headings.
-    $columns = array_merge(dennis_term_manager_default_columns(), array('redirect', 'description'));
+    $columns = array_merge(dennis_term_manager_default_columns(), array('description'));
     fputcsv($fp, $columns, $delimiter, '"');
 
     // Output resulting taxonomy.
@@ -599,7 +595,7 @@ class TermManagerDryRun {
 
       case DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT:
         try {
-          $this->moveParent($operation->term_name, $operation->vocabulary_name, $operation->parent_term_name, $operation->target_tid);
+          $this->moveParent($operation->term_name, $operation->vocabulary_name, $operation->tid, $operation->target_term_name, $operation->target_tid);
         }
         catch (Exception $e) {
           $operation->error = $e->getMessage();

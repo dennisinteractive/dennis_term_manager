@@ -23,25 +23,25 @@ function _dennis_term_manager_process_action_move_parent($data) {
   }
 
   // Assign parent if it still exists.
-  if (!empty($data['parent_tid'])) {
+  if (!empty($data['target_tid'])) {
     // Load parent if tid is available.
-    if ($parent_term = taxonomy_term_load($data['parent_tid'])) {
+    if ($parent_term = taxonomy_term_load($data['target_tid'])) {
       $term->parent = $parent_term->tid;
     }
     else {
       // Send to error report.
       $error_message = t("Term '@term_name' cannot be moved to missing parent (tid:@parent)", array(
         '@term_name' => $term->name,
-        '@parent' => $data['parent_tid'],
+        '@parent' => $data['target_tid'],
       ));
       _dennis_term_manager_write_report($data['report_fid'], $error_message);
       return;
     }
   }
-  elseif (!empty($data['parent_term_name'])) {
+  elseif (!empty($data['target_term_name'])) {
     // Try to get parent by name.
     if ($vocabulary = taxonomy_vocabulary_load($data['vid'])) {
-      if ($parent_terms = taxonomy_get_term_by_name($data['parent_term_name'], $vocabulary->machine_name)) {
+      if ($parent_terms = taxonomy_get_term_by_name($data['target_term_name'], $vocabulary->machine_name)) {
         $parent_term = reset($parent_terms);
         if (isset($parent_term->tid)) {
           $term->parent = $parent_term->tid;
@@ -50,7 +50,7 @@ function _dennis_term_manager_process_action_move_parent($data) {
       else {
         // Could not find parent term.
         $error_message = t("Parent term '@term_name' could not be found in row @row", array(
-          '@term_name' => $data['parent_term_name'],
+          '@term_name' => $data['target_term_name'],
           '@row' => $data['row'],
         ));
         _dennis_term_manager_write_report($data['report_fid'], $error_message);
@@ -77,7 +77,7 @@ function _dennis_term_manager_process_action_move_parent($data) {
     // Send to error report.
     $error_message = t("Term '@term_name' cannot be moved to @parent", array(
       '@term_name' => $term->name,
-      '@parent' => $data['parent_tid'],
+      '@parent' => $data['target_tid'],
     ));
     _dennis_term_manager_write_report($data['report_fid'], $error_message);
     return;
