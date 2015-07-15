@@ -170,7 +170,7 @@ class TermManagerDryRun {
    * @param $vocabulary_name
    */
   protected function moveParent($term_name, $vocabulary_name, $parent_term_name, $target_tid) {
-    $term = $this->getTreeItem($term_name, $vocabulary_name, $target_tid);
+    $term = $this->getTreeItem($term_name, $vocabulary_name);
 
     // Prevent terms being moved more than once per run.
     if ($term->action == DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT) {
@@ -210,7 +210,7 @@ class TermManagerDryRun {
 
     // Get current parent.
     if (!empty($term->parent_term_name)) {
-      $current_parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $target_tid);
+      $current_parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $term->parent_tid);
       // Remove child from current parent.
       $current_parent_term->removeChild($term->tid);
     }

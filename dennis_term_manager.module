@@ -295,7 +295,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '<p><strong>tid</strong></p>';
       $output .= '<ul>';
       $output .= '  <li>Only required when <a href="#term_name">term_name</a> is duplicated</li>';
-      $output .= '  <li>Used by "delete", "merge"</li>';
+      $output .= '  <li>Used by "delete", "merge", "move parent"</li>';
       $output .= '</ul>';
 
       $output .= '<a name="path"></a><p>&nbsp;</p>';
@@ -354,6 +354,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '  <li>"move parent"';
       $output .= '  <ul>';
       $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#parent_term_name">parent_term_name</a></li>';
+      $output .= '    <li>Optional: <a href="#target_tid">target_tid</a></li>';
       $output .= '    <li>Set <a href="#parent_term_name">parent_term_name</a> to empty "" to make it a root item</li>';
       $output .= '    <li>note: You can only move terms within same vocabulary</li>';
       $output .= '  </ul>';
@@ -371,7 +372,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '<p><strong>target_tid</strong></p>';
       $output .= '<ul>';
       $output .= '  <li>Only required when <a href="#target_term_name">target_term_name</a> is duplicated</li>';
-      $output .= '  <li>Used by "merge"</li>';
+      $output .= '  <li>Used by "merge", "move parent"</li>';
       $output .= '</ul>';
 
       $output .= '<a name="target_vocabulary_name"></a><p>&nbsp;</p>';
