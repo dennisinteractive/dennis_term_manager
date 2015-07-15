@@ -307,7 +307,7 @@ class TermManagerDryRun {
 
     // Remove term from parent.
     if (!empty($term->parent_term_name)) {
-      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $tid);
+      $parent_term = $this->getTreeItem($term->parent_term_name, $vocabulary_name, $term->parent_tid);
       if (!empty($term->tid)) {
         $parent_term->removeChild($term->tid);
       }
