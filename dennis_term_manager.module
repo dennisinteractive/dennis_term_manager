@@ -277,127 +277,137 @@ function dennis_term_manager_help($path, $arg) {
     case 'admin/help#dennis_term_manager':
       $output .= $css;
       $output .= '<div class="import-notes">';
-      $output .= '<p><strong>vocabulary_name</strong></p>
-                    <ul>
-                      <li>Vocabulary of existing/source term</li>
-                      <li>Used by all actions</li>
-                    </ul>
+      $output .= '<a name="vocabulary_name"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>vocabulary_name</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Vocabulary of existing/source term</li>';
+      $output .= '  <li>Used by all actions</li>';
+      $output .= '</ul>';
 
-                    <p>&nbsp;</p>
+      $output .= '<a name="term_name"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>term_name</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Name of existing/source term</li>';
+      $output .= '  <li>Used by all actions</li>';
+      $output .= '</ul>';
 
-                    <p><strong>term_name</strong></p>
+      $output .= '<a name="tid"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>tid</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Only required when <a href="#term_name">term_name</a> is duplicated</li>';
+      $output .= '  <li>Used by "delete", "merge"</li>';
+      $output .= '</ul>';
 
-                    <ul>
-                      <li>Name of existing/source term</li>
-                      <li>Used by all actions</li>
-                    </ul>
+      $output .= '<a name="path"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>path</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Information only. Not used by any action</li>';
+      $output .= '</ul>';
 
-                    <p>&nbsp;</p>
+      $output .= '<a name="node_count"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>node_count</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Count of existing term nodes</li>';
+      $output .= '  <li>Information only. Not used by any action</li>';
+      $output .= '</ul>';
 
-                    <p><strong>node_count</strong></p>
+      $output .= '<a name="term_child_count"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>term_child_count</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Count of child terms</li>';
+      $output .= '  <li>Information only. Not used by any action</li>';
+      $output .= '</ul>';
 
-                    <ul>
-                      <li>Count of existing term nodes</li>
-                      <li>Not used by any action</li>
-                    </ul>
+      $output .= '<a name="parent_term_name"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>parent_term_name</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Name of existing term parent</li>';
+      $output .= '  <li>Used by "move parent"</li>';
+      $output .= '</ul>';
 
-                    <p>&nbsp;</p>
+      $output .= '<a name="action"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>action</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>"create"';
+      $output .= '  <ul>';
+      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a></li>';
+      $output .= '    <li>Optional: <a href="#parent_term_name">parent_term_name</a></li>';
+      $output .= '  </ul>';
+      $output .= '  </li>';
+      $output .= '  <li>"delete"';
+      $output .= '  <ul>';
+      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a></li>';
+      $output .= '    <li>Optional: <a href="#tid">tid</a></li>';
+      $output .= '  </ul>';
+      $output .= '  </li>';
+      $output .= '  <li>"merge"';
+      $output .= '  <ul>';
+      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#target_vocabulary_name">target_vocabulary_name</a>, <a href="#target_term_name">target_term_name</a></li>';
+      $output .= '    <li>Optional: <a href="#tid">tid</a>, <a href="#target_tid">target_tid</a>, <a href="#target_field">target_field</a>, <a href="#redirect">redirect</a></li>';
+      $output .= '  </ul>';
+      $output .= '  </li>';
+      $output .= '  <li>"rename"';
+      $output .= '  <ul>';
+      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#new_name">new_name</a></li>';
+      $output .= '  </ul>';
+      $output .= '  </li>';
+      $output .= '  <li>"move parent"';
+      $output .= '  <ul>';
+      $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#parent_term_name">parent_term_name</a></li>';
+      $output .= '    <li>Set <a href="#parent_term_name">parent_term_name</a> to empty "" to make it a root item</li>';
+      $output .= '    <li>note: You can only move terms within same vocabulary</li>';
+      $output .= '  </ul>';
+      $output .= '  </li>';
+      $output .= '</ul>';
 
-                    <p><strong>parent_term_name</strong></p>
+      $output .= '<a name="target_term_name"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>target_term_name</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Name of target term</li>';
+      $output .= '  <li>Used by "merge"</li>';
+      $output .= '</ul>';
 
-                    <ul>
-                      <li>Name of existing term parent</li>
-                      <li>Used by "move parent"</li>
-                    </ul>
+      $output .= '<a name="target_tid"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>target_tid</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Only required when <a href="#target_term_name">target_term_name</a> is duplicated</li>';
+      $output .= '  <li>Used by "merge"</li>';
+      $output .= '</ul>';
 
-                    <p>&nbsp;</p>
+      $output .= '<a name="target_vocabulary_name"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>target_vocabulary_name</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Vocabulary of target term</li>';
+      $output .= '  <li>Used by "merge"</li>';
+      $output .= '</ul>';
 
-                    <p><strong>action</strong></p>
+      $output .= '<a name="target_field"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>target_field</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Comma separated list of fields to merge into</li>';
+      $output .= '  <li>Used by "merge"</li>';
+      $output .= '  <li>This is only required when merging across vocabularies</li>';
+      $output .= '  <li>Example: "field_category_primary,field_category_secondary" will try to set the node primary category first if not empty, otherwise will append to secondary</li>';
+      $output .= '</ul>';
 
-                    <ul>
-                      <li>"create"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name</li>
-                        <li>Optional: parent_term_name</li>
-                      </ul>
-                      </li>
-                      <li>"delete"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name</li>
-                      </ul>
-                      </li>
-                      <li>"merge"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name, target_vocabulary_name, target_term_name</li>
-                        <li>Optional columns: redirect</li>
-                        <li>When merging across vocabularies you must also specify target_field list</li>
-                      </ul>
-                      </li>
-                      <li>"rename"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name, new_name</li>
-                      </ul>
-                      </li>
-                      <li>"move parent"
-                      <ul>
-                        <li>Requires: vocabulary_name, term_name, parent_term_name</li>
-                        <li>Set parent_term_name to empty "" to make it a root item</li>
-                        <li>note: You can only move terms within same vocabulary</li>
-                      </ul>
-                      </li>
-                    </ul>
+      $output .= '<a name="new_name"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>new_name</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>New term name</li>';
+      $output .= '  <li>Used by "rename"</li>';
+      $output .= '</ul>';
 
-                    <p>&nbsp;</p>
-
-                    <p><strong>target_vocabulary_name</strong></p>
-
-                    <ul>
-                      <li>Vocabulary of target term</li>
-                      <li>Used by "merge"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>target_term_name</strong></p>
-
-                    <ul>
-                      <li>Name of target term</li>
-                      <li>Used by "merge"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>target_field</strong></p>
-
-                    <ul>
-                      <li>Comma separated list of fields to merge into</li>
-                      <li>Used by "merge"</li>
-                      <li>This is only required when merging across vocabularies</li>
-                      <li>Example: "field_category_primary,field_category_secondary" will try to set the node primary category first if not empty, otherwise will append to secondary</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>new_name</strong></p>
-
-                    <ul>
-                      <li>New term name</li>
-                      <li>Used by "rename"</li>
-                    </ul>
-
-                    <p>&nbsp;</p>
-
-                    <p><strong>redirect</strong></p>
-
-                    <ul>
-                      <li>Redirect to target term
-                        <ul>
-                          <li>"301", "Y" or "": 301 redirect to target term</li>
-                          <li>"N": do not redirect to target term</li>
-                        </ul>
-                      </li>
-                      <li>Used by "merge"</li>
-                    </ul>';
+      $output .= '<a name="redirect"></a><p>&nbsp;</p>';
+      $output .= '<p><strong>redirect</strong></p>';
+      $output .= '<ul>';
+      $output .= '  <li>Redirect to target term';
+      $output .= '    <ul>';
+      $output .= '      <li>"301", "Y" or "": 301 redirect to target term</li>';
+      $output .= '      <li>"N": do not redirect to target term</li>';
+      $output .= '    </ul>';
+      $output .= '  </li>';
+      $output .= '  <li>Used by "merge"</li>';
+      $output .= '</ul>';
       $output .= '</div>';
   }
 
@@ -1261,6 +1271,7 @@ function dennis_term_manager_default_columns() {
     'target_vocabulary_name',
     'target_field',
     'new_name',
+    'redirect',
   );
 }
 
