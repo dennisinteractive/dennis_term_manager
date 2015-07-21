@@ -116,6 +116,15 @@ function dennis_term_manager_menu() {
     'file' => 'dennis_term_manager.admin.inc',
     'weight' => $weight++,
   );
+  $items['admin/structure/taxonomy/term_manager/help'] = array(
+    'title' => 'Help',
+    'description' => 'Dennis Term Manager help.',
+    'page callback' => 'drupal_goto',
+    'page arguments' => array('admin/help/dennis_term_manager'),
+    'access arguments' => array('administer dennis term manager'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => $weight++,
+  );
 
   return $items;
 }
