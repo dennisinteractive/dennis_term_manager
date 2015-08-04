@@ -364,7 +364,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '  <ul>';
       $output .= '    <li>Requires: <a href="#vocabulary_name">vocabulary_name</a>, <a href="#term_name">term_name</a>, <a href="#target_term_name">target_term_name</a></li>';
       $output .= '    <li>Optional: <a href="#target_tid">target_tid</a></li>';
-      $output .= '    <li>Set <a href="#parent_term_name">parent_term_name</a> to empty "" to make it a root item</li>';
+      $output .= '    <li>Set <a href="#target_term_name">target_term_name</a> to empty "" to make it a root item</li>';
       $output .= '    <li>note: You can only move terms within same vocabulary</li>';
       $output .= '  </ul>';
       $output .= '  </li>';
