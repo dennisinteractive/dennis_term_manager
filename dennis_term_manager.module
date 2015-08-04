@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Module file Dennis Term Manager. 
+ * Module file Dennis Term Manager.
  */
 
 define('DENNIS_TERM_MANAGER_ACTION_CREATE', 'create');
@@ -374,7 +374,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '<p><strong>target_term_name</strong></p>';
       $output .= '<ul>';
       $output .= '  <li>Name of target term</li>';
-      $output .= '  <li>Used by "merge"</li>';
+      $output .= '  <li>Used by "merge", "move parent"</li>';
       $output .= '</ul>';
 
       $output .= '<a name="target_tid"></a><p>&nbsp;</p>';
@@ -397,7 +397,7 @@ function dennis_term_manager_help($path, $arg) {
       $output .= '  <li>Comma separated list of fields to merge into</li>';
       $output .= '  <li>Used by "merge"</li>';
       $output .= '  <li>This is only required when merging across vocabularies</li>';
-      $output .= '  <li>Example: "field_category_primary,field_category_secondary" will try to set the node primary category first if not empty, otherwise will append to secondary</li>';
+      $output .= '  <li>Example: "field_category_primary,field_category_secondary" will set the node primary category first if empty, otherwise will append to secondary</li>';
       $output .= '</ul>';
 
       $output .= '<a name="new_name"></a><p>&nbsp;</p>';
@@ -865,10 +865,10 @@ function dennis_term_manager_cron_queue_info() {
 
 /**
  * Perform action on each queue item.
- * 
+ *
  * @param array $data
  *   An array containing source and target taxonomy term data
- *   
+ *
  */
 function dennis_term_manager_process_queue_item($data) {
   // Process each row against their action column and validate their data.
@@ -952,8 +952,8 @@ function _dennis_term_manager_get_vocabulary($vocabulary_name) {
  *
  * @param : $tid
  *   Taxonomy Term ID.
- *   
- * @return array 
+ *
+ * @return array
  *   List of nodes.
  */
 function _dennis_term_manager_get_associated_nodes($tid) {
@@ -998,8 +998,8 @@ function _dennis_term_manager_get_scheduled_nodes() {
  *   Taxonomy Term Name
  * @param : $vid
  *   Vocabulary Machine Name
- *   
- * @return int 
+ *
+ * @return int
  *   Taxonomy Term ID or false in case not found
  */
 function _dennis_term_manager_get_tid($term_name, $vid) {
@@ -1015,7 +1015,7 @@ function _dennis_term_manager_get_tid($term_name, $vid) {
 /**
  * Helper to check if source term is the parent of target term.
  *
- * @param int $target_term_id 
+ * @param int $target_term_id
  *   Taxonomy Term id
  * @param int $term_id
  *   Taxonomy Term Id
