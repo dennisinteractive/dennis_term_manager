@@ -33,3 +33,4 @@ function dennis_term_manager_admin_settings_form() {
 
   return system_settings_form($form);
 }
+ 

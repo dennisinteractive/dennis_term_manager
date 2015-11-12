@@ -44,6 +44,7 @@ function dennis_term_manager_permission() {
  * Implements hook_menu().
  */
 function dennis_term_manager_menu() {
+
   $items = array();
   $weight = 0;
   $items['admin/structure/taxonomy/term_manager'] = array(
@@ -979,15 +980,25 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  *   List of nodes.
  */
 function _dennis_term_manager_get_scheduled_nodes() {
-  $query = db_select('node', 'n');
+
+ $query = db_select('node', 'n');
   $query->fields('n', array(
     'nid',
   ));
-  $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
-  $query->condition('n.status', 0, '=');
-  $query->condition('s.field_schedule_publish_value', 1, '=');
-  $nodes = $query->execute()->fetchCol('nid');
 
+  $map = field_info_field_map();
+  $nodes = $map['field_schedule_publish']['bundles']['node'];
+
+  if(module_exists('rule_scheduler') && !empty($nodes)){
+    $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
+    $query->condition('s.field_schedule_publish_value', 1, '=');
+  }
+  elseif (module_exists('scheduler')) {
+    $query->innerJoin('scheduler', 's', 's.nid = n.nid');
+  }
+  $query->condition('n.status', 0, '=');
+
+  $nodes = $query->execute()->fetchCol('nid');
   return $nodes;
 }
 
