@@ -298,4 +298,12 @@ function _dennis_term_manager_cleanup() {
   taxonomy_term_delete($term->tid);
   $term = reset(taxonomy_get_term_by_name('TM-Fruits2', 'category'));
   taxonomy_term_delete($term->tid);
+
+  // Make sure term manager is enabled.
+  variable_set('dennis_term_manager_enabled', 1);
+
+  // Clean up queue.
+  db_delete('queue')
+    ->condition('name', 'dennis_term_manager_queue')
+    ->execute();
 }
