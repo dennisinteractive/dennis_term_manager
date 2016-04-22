@@ -85,7 +85,7 @@ class TermManagerProgressItem {
    * Set the final queue ID to be last item in queue.
    */
   public function setFinalQueueId() {
-    $this->setData('final_queue_id', $this->getLastQueueId()); 
+    $this->setData('final_queue_id', $this->getLastQueueId());
   }
 
   /**
@@ -110,11 +110,11 @@ class TermManagerProgressItem {
       0, 1,
       array(':name' => 'dennis_term_manager_queue')
     );
-  
+
     if ($item = $query->fetchObject()) {
       return $item->item_id;
     }
-  
+
     return 0;
   }
 
@@ -155,12 +155,12 @@ class TermManagerProgressItem {
    * Display status using drupal_set_message().
    */
   public function displayStatus() {
+    $report_link = '';
     if ($report_fid = $this->getData('report_fid')) {
       $report_file = file_load($report_fid);
-      $report_link = l('View report', file_create_url($report_file->uri)) . ' &raquo;';
-    }
-    else {
-      $report_link = '';
+      if (isset($report_file->uri)) {
+        $report_link = l('View report', file_create_url($report_file->uri)) . ' &raquo;';
+      }
     }
     $message = t('There is currently an active process with !item_count items left to process. !report_link', array(
       '!report_link' => $report_link,
