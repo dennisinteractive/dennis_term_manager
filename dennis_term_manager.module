@@ -993,7 +993,7 @@ function _dennis_term_manager_get_scheduled_nodes() {
     $query->condition('s.field_schedule_publish_value', 1, '=');
   }
   elseif (module_exists('scheduler')) {
-    $query->innerJoin('scheduler', 's', 's.nid = n.nid');
+    //@todo Do the join on the respective table.
   }
   $query->condition('n.status', 0, '=');
 
