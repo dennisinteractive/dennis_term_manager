@@ -3,7 +3,6 @@ description = Tool to manage bulk taxonomy terms.
 core = 7.x
 package = Taxonomy
 dependencies[] = taxonomy
-dependencies[] = rules_scheduler
 configure = admin/structure/taxonomy/term_manager
 
 files[] = includes/DennisTermManagerItem.inc
