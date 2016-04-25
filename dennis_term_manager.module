@@ -986,11 +986,13 @@ function _dennis_term_manager_get_scheduled_nodes() {
   ));
 
   $map = field_info_field_map();
-  $nodes = $map['field_schedule_publish']['bundles']['node'];
 
-  if (module_exists('rule_scheduler') && !empty($nodes)) {
-    $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
-    $query->condition('s.field_schedule_publish_value', 1, '=');
+  if (module_exists('rule_scheduler')) {
+    $nodes = $map['field_schedule_publish']['bundles']['node'];
+    if (!empty($nodes)) {
+      $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
+      $query->condition('s.field_schedule_publish_value', 1, '=');
+    }
   }
   elseif (module_exists('scheduler')) {
     //@todo Do the join on the respective table.
