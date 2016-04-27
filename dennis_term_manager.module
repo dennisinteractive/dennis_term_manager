@@ -979,30 +979,41 @@ function _dennis_term_manager_get_associated_nodes($tid) {
  *   List of nodes.
  */
 function _dennis_term_manager_get_scheduled_nodes() {
+  $nodes = [];
+  $supported_modules = ['rules_scheduler', 'scheduler'];
 
-  $query = db_select('node', 'n');
-  $query->fields('n', array(
-    'nid',
-  ));
+  foreach ($supported_modules as $name) {
+    $query = db_select('node', 'n');
+    $query->fields('n', array(
+      'nid',
+    ));
+    $query->condition('n.status', 0, '=');
 
-  // Check for both module being enabled and field existing, as rule_scheduler could be enabled but not setup.
-  $map = field_info_field_map();
-  if (module_exists('rules_scheduler') && !empty($map['field_schedule_publish']['bundles']['node'])) {
-    $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
-    $query->condition('s.field_schedule_publish_value', 1, '=');
+    // Check if the module is enabled.
+    if (module_exists($name)) {
+      switch ($name) {
+        case 'rules_scheduler':
+          // Check if field exists, as rule_scheduler could be enabled but not setup.
+          $map = field_info_field_map();
+          if (!empty($map['field_schedule_publish']['bundles']['node'])) {
+            // Inner join node that are scheduled to be published.
+            $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
+            $query->condition('s.field_schedule_publish_value', 1, '=');
+          }
+          break;
+
+        case
+        'scheduler':
+          // Inner join node that are scheduled to be published.
+          $query->innerJoin('scheduler', 's', 's.nid = n.nid AND s.publish_on > 0');
+          break;
+      }
+    }
+
+    $nodes = array_merge($nodes, $query->execute()->fetchCol('nid'));
   }
-  elseif (module_exists('scheduler')) {
-    // Inner join node that are scheduled to be published.
-    $query->innerJoin('scheduler', 's', 's.nid = n.nid AND s.publish_on > 0');
-  }
-  else {
-    // Return empty array if content scheduling isn't enabled to prevent all unpublished content being queued up.
-    return array();
-  }
+  $nodes = array_unique($nodes);
 
-  $query->condition('n.status', 0, '=');
-
-  $nodes = $query->execute()->fetchCol('nid');
   return $nodes;
 }
 
