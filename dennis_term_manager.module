@@ -1339,10 +1339,10 @@ function _dennis_term_manager_get_files_folder() {
   }
 
   // Test if folder exists and try to create it if necessary.
-  if (!is_dir($location) && !drupal_mkdir($location, '755', TRUE)) {
+  if (!is_dir($location) && !drupal_mkdir($location, NULL, TRUE)) {
     watchdog('file system', 'The directory %directory does not exist and could not be created.', array('%directory' => $location), WATCHDOG_ERROR);
   }
-  if (is_dir($location) && !is_writable($location) && !drupal_chmod($location, '755')) {
+  if (is_dir($location) && !is_writable($location) && !drupal_chmod($location)) {
     // If the directory is not writable and cannot be made so.
     watchdog('file system', 'The directory %directory exists but is not writable and could not be made writable.', array('%directory' => $location), WATCHDOG_ERROR);
   }
