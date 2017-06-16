@@ -15,7 +15,7 @@ function dennis_term_manager_tests_create() {
   _dennis_term_manager_cleanup();
 
   // Copy the CSV file into files folder.
-  $file = dennis_term_manager_file_copy($actions_file, $destination);
+  $file = _dennis_term_manager_file_copy($actions_file, $destination);
 
   // Process file.
   dennis_term_manager_test_process($file);
@@ -54,7 +54,7 @@ function dennis_term_manager_tests_actions() {
   $actions_file = drupal_get_path('module', 'dennis_term_manager') . '/tests/test_actions_run.csv';
 
   // Copy the file into files folder.
-  $file = dennis_term_manager_file_copy($actions_file, $destination);
+  $file = _dennis_term_manager_file_copy($actions_file, $destination);
 
   // Process file.
   dennis_term_manager_test_process($file);
@@ -165,7 +165,7 @@ function dennis_term_manager_tests_dupe_actions() {
   }
 
   // Process file.
-  $file = dennis_term_manager_file_copy($out_filename, $destination);
+  $file = _dennis_term_manager_file_copy($out_filename, $destination);
 
   dennis_term_manager_test_process($file);
 }

@@ -522,7 +522,7 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
   }
   else {
     // Save the file.
-    dennis_term_manager_file_save($file);
+    _dennis_term_manager_file_save($file);
 
     // Process the file.
     $batch = _dennis_term_manager_batch_init($file);
@@ -542,7 +542,7 @@ function dennis_term_manager_form_submit(&$form, &$form_state) {
  * @return $file
  *    The file object.
  */
-function dennis_term_manager_file_copy($file_name, $destination, $replace = FILE_EXISTS_REPLACE) {
+function _dennis_term_manager_file_copy($file_name, $destination, $replace = FILE_EXISTS_REPLACE) {
   $file = new stdClass();
   $file->uri = file_unmanaged_copy($file_name, $destination, $replace);
 
@@ -564,7 +564,7 @@ function dennis_term_manager_file_copy($file_name, $destination, $replace = FILE
   }
 
   // Save the file.
-  dennis_term_manager_file_save($file);
+  _dennis_term_manager_file_save($file);
 
   return $file;
 }
@@ -577,7 +577,7 @@ function dennis_term_manager_file_copy($file_name, $destination, $replace = FILE
  * @return $file
  *    The file object.
  */
-function dennis_term_manager_file_save($file) {
+function _dennis_term_manager_file_save($file) {
   if (is_object($file)) {
 
     // Make file permanent.
