@@ -635,6 +635,20 @@ function dennis_term_manager_file_download($uri, $field_type = 'file') {
 }
 
 /**
+ * Implements hook_batch_alter().
+ */
+function dennis_term_manager_batch_alter(&$batch) {
+  // When the batch is created by Behat extension, disable progress to make it
+  // execute immediately.
+  if (isset($batch['sets']['0']['behat_extension']) &&
+    $batch['sets']['0']['behat_extension'] === TRUE)
+  {
+    $batch['progressive'] = FALSE;
+  }
+
+}
+
+/**
  * Prepare a batch definition that will process the file rows.
  */
 function _dennis_term_manager_batch_init($file) {
