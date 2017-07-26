@@ -12,4 +12,3 @@ files[] = includes/DennisTermManagerOperationList.inc
 files[] = includes/DennisTermManagerOperationItem.inc
 files[] = includes/DennisTermManagerProgressList.inc
 files[] = includes/DennisTermManagerProgressItem.inc
-files[] = tests/dennis_term_manager.tests.inc

@@ -17,6 +17,10 @@ or via menus Structure > Taxonomy > Term Manager
 Upload a CSV/TSV file and click import. A drupal queue
 will be created for each CSV row and run with system cron.
 
+Testing
+=======
+You can use the Behat extension https://github.com/dennisinteractive/behat_term_manager_extension
+
 Documentation
 =============
 This Module is designed to Manage various actions that can be performed on Taxonomy terms.

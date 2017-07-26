@@ -16,8 +16,6 @@ define('DENNIS_TERM_MANAGER_DESTINATION_FILE', '2');
 define('DENNIS_TERM_MANAGER_PUBLIC_FOLDER', 'public://term_manager');
 define('DENNIS_TERM_MANAGER_PRIVATE_FOLDER', 'private://term_manager');
 
-require_once "tests/dennis_term_manager.tests.inc";
-
 /**
  * Implements hook_views_api().
  */
