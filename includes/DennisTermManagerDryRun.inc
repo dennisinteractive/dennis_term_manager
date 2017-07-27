@@ -129,7 +129,7 @@ class TermManagerDryRun {
   protected function create($term_name, $vocabulary_name, $parent_term_name) {
     // Check if term already exists.
     if ($this->getOriginalTreeItem($term_name, $vocabulary_name)) {
-      throw new Exception(t('!vocab > !name already exists', array(
+      throw new \Exception(t('!vocab > !name already exists', array(
         '!vocab' => $vocabulary_name,
         '!name' => $term_name,
       )));
@@ -141,7 +141,7 @@ class TermManagerDryRun {
     // Check that vocabulary is valid.
     $vocabulary = _dennis_term_manager_get_vocabulary($vocabulary_name);
     if (empty($vocabulary->vid)) {
-      throw new Exception(t('!vocab is not a valid vocabulary', array(
+      throw new \Exception(t('!vocab is not a valid vocabulary', array(
         '!vocab' => $vocabulary_name,
       )));
     }
@@ -173,7 +173,7 @@ class TermManagerDryRun {
 
     // Prevent terms being moved more than once per run.
     if ($term->action == DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT) {
-      throw new Exception(t('!term_name has already been moved to !parent_term_name', array(
+      throw new \Exception(t('!term_name has already been moved to !parent_term_name', array(
         '!term_name' => $term->term_name,
         '!parent_term_name' => $term->parent_term_name,
       )));
@@ -185,7 +185,7 @@ class TermManagerDryRun {
 
       if ($parent_term->tid == $term->tid) {
         debug(generateCallTrace());
-        throw new Exception(t('!term cannot be parent of self', array(
+        throw new \Exception(t('!term cannot be parent of self', array(
           '!term' => $term->term_name,
         )));
       }
@@ -194,7 +194,7 @@ class TermManagerDryRun {
       $parents = $this->getParents($parent_term);
       // Throw exception if term is is the parent of the new parent.
       if (isset($parents[$term->term_name])) {
-        throw new Exception(t('!term is a parent of !parent', array(
+        throw new \Exception(t('!term is a parent of !parent', array(
           '!term' => $term->term_name,
           '!parent' => $parent_term->term_name,
         )));
@@ -248,7 +248,7 @@ class TermManagerDryRun {
     // Don't allow empty names.
     $new_name = trim($new_name);
     if (empty($new_name)) {
-     throw new Exception(t('New name for !vocab > !term_name is empty', array(
+     throw new \Exception(t('New name for !vocab > !term_name is empty', array(
         '!vocab' => $vocabulary_name,
         '!term_name' => $term_name,
       )));
@@ -261,7 +261,7 @@ class TermManagerDryRun {
     if ($existingTerm =  $this->getOriginalTreeItem($new_name, $vocabulary_name, $target_tid)) {
       // Throw exception if another term exists with the same name or the name isn't being changed.
       if ($existingTerm->tid != $term->tid || $term_name === $new_name) {
-        throw new Exception(t('!vocab > !name already exists', array(
+        throw new \Exception(t('!vocab > !name already exists', array(
           '!vocab' => $vocabulary_name,
           '!name' => $new_name,
         )));
@@ -295,7 +295,7 @@ class TermManagerDryRun {
 
     // Prevent deleted terms with children.
     if ($term->isParent()) {
-      throw new Exception(t('!vocab > !name cannot be deleted as it has children', array(
+      throw new \Exception(t('!vocab > !name cannot be deleted as it has children', array(
         '!vocab' => $vocabulary_name,
         '!name' => $term_name,
       )));
@@ -327,14 +327,14 @@ class TermManagerDryRun {
   protected function merge($term_name, $vocabulary_name, $target_term_name, $target_vocabulary_name, $target_field = '', $tid = '', $target_tid = '') {
     // Prevent merge with self.
     if ($term_name == $target_term_name && $vocabulary_name == $target_vocabulary_name && ($tid == $target_tid)) {
-      throw new Exception(t('Cannot merge with self, please specify a tid.'));
+      throw new \Exception(t('Cannot merge with self, please specify a tid.'));
     }
 
     // Ensure target term can be retrieved.
     $target_term = $this->getTreeItem($target_term_name, $target_vocabulary_name, $target_tid);
 
     if (empty($target_term->tid)) {
-      throw new Exception(t('!vocab > !name has not been created yet', array(
+      throw new \Exception(t('!vocab > !name has not been created yet', array(
         '!vocab' => $target_vocabulary_name,
         '!name' => $target_term_name,
       )));
@@ -347,7 +347,7 @@ class TermManagerDryRun {
 
     // Prevent merging terms with children.
     if ($term->isParent()) {
-      throw new Exception(t('!vocab > !name cannot be merged as it has children', array(
+      throw new \Exception(t('!vocab > !name cannot be merged as it has children', array(
         '!vocab' => $vocabulary_name,
         '!name' => $term_name,
       )));
@@ -430,7 +430,7 @@ class TermManagerDryRun {
       switch ($term->action) {
         case DENNIS_TERM_MANAGER_ACTION_DELETE:
           // If term has been marked for delete, it cannot be returned.
-          throw new Exception(t('!vocab > !name has been flagged for !operation', array(
+          throw new \Exception(t('!vocab > !name has been flagged for !operation', array(
             '!operation' => $term->action,
             '!name' => $term->term_name,
             '!vocab' => $term->vocabulary_name,
@@ -438,7 +438,7 @@ class TermManagerDryRun {
           break;
         case DENNIS_TERM_MANAGER_ACTION_MERGE:
           // If term has been marked for merge, it cannot be returned.
-          throw new Exception(t('!vocab > !name has been merged into !target_vocab > !target_name', array(
+          throw new \Exception(t('!vocab > !name has been merged into !target_vocab > !target_name', array(
             '!name' => $term->term_name,
             '!vocab' => $term->vocabulary_name,
             '!target_name' => $term->target_term_name,
@@ -447,7 +447,7 @@ class TermManagerDryRun {
           break;
         case DENNIS_TERM_MANAGER_ACTION_RENAME:
           // If term has been marked for rename, it cannot be returned.
-          throw new Exception(t('!vocab > !name has been renamed to !new_name', array(
+          throw new \Exception(t('!vocab > !name has been renamed to !new_name', array(
             '!new_name' => $term->new_name,
             '!name' => $term->term_name,
             '!vocab' => $term->vocabulary_name,
@@ -457,7 +457,7 @@ class TermManagerDryRun {
       return $term;
     }
     // Cannot find requested term in tree.
-    throw new Exception(t('!vocab => !name does not exist', array(
+    throw new \Exception(t('!vocab => !name does not exist', array(
       '!name' => $term_name,
       '!vocab' => (empty($vocabulary_name)) ? t('Unspecified') : $vocabulary_name,
     )));
@@ -481,7 +481,7 @@ class TermManagerDryRun {
       // if specified tid doesn't exist throw exception
       if (!empty($tid)) {
         if (!isset($this->termTree[$vocabulary_key][$term_key][$tid])) {
-          throw new Exception(t('!tid is not valid for !vocab > !name.', array(
+          throw new \Exception(t('!tid is not valid for !vocab > !name.', array(
             '!tid' => $tid,
             '!name' => $term_name,
             '!vocab' => $vocabulary_name,
@@ -492,7 +492,7 @@ class TermManagerDryRun {
       }
       // if more than one throw exception
       if (count($this->termTree[$vocabulary_key][$term_key]) > 1) {
-            throw new Exception(t('!vocab > !name is duplicated. Please provide a tid.', array(
+            throw new \Exception(t('!vocab > !name is duplicated. Please provide a tid.', array(
             '!name' => $term_name,
             '!vocab' => $vocabulary_name,
           )));
@@ -660,7 +660,7 @@ class TermManagerDryRun {
    */
   protected function assertNotLocked(TermManagerDryRunItem $term) {
     if ($term->locked) {
-      throw new Exception(t('!vocab > !name is locked. This may be due to a chained action.', array(
+      throw new \Exception(t('!vocab > !name is locked. This may be due to a chained action.', array(
         '!name' => $term->term_name,
         '!vocab' => $term->vocabulary_name,
       )));

@@ -24,7 +24,7 @@ class TermManagerProgressItem {
   public function __construct($fid) {
     // Load data.
     if (empty($fid)) {
-      throw new Exception('File ID must be provided');
+      throw new \Exception('File ID must be provided');
     }
     // Set the fid and store in data.
     $this->fid = $fid;
@@ -54,7 +54,7 @@ class TermManagerProgressItem {
       variable_set('dennis_term_manager_in_progress', $in_progress);
     }
     else {
-      throw new Exception(t('File !fid does not exist', array(
+      throw new \Exception(t('File !fid does not exist', array(
         '!fid' => $this->fid,
       )));
     }

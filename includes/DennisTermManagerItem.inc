@@ -29,7 +29,7 @@ class TermManagerItem {
         if (!in_array($value, $allowed_actions)) {
           // Set the invalid action for error reporting.
           $this->data[$key] = $value;
-          throw new Exception(t('!value is not a valid action', array('!value' => $value)));
+          throw new \Exception(t('!value is not a valid action', array('!value' => $value)));
         }
         break;
       case 'redirect':
@@ -50,7 +50,7 @@ class TermManagerItem {
 
         // Error if the redirect value is not valid.
         if (!in_array($value, $allowed_redirect_values)) {
-           throw new Exception(t('!value is not a valid redirect value. The following values are allowed: !allowed', array(
+           throw new \Exception(t('!value is not a valid redirect value. The following values are allowed: !allowed', array(
             '!value' => $value,
             '!allowed' => '"' . implode('", "', $allowed_redirect_values) . '"',
            )));
@@ -77,7 +77,7 @@ class TermManagerItem {
       case 'locked':
         break;
       default:
-        throw new Exception(t('!key is not a valid TermManagerItem property', array('!key' => $key)));
+        throw new \Exception(t('!key is not a valid TermManagerItem property', array('!key' => $key)));
     }
     $this->data[$key] = $value;
   }

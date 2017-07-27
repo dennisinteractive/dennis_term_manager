@@ -545,7 +545,7 @@ function _dennis_term_manager_file_copy($file_name, $destination, $replace = FIL
   $file->uri = file_unmanaged_copy($file_name, $destination, $replace);
 
   if ($file->uri === FALSE) {
-    throw new Exception(t('!file_name cannot be saved', array(
+    throw new \Exception(t('!file_name cannot be saved', array(
       '!file_name' => $file_name,
     )));
   }
@@ -586,7 +586,7 @@ function _dennis_term_manager_file_save($file) {
     file_usage_add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
   }
   else {
-    throw new Exception(t('!file_name cannot be saved', array(
+    throw new \Exception(t('!file_name cannot be saved', array(
       '!file_name' => $file->uri,
     )));
   }
@@ -1364,7 +1364,7 @@ function _dennis_term_manager_get_files_folder() {
     return $location;
   }
 
-  throw new Exception(t('Error trying to copy files to !name folder. Make sure the folder exists and you have writting permission.', array(
+  throw new \Exception(t('Error trying to copy files to !name folder. Make sure the folder exists and you have writting permission.', array(
     '!name' => $location,
   )));
 }
