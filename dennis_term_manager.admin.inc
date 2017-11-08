@@ -33,4 +33,47 @@ function dennis_term_manager_admin_settings_form() {
 
   return system_settings_form($form);
 }
- 
+
+/**
+ * Form with confirmation to pass queue_id and file_id
+ * @param $form
+ * @param $form_state
+ * @return mixed
+ */
+function dennis_term_manager_delete_form($form, &$form_state) {
+  $form = array();
+  $queue_id = arg(4);
+  $file_id = arg(5);
+  $form['queue_id'] = array(
+    '#type' => 'value',
+    '#value' => $queue_id
+  );
+  $form['file_id'] = array(
+    '#type' => 'value',
+    '#value' => $file_id
+  );
+  $form['#submit'][] = 'dennis_term_manager_delete_form_submit';
+  return confirm_form(
+    $form,
+    t('Are you sure you want to delete this queue?'),
+    'admin/structure/taxonomy/term_manager',
+    t('This action cannot be undone.'),
+    t('Delete'),
+    t('Cancel')
+  );
+}
+
+/**
+ * Submit handler for dennis_term_manager_delete_form.
+ * @param $form
+ * @param $form_state
+ */
+function dennis_term_manager_delete_form_submit($form, &$form_state) {
+  form_state_values_clean($form_state);
+  extract($form_state['values']);
+  $item = new TermManagerProgressItem($file_id);
+  $item->setFinalQueueId($queue_id);
+  $item->delete();
+  drupal_set_message('The queue has been deleted');
+  drupal_goto('admin/structure/taxonomy/term_manager');
+}

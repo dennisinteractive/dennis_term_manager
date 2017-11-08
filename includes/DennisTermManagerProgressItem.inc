@@ -162,8 +162,9 @@ class TermManagerProgressItem {
         $report_link = l('View report', file_create_url($report_file->uri)) . ' &raquo;';
       }
     }
-    $message = t('There is currently an active process with !item_count items left to process. !report_link', array(
+    $message = t('There is currently an active process with !item_count items left to process. !report_link !delete_queue', array(
       '!report_link' => $report_link,
+      '!delete_queue' => l('Delete queue', 'admin/structure/taxonomy/term_manager/' . $this->data['final_queue_id'] . '/' . $this->fid . '/delete') . ' &raquo;',
       '!item_count' => $this->getQueueCount(),
     ));
     drupal_set_message($message, 'status');
