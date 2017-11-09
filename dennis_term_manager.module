@@ -124,11 +124,11 @@ function dennis_term_manager_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => $weight++,
   );
-  $items['admin/structure/taxonomy/term_manager/%/%/delete'] = array(
+  $items['admin/structure/taxonomy/term_manager/%/delete'] = array(
     'title' => 'Settings',
     'description' => 'Dennis Term Manager Delete.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('dennis_term_manager_delete_form', array(4, 5)),
+    'page arguments' => array('dennis_term_manager_delete_confirm_form', array(4)),
     'access arguments' => array('administer dennis term manager'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dennis_term_manager.admin.inc',

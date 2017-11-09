@@ -61,26 +61,6 @@ class TermManagerProgressItem {
   }
 
   /**
-   * Delete queue from database.
-   * @param $qid
-   */
-  public function deleteFromDb($qid) {
-    $query = db_select('queue', 'queue');
-    $query->fields('queue', array('item_id'));
-    $query->condition('name', 'dennis_term_manager_queue');
-    $query->condition('item_id', $qid);
-    $result = $query->execute();
-    if ($result->rowCount() > 0) {
-      $deleted = db_delete('queue')
-        ->condition('item_id', $qid)
-        ->execute();
-      if (!$deleted) {
-        throw new \Exception(t('There was an error deleting from database'));
-      }
-    }
-  }
-
-  /**
    * Save current progress data.
    */
   public function save() {
@@ -132,7 +112,7 @@ class TermManagerProgressItem {
     );
 
     if ($item = $query->fetchObject()) {
-      return $item->item_id;
+      return $item->item_id + 1;
     }
 
     return 0;
@@ -184,7 +164,7 @@ class TermManagerProgressItem {
     }
     $message = t('There is currently an active process with !item_count items left to process. !report_link !delete_queue', array(
       '!report_link' => $report_link,
-      '!delete_queue' => l('Delete queue', 'admin/structure/taxonomy/term_manager/' . $this->data['final_queue_id'] . '/' . $this->fid . '/delete') . ' &raquo;',
+      '!delete_queue' => l('Delete queue', 'admin/structure/taxonomy/term_manager/' . $this->fid . '/delete') . ' &raquo;',
       '!item_count' => $this->getQueueCount(),
     ));
     drupal_set_message($message, 'status');

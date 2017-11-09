@@ -36,23 +36,21 @@ function dennis_term_manager_admin_settings_form() {
 
 /**
  * Form with confirmation to pass queue_id and file_id
+ *
  * @param $form
  * @param $form_state
+ *
  * @return mixed
  */
-function dennis_term_manager_delete_form($form, &$form_state) {
+function dennis_term_manager_delete_confirm_form($form, &$form_state) {
   $form = array();
-  $queue_id = arg(4);
-  $file_id = arg(5);
-  $form['queue_id'] = array(
-    '#type' => 'value',
-    '#value' => $queue_id
-  );
+  $file_id = arg(4);
   $form['file_id'] = array(
     '#type' => 'value',
     '#value' => $file_id
   );
-  $form['#submit'][] = 'dennis_term_manager_delete_form_submit';
+  $form['#submit'][] = 'dennis_term_manager_delete_confirm_form_submit';
+
   return confirm_form(
     $form,
     t('Are you sure you want to delete this queue?'),
@@ -64,17 +62,37 @@ function dennis_term_manager_delete_form($form, &$form_state) {
 }
 
 /**
- * Submit handler for dennis_term_manager_delete_form.
+ * Submit handler for dennis_term_manager_delete_confirm_form.
+ *
  * @param $form
  * @param $form_state
  */
-function dennis_term_manager_delete_form_submit($form, &$form_state) {
-  form_state_values_clean($form_state);
-  extract($form_state['values']);
-  $item = new TermManagerProgressItem($file_id);
-  $item->setFinalQueueId($queue_id);
-  $item->delete();
-  $item->deleteFromDb($queue_id);
+function dennis_term_manager_delete_confirm_form_submit($form, &$form_state) {
+  // Check if the Delete button was clicked.
+  if ($form_state['values']['confirm'] !== 1) {
+    return;
+  }
+
+  $file_id = check_plain($form_state['values']['file_id']);
+
+  $progress = variable_get('dennis_term_manager_in_progress', array());
+  if (!isset($progress[$file_id])) {
+    return;
+  }
+  $item = $progress[$file_id];
+  $from = $item['offset_queue_id'];
+  $to = $item['final_queue_id'];
+
+  // Clear queue.
+  db_delete('queue')
+    ->condition('name', 'dennis_term_manager_queue')
+    ->condition('item_id', array($from, $to), 'BETWEEN')
+    ->execute();
+
+  // Update progress status.
+  unset($progress[$file_id]);
+  variable_set('dennis_term_manager_in_progress', $progress);
+
   drupal_set_message('The queue has been deleted');
   drupal_goto('admin/structure/taxonomy/term_manager');
 }
