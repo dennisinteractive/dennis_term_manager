@@ -74,6 +74,7 @@ function dennis_term_manager_delete_form_submit($form, &$form_state) {
   $item = new TermManagerProgressItem($file_id);
   $item->setFinalQueueId($queue_id);
   $item->delete();
+  $item->deleteFromDb($queue_id);
   drupal_set_message('The queue has been deleted');
   drupal_goto('admin/structure/taxonomy/term_manager');
 }

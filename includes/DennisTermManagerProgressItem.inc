@@ -61,6 +61,19 @@ class TermManagerProgressItem {
   }
 
   /**
+   * Delete queue from database.
+   * @param $qid
+   */
+  public function deleteFromDb($qid) {
+    $deleted = db_delete('queue')
+      ->condition('item_id', $qid)
+      ->execute();
+    if (!$deleted) {
+      throw new \Exception(t('There was an error deleting from database'));
+    }
+  }
+
+  /**
    * Save current progress data.
    */
   public function save() {
