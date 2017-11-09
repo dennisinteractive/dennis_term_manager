@@ -65,11 +65,17 @@ class TermManagerProgressItem {
    * @param $qid
    */
   public function deleteFromDb($qid) {
-    $deleted = db_delete('queue')
-      ->condition('item_id', $qid)
-      ->execute();
-    if (!$deleted) {
-      throw new \Exception(t('There was an error deleting from database'));
+    $query = db_select('queue', 'queue');
+    $query->fields('queue', array('item_id'));
+    $query->condition('item_id', $qid);
+    $result = $query->execute();
+    if ($result->rowCount() > 0) {
+      $deleted = db_delete('queue')
+        ->condition('item_id', $qid)
+        ->execute();
+      if (!$deleted) {
+        throw new \Exception(t('There was an error deleting from database'));
+      }
     }
   }
 
