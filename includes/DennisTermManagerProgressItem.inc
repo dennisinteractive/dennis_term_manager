@@ -67,6 +67,7 @@ class TermManagerProgressItem {
   public function deleteFromDb($qid) {
     $query = db_select('queue', 'queue');
     $query->fields('queue', array('item_id'));
+    $query->condition('name', 'dennis_term_manager_queue');
     $query->condition('item_id', $qid);
     $result = $query->execute();
     if ($result->rowCount() > 0) {
