@@ -1203,7 +1203,7 @@ function _dennis_term_manager_process_action_complete($data) {
   // Remove from in progress.
   try {
     $progress_item = new TermManagerProgressItem($data['fid']);
-    $progress_item->delete();
+    $progress_item->deleteProgressData();
     // Update report.
     _dennis_term_manager_write_report($data['report_fid'], t('Completed'));
   } catch (Exception $e) {

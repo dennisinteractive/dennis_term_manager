@@ -74,25 +74,9 @@ function dennis_term_manager_delete_confirm_form_submit($form, &$form_state) {
   }
 
   $file_id = check_plain($form_state['values']['file_id']);
+  $progress = new TermManagerProgressItem($file_id);
+  $progress->deleteQueuedItems();
+  $progress->deleteProgressData();
 
-  $progress = variable_get('dennis_term_manager_in_progress', array());
-  if (!isset($progress[$file_id])) {
-    return;
-  }
-  $item = $progress[$file_id];
-  $from = $item['offset_queue_id'];
-  $to = $item['final_queue_id'];
-
-  // Clear queue.
-  db_delete('queue')
-    ->condition('name', 'dennis_term_manager_queue')
-    ->condition('item_id', array($from, $to), 'BETWEEN')
-    ->execute();
-
-  // Update progress status.
-  unset($progress[$file_id]);
-  variable_set('dennis_term_manager_in_progress', $progress);
-
-  drupal_set_message('The queue has been deleted');
   drupal_goto('admin/structure/taxonomy/term_manager');
 }

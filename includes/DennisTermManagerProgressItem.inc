@@ -45,9 +45,29 @@ class TermManagerProgressItem {
   }
 
   /**
+   * Delete all queued items for the current file being processed.
+   */
+  public function deleteQueuedItems() {
+    $progress = variable_get('dennis_term_manager_in_progress', array());
+    if (!isset($progress[$this->fid])) {
+      return;
+    }
+    $item = $progress[$this->fid];
+    $from = $item['offset_queue_id'];
+    $to = $item['final_queue_id'];
+
+    // Clear queue.
+    db_delete('queue')
+      ->condition('name', 'dennis_term_manager_queue')
+      ->condition('item_id', array($from, $to), 'BETWEEN')
+      ->execute();
+    drupal_set_message('The queue has been deleted.');
+  }
+
+  /**
    * Delete current progress data.
    */
-  public function delete() {
+  public function deleteProgressData() {
     $in_progress = variable_get('dennis_term_manager_in_progress', array());
     if (isset($in_progress[$this->fid])) {
       unset($in_progress[$this->fid]);
