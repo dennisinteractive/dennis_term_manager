@@ -65,6 +65,13 @@ class TermManagerProgressItem {
   }
 
   /**
+   * @deprecated
+   */
+  public function delete() {
+    $this->deleteProgressData();
+  }
+
+  /**
    * Delete current progress data.
    */
   public function deleteProgressData() {
