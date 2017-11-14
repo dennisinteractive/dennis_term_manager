@@ -139,7 +139,7 @@ class TermManagerProgressItem {
     );
 
     if ($item = $query->fetchObject()) {
-      return $item->item_id + 1;
+      return $item->item_id;
     }
 
     return 0;
