@@ -45,9 +45,36 @@ class TermManagerProgressItem {
   }
 
   /**
-   * Delete current progress data.
+   * Delete all queued items for the current file being processed.
+   */
+  public function deleteQueuedItems() {
+    $progress = variable_get('dennis_term_manager_in_progress', array());
+    if (!isset($progress[$this->fid])) {
+      return;
+    }
+    $item = $progress[$this->fid];
+    $from = $item['offset_queue_id'];
+    $to = $item['final_queue_id'];
+
+    // Clear queue.
+    db_delete('queue')
+      ->condition('name', 'dennis_term_manager_queue')
+      ->condition('item_id', array($from, $to), 'BETWEEN')
+      ->execute();
+    drupal_set_message('The queue has been deleted.');
+  }
+
+  /**
+   * @deprecated
    */
   public function delete() {
+    $this->deleteProgressData();
+  }
+
+  /**
+   * Delete current progress data.
+   */
+  public function deleteProgressData() {
     $in_progress = variable_get('dennis_term_manager_in_progress', array());
     if (isset($in_progress[$this->fid])) {
       unset($in_progress[$this->fid]);
@@ -162,8 +189,9 @@ class TermManagerProgressItem {
         $report_link = l('View report', file_create_url($report_file->uri)) . ' &raquo;';
       }
     }
-    $message = t('There is currently an active process with !item_count items left to process. !report_link', array(
+    $message = t('There is currently an active process with !item_count items left to process. !report_link !delete_queue', array(
       '!report_link' => $report_link,
+      '!delete_queue' => l('Delete queue', 'admin/structure/taxonomy/term_manager/' . $this->fid . '/delete') . ' &raquo;',
       '!item_count' => $this->getQueueCount(),
     ));
     drupal_set_message($message, 'status');
