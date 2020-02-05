@@ -1,0 +1,10 @@
+{
+  "name": "dennisdigital/dennis_term_manager",
+  "description": "Term manager",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/views_data_export": "^1.0@beta"
+  }
+}
