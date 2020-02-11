@@ -708,32 +708,8 @@ display:
           description: ''
           columns:
             vid: vid
-            name: name
-            tid: tid
-            view_taxonomy_term: view_taxonomy_term
           info:
             vid:
-              sortable: false
-              default_sort_order: asc
-              align: ''
-              separator: ''
-              empty_column: false
-              responsive: ''
-            name:
-              sortable: false
-              default_sort_order: asc
-              align: ''
-              separator: ''
-              empty_column: false
-              responsive: ''
-            tid:
-              sortable: false
-              default_sort_order: asc
-              align: ''
-              separator: ''
-              empty_column: false
-              responsive: ''
-            view_taxonomy_term:
               sortable: false
               default_sort_order: asc
               align: ''
@@ -751,6 +727,8 @@ display:
         filter_groups: false
         relationships: false
         sorts: false
+        query: false
+        group_by: false
       row:
         type: fields
         options:
@@ -811,8 +789,9 @@ display:
           type: entity_reference_label
           settings:
             link: false
-          group_column: target_id
-          group_columns: {  }
+          group_column: entity_id
+          group_columns:
+            target_id: target_id
           group_rows: true
           delta_limit: 0
           delta_offset: 0
@@ -821,6 +800,13 @@ display:
           multi_type: separator
           separator: ', '
           field_api_classes: false
+          set_precision: false
+          precision: 0
+          decimal: .
+          format_plural: false
+          format_plural_string: !!binary MQNAY291bnQ=
+          prefix: ''
+          suffix: ''
           entity_type: taxonomy_term
           entity_field: vid
           plugin_id: field
@@ -872,6 +858,15 @@ display:
           1: AND
       relationships: {  }
       sorts: {  }
+      query:
+        type: views_query
+        options:
+          disable_sql_rewrite: false
+          distinct: false
+          replica: false
+          query_comment: ''
+          query_tags: {  }
+      group_by: true
     cache_metadata:
       max-age: -1
       contexts:
