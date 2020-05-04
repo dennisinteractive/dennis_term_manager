@@ -1,0 +1,7 @@
+dennis_term_manager:
+  path: '/admin/structure/taxonomy/term_manager'
+  defaults:
+    _form: 'Drupal\dennis_term_manager\Form\TermManager'
+    _title: 'Term Manager'
+  requirements:
+    _permission: 'access write api queues'
