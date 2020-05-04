@@ -4,11 +4,15 @@ namespace Drupal\dennis_term_manager\Form;
 
 use Drupal\Core\State\State;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\File\FileSystem;
 use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\dennis_term_manager\TermsNodeManager;
+use Drupal\dennis_term_manager\TermManagerDryRun;
+use Drupal\dennis_term_manager\TermManagerService;
+use Drupal\dennis_term_manager\TermManagerProgressList;
+use Drupal\dennis_term_manager\TermManagerProgressItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use \Drupal\dennis_term_manager\TermManagerProgressList;
-
 
 
 /**
@@ -24,7 +28,28 @@ class TermManager extends FormBase {
   protected $state;
 
 
+  /**
+   * @var
+   */
   protected $queueData;
+
+  /**
+   * @var TermsNodeManager
+   */
+  protected $termsNodeManager;
+
+
+  /**
+   * @var TermManagerService
+   */
+  protected $termManagerService;
+
+
+  /**
+   * @var FileSystem
+   */
+  protected $fileSystem;
+
 
   /**
    * @var \Drupal\Core\Messenger\Messenger
@@ -36,15 +61,26 @@ class TermManager extends FormBase {
   public static $DENNIS_TERM_MANAGER_PUBLIC_FOLDER = 'public://term_manager';
 
   /**
-   * PolarisContentApiForm constructor.
+   * TermManager constructor.
    *
+   * @param FileSystem $fileSystem
    * @param State $state
    * @param Messenger $messenger
+   * @param TermsNodeManager $termsNodeManager
+   * @param TermManagerService $termManagerService
    */
-  public function __construct(State $state,
-                              Messenger $messenger) {
-    $this->messenger = $messenger;
+  public function __construct(FileSystem $fileSystem,
+                              State $state,
+                              Messenger $messenger,
+                              TermsNodeManager $termsNodeManager,
+                              TermManagerService $termManagerService) {
+
+    $this->fileSystem = $fileSystem;
     $this->state = $state;
+    $this->messenger = $messenger;
+    $this->termsNodeManager = $termsNodeManager;
+    $this->termManagerService = $termManagerService;
+
   }
 
   /**
@@ -53,8 +89,11 @@ class TermManager extends FormBase {
   public static function create(ContainerInterface $container) {
     // Instantiates this form class.
     return new static(
+      $container->get('file_system'),
       $container->get('state'),
-      $container->get('messenger')
+      $container->get('messenger'),
+      $container->get('dennis_term_manager.node_manager'),
+      $container->get('dennis_term_manager.service')
     );
   }
 
@@ -154,11 +193,6 @@ class TermManager extends FormBase {
   }
 
 
-
-
-
-
-
   /**
    * Helper to retrieve the files folder.
    */
@@ -185,7 +219,7 @@ class TermManager extends FormBase {
     if (!is_dir($location) && !$file_system->mkdir($location, NULL, TRUE)) {
       \Drupal::logger('file system')->warning('The directory %directory does not exist and could not be created.', ['%directory' => $location]);
     }
-    if (is_dir($location) && !is_writable($location) && !\Drupal\Core\File\FileSystem::chmod($location)) {
+    if (is_dir($location) && !is_writable($location) && !$this->fileSystem->chmod($location)) {
       // If the directory is not writable and cannot be made so.
       \Drupal::logger('file system')->warning('The directory %directory exists but is not writable and could not be made writable.', ['%directory' => $location]);
     }
@@ -206,8 +240,8 @@ class TermManager extends FormBase {
    *
    * @param $file
    *    The file object to be saved.
-   * @return $file
-   *    The file object.
+   * @return mixed
+   * @throws \Exception
    */
   protected function dennis_term_manager_file_save($file) {
     if (is_object($file)) {
@@ -215,8 +249,6 @@ class TermManager extends FormBase {
       // Make file permanent.
       $file->status = FILE_STATUS_PERMANENT;
       $file->save();
-     // file_save($file);
-
       // Add file usage.
       $file_usage = \Drupal::service('file.usage');
       $file_usage->add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
@@ -233,9 +265,15 @@ class TermManager extends FormBase {
   }
 
 
-
   /**
    * Prepare a batch definition that will process the file rows.
+   *
+   * @param $file
+   * @return array
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Exception
    */
   protected function dennis_term_manager_batch_init($file) {
     // Dry Run to validate and get operation list.
@@ -246,7 +284,7 @@ class TermManager extends FormBase {
 
     // Prevent batch if there are no operation items.
     if (count($operationList) == 0) {
-      drupal_set_message(t('There were no valid operations'));
+      $this->messenger()->addError('There were no valid operations');
       return;
     }
 
@@ -257,12 +295,13 @@ class TermManager extends FormBase {
 
     // Create file for reporting error.
     // - Use the same file name and change extenstion.
-    $date = date('Y-m-d_H-i-s', REQUEST_TIME);
+    $date = date('Y-m-d_H-i-s', \Drupal::time()->getRequestTime());
 
     $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $file->uri);
-    if (!$report_file = _dennis_term_manager_open_report($report_file_name)) {
+    if (!$report_file = $this->termManagerService->dennis_term_manager_open_report($report_file_name)) {
       return;
     }
+
 
     // Add file in progress.
     $progress_item = new TermManagerProgressItem($file->fid);
@@ -271,9 +310,10 @@ class TermManager extends FormBase {
     $progress_item->save();
 
     // Get a list of nodes that are not published but are scheduled to be published.
-    $unpublished_sheduled_nodes = _dennis_term_manager_get_scheduled_nodes();
+
+    $unpublished_sheduled_nodes = $this->termsNodeManager->getScheduledNodes();
     // Get list of tids vs nodes. This is used to queue nodes that have any of the tids used by actions.
-    $extra_nodes = _dennis_term_manager_list_node_tids($unpublished_sheduled_nodes);
+    $extra_nodes = $this->termsNodeManager->listNodeTids($unpublished_sheduled_nodes);
 
     // Add each operation to the batch.
     $operations = array();
@@ -303,16 +343,13 @@ class TermManager extends FormBase {
       ),
     );
 
-    $batch = array(
+    return [
       'operations' => $operations,
       //'finished' => 'batch_dennis_term_manager_finished',
       'title' => t('Processing operations'),
       'init_message' => t('Process is starting.'),
       'progress_message' => t('Processed @current out of @total steps.'),
       'error_message' => t('Batch has encountered an error.'),
-    );
-
-    return $batch;
+    ];
   }
-
 }

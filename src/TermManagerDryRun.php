@@ -4,18 +4,26 @@ namespace Drupal\dennis_term_manager;
 
 
 use Drupal\Core\Database\Database;
-
-use Drupal\Core\File\FileSystemInterface;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
  * @file TermManagerDryRun
  */
 class TermManagerDryRun {
+
+
+  /**
+   * @var \Drupal\dennis_term_manager\TermManagerService
+   */
+  protected $termServiceManager;
+
+
   /**
    * Term tree.
    * @var array
    */
-  protected $termTree = array();
+  protected $termTree = [];
 
   /**
    * List of operations.
@@ -34,9 +42,10 @@ class TermManagerDryRun {
   /**
    * Initialise dry run.
    */
-  public function __construct(){
+  public function __construct() {
     $this->buildTermTree();
     $this->operationList = new TermManagerOperationList();
+    $this->termServiceManager = \Drupal::service('dennis_term_manager.service');
   }
 
   /**
@@ -570,7 +579,7 @@ class TermManagerDryRun {
     $file_name = preg_replace("/[.](.*)/", "-" . $date . "-dry_run.$1", $file_path);
 
     // Create managed file and open for writing.
-    if (!$file = $this->dennis_term_manager_open_report($file_name)) {
+    if (!$file = $this->termServiceManager->dennis_term_manager_open_report($file_name)) {
       return;
     }
 
@@ -893,7 +902,6 @@ class TermManagerDryRun {
         $allowed_fields[] = $field_info['field_name'];
       }
     }
-
     return $allowed_fields;
   }
 
@@ -910,14 +918,13 @@ class TermManagerDryRun {
     if ($allowed_vocabularies !== FALSE) {
       return $allowed_vocabularies;
     }
-
     // Build arry of allowed vocabularies.
     $allowed_vocabularies = [];
-    if ($field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName('taxonomy_term', $field_name)) {
+    if ($field_info = FieldStorageConfig::loadByName('taxonomy_term', $field_name)) {
       if (isset($field_info['settings']['allowed_values']) && is_array($field_info['settings']['allowed_values'])) {
         foreach ($field_info['settings']['allowed_values'] as $allowed_value) {
           if (isset($allowed_value['vocabulary'])) {
-            if ($vocabulary = \Drupal\taxonomy\Entity\Vocabulary::load($allowed_value['vocabulary'])) {
+            if ($vocabulary = Vocabulary::load($allowed_value['vocabulary'])) {
               $allowed_vocabularies[$vocabulary->id()] = $allowed_value['vocabulary'];
             }
           }
@@ -926,30 +933,6 @@ class TermManagerDryRun {
     }
     return $allowed_vocabularies;
   }
-
-  /**
-   * Opens a new report and return fid.
-   *
-   * @param $file_path
-   * @return bool|\Drupal\file\FileInterface|false
-   */
-  protected function dennis_term_manager_open_report($file_path) {
-    // Create new managed file.
-    if ($file = file_save_data('', $file_path, FileSystemInterface::EXISTS_RENAME)) {
-      // Add file usage.
-      $file_usage = \Drupal::service('file.usage');
-      $file_usage->add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
-
-
-      return $file;
-    }
-    else {
-      \Drupal::messenger()->addError('Could not open %file', ['%file' => $file_path]);
-      return FALSE;
-    }
-  }
-
-
 }
 
 
