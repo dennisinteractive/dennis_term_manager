@@ -1,13 +1,17 @@
 <?php
 
 
-namespace Drupal\dennis_term_manager;
+namespace Drupal\dennis_term_manager\Progress;
 
 
 /**
  * TermManagerProgressList
  */
 class TermManagerProgressList implements \Iterator, \Countable {
+
+
+  protected $termManagerProgressItem;
+
   /**
    * Iterator position.
    * @var integer
@@ -18,16 +22,19 @@ class TermManagerProgressList implements \Iterator, \Countable {
    * List of ProgressItem.
    * @var array
    */
-  protected $progressList = array();
+  protected $progressList = [];
 
   /**
    * Initialise current processes.
    *
    * TermManagerProgressList constructor.
    *
-   * @throws \Exception
+   * @param TermManagerProgressItem $termManagerProgressItem
    */
-  public function __construct() {
+  public function __construct(TermManagerProgressItem $termManagerProgressItem) {
+
+    $this->termManagerProgressItem = $termManagerProgressItem;
+
     $this->position = 0;
 
 
@@ -47,7 +54,9 @@ class TermManagerProgressList implements \Iterator, \Countable {
 
     foreach (array_keys($in_progress) as $fid) {
       try {
-        $progress_item = new TermManagerProgressItem($fid);
+
+
+        $progress_item = $this->termManagerProgressItem->init($fid);
         $this->progressList[] = $progress_item;
       }
       catch (\Exception $e) {

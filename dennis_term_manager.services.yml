@@ -3,10 +3,42 @@ services:
     class: Drupal\dennis_term_manager\TermManagerService
     arguments:
       - '@file.usage'
+      - '@file_system'
       - '@messenger'
   dennis_term_manager.node_manager:
     class: Drupal\dennis_term_manager\TermsNodeManager
+    arguments:
       - '@database'
       - '@entity_type.manager'
       - '@entity_field.manager'
       - '@module_handler'
+  dennis_term_manager.dry_run:
+    class: Drupal\dennis_term_manager\DryRun\TermManagerDryRun
+    arguments:
+      - '@messenger'
+      - '@dennis_term_manager.tree'
+      - '@dennis_term_manager.service'
+      - '@dennis_term_manager.dry_run.process'
+  dennis_term_manager.dry_run.process:
+    class: Drupal\dennis_term_manager\DryRun\TermManagerDryRunProcess
+    arguments:
+    - '@dennis_term_manager.tree'
+  dennis_term_manager.progess_list:
+    class: Drupal\dennis_term_manager\Progress\TermManagerProgressList
+    arguments:
+      - '@dennis_term_manager.progress_item'
+  dennis_term_manager.progress_item:
+    class: Drupal\dennis_term_manager\Progress\TermManagerProgressItem
+    arguments:
+      - '@database'
+      - '@messenger'
+      - '@config.factory'
+  dennis_term_manager.tree:
+    class: Drupal\dennis_term_manager\TermManagerTree
+    arguments:
+      - '@database'
+
+
+
+
+

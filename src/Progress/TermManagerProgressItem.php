@@ -1,15 +1,36 @@
 <?php
 
-namespace Drupal\dennis_term_manager;
+namespace Drupal\dennis_term_manager\Progress;
 
 use Drupal\Core\Link;
 use Drupal\Core\Url;
-use Drupal\Core\Database\Database;
+use Drupal\file\Entity\File;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Messenger\Messenger;
+use Drupal\Core\Config\ConfigFactoryInterface;
 
 /**
  * TermManagerProgressItem
  */
 class TermManagerProgressItem {
+
+  /**
+   * @var Connection
+   */
+  protected $connection;
+
+  /**
+   * @var \Drupal\Core\Messenger\Messenger
+   */
+  protected $messenger;
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
 
   /**
    * Fid of file being processed.
@@ -21,20 +42,31 @@ class TermManagerProgressItem {
    * Stores item data.
    * @var array
    */
-  protected $data = array();
+  protected $data = [];
 
   /**
-   * Initialise progress item.
-   *
    * TermManagerProgressItem constructor.
    *
-   * @param int $fid
-   * @throws \Exception
+   * @param Connection $connection
+   * @param Messenger $messenger
+   * @param ConfigFactoryInterface $configFactory
    */
-  public function __construct($fid) {
+  public function __construct(Connection $connection,
+                              Messenger $messenger,
+                              ConfigFactoryInterface $configFactory) {
+    $this->connection = $connection;
+    $this->messenger = $messenger;
+    $this->configFactory = $configFactory;
+  }
+
+
+  /**
+   * @param $fid
+   */
+  public function init($fid) {
     // Load data.
     if (empty($fid)) {
-      throw new \Exception('File ID must be provided');
+      throw new \InvalidArgumentException('File ID must be provided');
     }
     // Set the fid and store in data.
     $this->fid = $fid;
@@ -43,13 +75,10 @@ class TermManagerProgressItem {
 
   /**
    * Load current progress data.
+   *
    */
   public function load() {
-    //TODO - fix the variable thingy
-  //  $in_progress = variable_get('dennis_term_manager_in_progress', array());
-
-    $config = \Drupal::config('dennis_term_manager');
-    $in_progress = $config->get('in_progress');
+    $in_progress = $this->configFactory->get('dennis_term_manager')->get('in_progress', []);
     if (!empty($in_progress[$this->fid]) && is_array($in_progress[$this->fid])) {
       foreach ($in_progress[$this->fid] as $key => $value) {
         // Load progress data from database.
@@ -62,31 +91,19 @@ class TermManagerProgressItem {
    * Delete all queued items for the current file being processed.
    */
   public function deleteQueuedItems() {
-    //TODO - fix the variable thingy
-   // $progress = variable_get('dennis_term_manager_in_progress', array());
-    $progress = [];
-
+    $progress = $this->configFactory->get('dennis_term_manager')->get('in_progress', []);
     if (!isset($progress[$this->fid])) {
       return;
     }
     $item = $progress[$this->fid];
     $from = $item['offset_queue_id'];
     $to = $item['final_queue_id'];
-/*
-    // Clear queue.
-    db_delete('queue')
-      ->condition('name', 'dennis_term_manager_queue')
-      ->condition('item_id', array($from, $to), 'BETWEEN')
-      ->execute();
- //   drupal_set_message('The queue has been deleted.');
-*/
-    $connection = Database::getConnection();
 
-    $connection->delete('queue')
+    $this->connection->delete('queue')
       ->condition('name', 'dennis_term_manager_queue')
       ->condition('item_id', [$from, $to], 'BETWEEN')
       ->execute();
-    \Drupal::messenger()->addMessage('The queue has been deleted.');
+    $this->messenger->addMessage('The queue has been deleted.');
   }
 
   /**
@@ -102,21 +119,13 @@ class TermManagerProgressItem {
    * Delete current progress data.
    */
   public function deleteProgressData() {
-
-    $config = \Drupal::config('dennis_term_manager');
-    $in_progress = $config->get('in_progress');
-
-
+    $in_progress = $this->configFactory->get('dennis_term_manager')->get('in_progress', []);
     if (isset($in_progress[$this->fid])) {
       unset($in_progress[$this->fid]);
-     // variable_set('dennis_term_manager_in_progress', $in_progress);
-
-      $config->set('in_progress', $in_progress);
+      $this->configFactory->get('dennis_term_manager')->set('in_progress', $in_progress);
     }
     else {
-      throw new \Exception(t('File !fid does not exist', array(
-        '!fid' => $this->fid,
-      )));
+      throw new \InvalidArgumentException(t('File !fid does not exist', ['!fid' => $this->fid]));
     }
   }
 
@@ -124,17 +133,12 @@ class TermManagerProgressItem {
    * Save current progress data.
    */
   public function save() {
-   // $in_progress = variable_get('dennis_term_manager_in_progress', array());
-
-    $config = \Drupal::config('dennis_term_manager');
-    $in_progress = $config->get('in_progress');
-
+    $in_progress = $this->configFactory->get('dennis_term_manager')->get('in_progress', []);
     $in_progress[$this->fid]['fid'] = $this->fid;
     foreach ($this->data as $key => $value) {
       $in_progress[$this->fid][$key] = $value;
     }
-  //  variable_set('dennis_term_manager_in_progress', $in_progress);
-    $config->set('in_progress', $in_progress);
+    $this->configFactory->get('dennis_term_manager')->set('in_progress', $in_progress);
   }
 
   /**
@@ -167,20 +171,7 @@ class TermManagerProgressItem {
    */
   public function getLastQueueId() {
 
-    /*
-    $query = db_query_range('SELECT item_id
-      FROM {queue} q
-      WHERE
-        expire = 0 AND
-        name = :name
-      ORDER BY created DESC',
-      0, 1,
-      array(':name' => 'dennis_term_manager_queue')
-    );
-*/
-    $connection = Database::getConnection();
-
-    $query = $connection->queryRange('SELECT item_id
+    $query = $this->connection->queryRange('SELECT item_id
       FROM {queue} q
       WHERE
         expire = 0 AND
@@ -206,26 +197,8 @@ class TermManagerProgressItem {
       return 0;
     }
 
-    /**
-    $query = db_query('SELECT COUNT(item_id) AS item_count
-      FROM {queue} q
-      WHERE
-        expire = 0 AND
-        name = :name AND
-        item_id > :offset AND
-        item_id <= :final',
-      array(
-        ':name' => 'dennis_term_manager_queue',
-        ':offset' => $offset,
-        ':final' => $final,
-      )
-    );
-
-*/
-
-    $connection = Database::getConnection();
     // Set the first entry to have the admin as author.
-    $query = $connection->query('SELECT COUNT(item_id) AS item_count
+    $query = $this->connection->query('SELECT COUNT(item_id) AS item_count
       FROM {queue} q
       WHERE
         expire = 0 AND
@@ -250,9 +223,7 @@ class TermManagerProgressItem {
   public function displayStatus() {
     $report_link = '';
     if ($report_fid = $this->getData('report_fid')) {
-    //  $report_file = file_load($report_fid);
-
-      $report_file = \Drupal\file\Entity\File::load($report_fid);
+      $report_file = File::load($report_fid);
       if (isset($report_file->uri)) {
      //   $report_link = l('View report', file_create_url($report_file->uri)) . ' &raquo;';
 
@@ -266,13 +237,14 @@ class TermManagerProgressItem {
     ]);
   //  drupal_set_message($message, 'status');
 
-    \Drupal::messenger()->addStatus($message);
+    $this->messenger->addStatus($message);
   }
 
   /**
    * Get data by key.
    *
    * @param $key
+   * @return mixed
    */
   protected function getData($key) {
     if (isset($this->data[$key])) {

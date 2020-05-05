@@ -1,11 +1,17 @@
 <?php
 
-namespace Drupal\dennis_term_manager;
+namespace Drupal\dennis_term_manager\DryRun;
+
+
+use Drupal\dennis_term_manager\TermManagerItem;
 
 /**
- * @file TermManagerDryRunItem
+ * Class TermManagerDryRunItem
+ *
+ * @package Drupal\dennis_term_manager
  */
 class TermManagerDryRunItem extends TermManagerItem {
+
   /**
    * Keep track of this item's child tids.
    */

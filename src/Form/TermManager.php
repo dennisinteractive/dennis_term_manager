@@ -2,17 +2,19 @@
 
 namespace Drupal\dennis_term_manager\Form;
 
+use Drupal\file\Entity\File;
 use Drupal\Core\State\State;
 use Drupal\Core\Form\FormBase;
-use Drupal\Core\File\FileSystem;
 use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\dennis_term_manager\TermsNodeManager;
-use Drupal\dennis_term_manager\TermManagerDryRun;
+use Drupal\dennis_term_manager\DryRun\TermManagerDryRun;
 use Drupal\dennis_term_manager\TermManagerService;
-use Drupal\dennis_term_manager\TermManagerProgressList;
-use Drupal\dennis_term_manager\TermManagerProgressItem;
+use Drupal\dennis_term_manager\Progress\TermManagerProgressList;
+use Drupal\dennis_term_manager\Progress\TermManagerProgressItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+
+
 
 
 /**
@@ -27,7 +29,6 @@ class TermManager extends FormBase {
    */
   protected $state;
 
-
   /**
    * @var
    */
@@ -38,48 +39,58 @@ class TermManager extends FormBase {
    */
   protected $termsNodeManager;
 
-
   /**
    * @var TermManagerService
    */
   protected $termManagerService;
 
+  /**
+   * @var TermManagerDryRun
+   */
+  protected $termManagerDryRun;
 
   /**
-   * @var FileSystem
+   * @var TermManagerProgressList
    */
-  protected $fileSystem;
+  protected $termManagerProgressList;
 
+  /**
+   * @var TermManagerProgressItem
+   */
+  protected $termManagerProgressItem;
 
   /**
    * @var \Drupal\Core\Messenger\Messenger
    */
   protected $messenger;
 
-  public static $DENNIS_TERM_MANAGER_PRIVATE_FOLDER = 'private://term_manager';
-
-  public static $DENNIS_TERM_MANAGER_PUBLIC_FOLDER = 'public://term_manager';
 
   /**
    * TermManager constructor.
    *
-   * @param FileSystem $fileSystem
    * @param State $state
    * @param Messenger $messenger
    * @param TermsNodeManager $termsNodeManager
    * @param TermManagerService $termManagerService
+   * @param TermManagerDryRun $termManagerDryRun
+   * @param TermManagerProgressList $termManagerProgressList
+   * @param TermManagerProgressItem $termManagerProgressItem
    */
-  public function __construct(FileSystem $fileSystem,
-                              State $state,
+  public function __construct(State $state,
                               Messenger $messenger,
                               TermsNodeManager $termsNodeManager,
-                              TermManagerService $termManagerService) {
+                              TermManagerService $termManagerService,
+                              TermManagerDryRun $termManagerDryRun,
+                              TermManagerProgressList $termManagerProgressList,
+                              TermManagerProgressItem $termManagerProgressItem) {
 
-    $this->fileSystem = $fileSystem;
     $this->state = $state;
     $this->messenger = $messenger;
     $this->termsNodeManager = $termsNodeManager;
     $this->termManagerService = $termManagerService;
+    $this->termManagerDryRun = $termManagerDryRun;
+    $this->termManagerProgressList = $termManagerProgressList;
+    $this->termManagerProgressItem = $termManagerProgressItem;
 
   }
 
@@ -89,11 +100,13 @@ class TermManager extends FormBase {
   public static function create(ContainerInterface $container) {
     // Instantiates this form class.
     return new static(
-      $container->get('file_system'),
       $container->get('state'),
       $container->get('messenger'),
       $container->get('dennis_term_manager.node_manager'),
-      $container->get('dennis_term_manager.service')
+      $container->get('dennis_term_manager.service'),
+      $container->get('dennis_term_manager.dry_run'),
+      $container->get('dennis_term_manager.progess_list'),
+      $container->get('dennis_term_manager.progress_item')
     );
   }
 
@@ -133,16 +146,16 @@ class TermManager extends FormBase {
    * @throws \Exception
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-
     $form = [];
-
     // Display current process.
-    $progress = new TermManagerProgressList();
+    /** @var \Drupal\dennis_term_manager\Progress\TermManagerProgressList $progress */
+    $progress = $this->termManagerProgressList;
+
     foreach ($progress as $progress_item) {
       $progress_item->displayStatus();
     }
 
-    $location = $this->dennis_term_manager_get_files_folder();
+    $location = $this->termManagerService->dennis_term_manager_get_files_folder();
 
     $form['csv_file'] = [
       '#title' => t('Import'),
@@ -178,7 +191,7 @@ class TermManager extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // Load the file.
-    $file = \Drupal\file\Entity\File::load($form_state->getValue('csv_file'));
+    $file = File::load($form_state->getValue('csv_file'));
     if (!$file) {
       $this->messenger->addError('Please upload the CSV/TSV file first.');
     }
@@ -193,46 +206,6 @@ class TermManager extends FormBase {
   }
 
 
-  /**
-   * Helper to retrieve the files folder.
-   */
-  protected function dennis_term_manager_get_files_folder() {
-    // Store CSV/TSV files and reports in private file location if available.
-    if (\Drupal::config('file_private_path')) {
-      $location = self::$DENNIS_TERM_MANAGER_PRIVATE_FOLDER;
-    }
-    else {
-      $location = self::$DENNIS_TERM_MANAGER_PUBLIC_FOLDER;
-      // Warn user that files will be publicly accessible.
-      $config_link = l(
-        'Please configure the private file system path to store report privately',
-        'admin/config/media/file-system'
-      );
-      $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
-
-      $this->messenger->addWarning($warning_message);
-    }
-
-
-    $file_system = \Drupal::service('file_system');
-    // Test if folder exists and try to create it if necessary.
-    if (!is_dir($location) && !$file_system->mkdir($location, NULL, TRUE)) {
-      \Drupal::logger('file system')->warning('The directory %directory does not exist and could not be created.', ['%directory' => $location]);
-    }
-    if (is_dir($location) && !is_writable($location) && !$this->fileSystem->chmod($location)) {
-      // If the directory is not writable and cannot be made so.
-      \Drupal::logger('file system')->warning('The directory %directory exists but is not writable and could not be made writable.', ['%directory' => $location]);
-    }
-    elseif (is_dir($location)) {
-      // Create private .htaccess file.
-      \Drupal\Component\FileSecurity\FileSecurity::writeHtaccess($location);
-      return $location;
-    }
-
-    throw new \Exception(t('Error trying to copy files to !name folder. Make sure the folder exists and you have writting permission.', array(
-      '!name' => $location,
-    )));
-  }
 
 
   /**
@@ -277,10 +250,9 @@ class TermManager extends FormBase {
    */
   protected function dennis_term_manager_batch_init($file) {
     // Dry Run to validate and get operation list.
-    $dryRun = new TermManagerDryRun();
-    $dryRun->execute($file->uri);
+    $this->termManagerDryRun->execute($file->uri);
 
-    $operationList = $dryRun->getOperationList();
+    $operationList = $this->termManagerDryRun->getOperationList();
 
     // Prevent batch if there are no operation items.
     if (count($operationList) == 0) {
@@ -302,46 +274,44 @@ class TermManager extends FormBase {
       return;
     }
 
-
     // Add file in progress.
-    $progress_item = new TermManagerProgressItem($file->fid);
+    /** @var \Drupal\dennis_term_manager\TermManagerProgressItem $progress_item */
+    $progress_item = $this->termManagerProgressItem;
+    $progress_item->init($file->fid);
     $progress_item->setReportFid($report_file->fid);
     $progress_item->setOffsetQueueId();
     $progress_item->save();
-
     // Get a list of nodes that are not published but are scheduled to be published.
-
     $unpublished_sheduled_nodes = $this->termsNodeManager->getScheduledNodes();
     // Get list of tids vs nodes. This is used to queue nodes that have any of the tids used by actions.
     $extra_nodes = $this->termsNodeManager->listNodeTids($unpublished_sheduled_nodes);
-
     // Add each operation to the batch.
-    $operations = array();
+    $operations = [];
     foreach ($operationList as $i => $operationItem) {
 
-      $options = array(
+      $options = [
         'operation_item' => $operationItem,
         'report_fid' => $report_file->fid,
         'row' => $i,
         'extra_nodes' => $extra_nodes,
-      );
+      ];
 
-      $operations[] = array(
+      $operations[] = [
         'dennis_term_manager_queue_operation',
-        array($options),
-      );
+        [$options],
+      ];
     }
 
     // Set final queue operation.
-    $operations[] = array(
+    $operations[] = [
       'dennis_term_manager_queue_operation_complete',
-      array(
-        array(
+      [
+        [
           'fid' => $file->fid,
           'report_fid' => $report_file->fid,
-        )
-      ),
-    );
+        ]
+      ],
+    ];
 
     return [
       'operations' => $operations,
