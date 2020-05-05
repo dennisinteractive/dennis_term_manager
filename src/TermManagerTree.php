@@ -3,9 +3,9 @@
 
 namespace Drupal\dennis_term_manager;
 
-
 use Drupal\Core\Database\Connection;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\dennis_term_manager\DryRun\TermManagerDryRunItem;
 
@@ -20,6 +20,8 @@ class TermManagerTree {
    * @var Connection
    */
   protected $connection;
+
+  protected $entityTypeManager;
 
   /**
    * Term tree.
@@ -38,9 +40,12 @@ class TermManagerTree {
    * TermManagerTree constructor.
    *
    * @param Connection $connection
+   * @param EntityTypeManager $entityTypeManager
    */
-  public function __construct(Connection $connection) {
+  public function __construct(Connection $connection,
+                              EntityTypeManager $entityTypeManager) {
     $this->connection = $connection;
+    $this->entityTypeManager = $entityTypeManager;
   }
 
   /**
@@ -138,7 +143,7 @@ class TermManagerTree {
    */
   public function buildTermTree() {
     // Get current taxonomy from DB.
-    $query = $this->dennis_term_manager_export_terms_query();
+    $query = $this->exportTermsQuery();
 
     // Get taxonomy child count.
     $query->leftJoin('taxonomy_term_hierarchy', 'c', 'c.parent = t.tid');
@@ -148,7 +153,7 @@ class TermManagerTree {
 
     // List of columns to include in tree items.
     $id_columns = ['vid', 'target_vid', 'parent_tid'];
-    $columns = array_merge($this->dennis_term_manager_default_columns(), $id_columns);
+    $columns = array_merge($this->defaultColumns(), $id_columns);
     while ($row = $result->fetchObject()) {
       // Add report data to corresponding column.
       $item = new TermManagerDryRunItem();
@@ -176,7 +181,7 @@ class TermManagerTree {
    *    Array of vocabulary names, used to limit the results.
    * @return \Drupal\Core\Database\Query\Select
    */
-  protected function dennis_term_manager_export_terms_query($vocabs = []) {
+  public function exportTermsQuery($vocabs = []) {
 
     $query = $this->connection->select('taxonomy_term_data', 't');
 
@@ -304,7 +309,7 @@ class TermManagerTree {
     // Build array of allowed fields for this vocabulary.
     $allowed_fields = [];
 
-    $taxonomy_fields =  \Drupal::entityTypeManager()
+    $taxonomy_fields =  $this->entityTypeManager
       ->getStorage('field_entity')
       ->loadByProperties(['type' => 'taxonomy_term_reference']);
 
@@ -346,5 +351,25 @@ class TermManagerTree {
     return $allowed_vocabularies;
   }
 
-
+  /**
+   * CSV/TSV files should always have these columns.
+   */
+  public function defaultColumns() {
+    return array(
+      'vocabulary_name',
+      'term_name',
+      'tid',
+      'path',
+      'node_count',
+      'term_child_count',
+      'parent_term_name',
+      'action',
+      'target_term_name',
+      'target_tid',
+      'target_vocabulary_name',
+      'target_field',
+      'new_name',
+      'redirect',
+    );
+  }
 }

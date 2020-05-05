@@ -10,7 +10,6 @@ use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\field\Entity\FieldStorageConfig;
 
 
-
 /**
  * Class TermsNodeManager
  *

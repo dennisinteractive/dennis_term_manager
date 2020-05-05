@@ -10,7 +10,9 @@ use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Config\ConfigFactoryInterface;
 
 /**
- * TermManagerProgressItem
+ * Class TermManagerProgressItem
+ *
+ * @package Drupal\dennis_term_manager\Progress
  */
 class TermManagerProgressItem {
 
@@ -30,7 +32,6 @@ class TermManagerProgressItem {
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
-
 
   /**
    * Fid of file being processed.
@@ -225,8 +226,6 @@ class TermManagerProgressItem {
     if ($report_fid = $this->getData('report_fid')) {
       $report_file = File::load($report_fid);
       if (isset($report_file->uri)) {
-     //   $report_link = l('View report', file_create_url($report_file->uri)) . ' &raquo;';
-
         $report_link = Link::fromTextAndUrl(t('View report'), Url::fromUri('internal:/' . $report_file->uri . ' &raquo;'))->toString();
       }
     }
@@ -235,8 +234,6 @@ class TermManagerProgressItem {
       '!delete_queue' =>  Link::fromTextAndUrl(t('Delete queue'), Url::fromUri('admin/structure/taxonomy/term_manager/' . $this->fid . '/delete'))->toString(),
       '!item_count' => $this->getQueueCount(),
     ]);
-  //  drupal_set_message($message, 'status');
-
     $this->messenger->addStatus($message);
   }
 

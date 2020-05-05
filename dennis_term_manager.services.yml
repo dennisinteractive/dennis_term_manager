@@ -4,7 +4,10 @@ services:
     arguments:
       - '@file.usage'
       - '@file_system'
+      - '@logger.factory'
       - '@messenger'
+      - '@datetime.time'
+      - '@dennis_term_manager.tree'
   dennis_term_manager.node_manager:
     class: Drupal\dennis_term_manager\TermsNodeManager
     arguments:
@@ -26,6 +29,8 @@ services:
   dennis_term_manager.progess_list:
     class: Drupal\dennis_term_manager\Progress\TermManagerProgressList
     arguments:
+      - '@config.factory'
+      - '@messenger'
       - '@dennis_term_manager.progress_item'
   dennis_term_manager.progress_item:
     class: Drupal\dennis_term_manager\Progress\TermManagerProgressItem
@@ -33,10 +38,20 @@ services:
       - '@database'
       - '@messenger'
       - '@config.factory'
+  dennis_term_manager.progress_batch:
+    class: Drupal\dennis_term_manager\Progress\TermManagerProgressBatch
+    arguments:
+      - '@messenger'
+      - '@datetime.time'
+      - '@dennis_term_manager.service'
+      - '@dennis_term_manager.dry_run'
+      - '@dennis_term_manager.progress_item'
+      - '@dennis_term_manager.node_manager'
   dennis_term_manager.tree:
     class: Drupal\dennis_term_manager\TermManagerTree
     arguments:
       - '@database'
+      - '@entity_type.manager'
 
 
 

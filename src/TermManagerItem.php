@@ -3,7 +3,9 @@
 namespace Drupal\dennis_term_manager;
 
 /**
- * TermManagerItem
+ * Class TermManagerItem
+ *
+ * @package Drupal\dennis_term_manager
  */
 class TermManagerItem {
   protected $data = [];
@@ -38,7 +40,7 @@ class TermManagerItem {
         if (!in_array($value, $allowed_actions)) {
           // Set the invalid action for error reporting.
           $this->data[$key] = $value;
-          throw new \Exception(t('!value is not a valid action', ['!value' => $value]));
+          throw new \InvalidArgumentException(t('!value is not a valid action', ['!value' => $value]));
         }
         break;
       case 'redirect':
@@ -59,7 +61,7 @@ class TermManagerItem {
 
         // Error if the redirect value is not valid.
         if (!in_array($value, $allowed_redirect_values)) {
-           throw new \Exception(t('!value is not a valid redirect value. The following values are allowed: !allowed', [
+           throw new \InvalidArgumentException(t('!value is not a valid redirect value. The following values are allowed: !allowed', [
             '!value' => $value,
             '!allowed' => '"' . implode('", "', $allowed_redirect_values) . '"',
            ]));
@@ -86,7 +88,7 @@ class TermManagerItem {
       case 'locked':
         break;
       default:
-        throw new \Exception(t('!key is not a valid TermManagerItem property', array('!key' => $key)));
+        throw new \InvalidArgumentException(t('!key is not a valid TermManagerItem property', ['!key' => $key]));
     }
     $this->data[$key] = $value;
   }

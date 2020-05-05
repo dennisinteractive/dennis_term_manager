@@ -4,17 +4,20 @@ namespace Drupal\dennis_term_manager\DryRun;
 
 
 use Drupal\dennis_term_manager\TermManagerTree;
-use Drupal\dennis_term_manager\TermManagerOperationList;
-use Drupal\dennis_term_manager\TermManagerOperationItem;
+use Drupal\dennis_term_manager\Operations\TermManagerOperationList;
+use Drupal\dennis_term_manager\Operations\TermManagerOperationItem;
 
-
+/**
+ * Class TermManagerDryRunProcess
+ *
+ * @package Drupal\dennis_term_manager\DryRun
+ */
 class TermManagerDryRunProcess {
 
   /**
    * @var \Drupal\dennis_term_manager\TermManagerTree
    */
   protected $termManagerTree;
-
 
   /**
    * List of operations.
