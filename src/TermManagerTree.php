@@ -5,7 +5,9 @@ namespace Drupal\dennis_term_manager;
 
 use Drupal\Core\Database\Connection;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Core\Entity\EntityTypeBundleInfo;
 use Drupal\Core\Entity\EntityTypeManager;
+use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\dennis_term_manager\DryRun\TermManagerDryRunItem;
 
@@ -21,7 +23,18 @@ class TermManagerTree {
    */
   protected $connection;
 
+  /**
+   * @var EntityTypeManager
+   */
   protected $entityTypeManager;
+
+  /**
+   * @var EntityFieldManager
+   */
+  protected $entityFieldManager;
+
+
+  protected $entityTypeBundleInfo;
 
   /**
    * Term tree.
@@ -35,17 +48,45 @@ class TermManagerTree {
   static $DENNIS_TERM_MANAGER_ACTION_RENAME = 'rename';
   static $DENNIS_TERM_MANAGER_ACTION_MOVE_PARENT = 'move parent';
 
-
   /**
    * TermManagerTree constructor.
    *
    * @param Connection $connection
    * @param EntityTypeManager $entityTypeManager
+   * @param EntityFieldManager $entityFieldManager
+   * @param EntityTypeBundleInfo $entityTypeBundleInfo
    */
   public function __construct(Connection $connection,
-                              EntityTypeManager $entityTypeManager) {
+                              EntityTypeManager $entityTypeManager,
+                              EntityFieldManager $entityFieldManager,
+                              EntityTypeBundleInfo $entityTypeBundleInfo) {
     $this->connection = $connection;
     $this->entityTypeManager = $entityTypeManager;
+    $this->entityFieldManager = $entityFieldManager;
+    $this->entityTypeBundleInfo = $entityTypeBundleInfo;
+  }
+
+  /**
+   * @param $field
+   * @return string
+   */
+  public function getTermVocabulary($field) {
+    $target_bundle = '';
+    $bundles = $this->entityTypeBundleInfo->getAllBundleInfo()['node'];
+    foreach ($bundles as $id => $value) {
+      $node_fields = $this->entityFieldManager->getFieldDefinitions('node', $id);
+      /** @var \Drupal\Core\Field\BaseFieldDefinition  $node_field */
+      foreach ($node_fields as $node_field) {
+        if ($field == $node_field->getName()) {
+          if ($node_field instanceof \Drupal\field\Entity\FieldConfig) {
+            if ($node_field->getType() == 'entity_reference') {
+              $target_bundle = $node_field->getSettings()['handler_settings']['target_bundles'];
+            }
+          }
+        }
+      }
+    }
+    return $target_bundle;
   }
 
   /**
@@ -54,38 +95,21 @@ class TermManagerTree {
    * @param $term_name
    * @param $vocabulary_name
    * @param string $tid
-   * @return mixed
+   * @return \Drupal\Core\Entity\EntityInterface|mixed
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function getOriginalTreeItem($term_name, $vocabulary_name, $tid = '') {
+  public function getTerm($term_name, $vocabulary_name, $tid ='') {
+    if (!empty($term_name) && !empty($vocabulary_name)) {
+      if ($terms = $this->entityTypeManager->getStorage('taxonomy_term')->loadByProperties(
+        [
+          'name' => $term_name,
+          'vid' => $vocabulary_name,
 
-    // Format keys.
-    $vocabulary_key = $this->formatKey($vocabulary_name);
-    $term_key = $this->formatKey($term_name);
-
-    // Return tree item if it exists.
-    if (isset($this->termTree[$vocabulary_key][$term_key])) {
-
-      // if specified tid doesn't exist throw exception
-      if (!empty($tid)) {
-        if (!isset($this->termTree[$vocabulary_key][$term_key][$tid])) {
-          throw new \InvalidArgumentException(t('!tid is not valid for !vocab > !name.', [
-            '!tid' => $tid,
-            '!name' => $term_name,
-            '!vocab' => $vocabulary_name,
-          ]));
-        }
-        // If $tid not empty return tid item
-        return $this->termTree[$vocabulary_key][$term_key][$tid];
+        ]
+      )) {
+        return reset($terms);
       }
-      // if more than one throw exception
-      if (count($this->termTree[$vocabulary_key][$term_key]) > 1) {
-        throw new \InvalidArgumentException(t('!vocab > !name is duplicated. Please provide a tid.', [
-          '!name' => $term_name,
-          '!vocab' => $vocabulary_name,
-        ]));
-      }
-      // else return reset()
-      return reset($this->termTree[$vocabulary_key][$term_key]);
     }
   }
 
@@ -101,7 +125,7 @@ class TermManagerTree {
    * @return mixed
    */
   public function getTreeItem($term_name, $vocabulary_name, $tid  = '') {
-    if ($term = $this->getOriginalTreeItem($term_name, $vocabulary_name, $tid)) {
+    if ($term = $this->getTerm($term_name, $vocabulary_name, $tid)) {
       switch ($term->action) {
         case self::$DENNIS_TERM_MANAGER_ACTION_DELETE:
           // If term has been marked for delete, it cannot be returned.
@@ -145,9 +169,11 @@ class TermManagerTree {
     // Get current taxonomy from DB.
     $query = $this->exportTermsQuery();
 
+
     // Get taxonomy child count.
-    $query->leftJoin('taxonomy_term_hierarchy', 'c', 'c.parent = t.tid');
-    $query->addExpression('GROUP_CONCAT(DISTINCT c.tid)', 'child_tids');
+   $query->leftJoin('taxonomy_term__parent', 'c', 'c.parent_target_id = t.tid');
+    $query->addExpression('GROUP_CONCAT(DISTINCT c.entity_id)', 'child_tids');
+
 
     $result = $query->execute();
 
@@ -171,6 +197,7 @@ class TermManagerTree {
       // Add tree item.
       $this->addTreeItem($item);
     }
+
   }
 
 
@@ -183,11 +210,32 @@ class TermManagerTree {
    */
   public function exportTermsQuery($vocabs = []) {
 
+    drupal_set_message($vocabs, 'error');
+
+
     $query = $this->connection->select('taxonomy_term_data', 't');
 
     // Term vocabulary and name.
-    $query->addField('v', 'name', 'vocabulary_name');
-    $query->addField('t', 'name', 'term_name');
+    $query->addField('t', 'vid', 'vocabulary_name');
+    $query->addField('td', 'name', 'term_name');
+    $query->addField('ua', 'alias', 'path');
+    // TID and VID
+    $query->addField('td', 'vid', 'vid');
+    $query->addField('t', 'tid', 'tid');
+    $query->addField('p', 'tid', 'parent_tid');
+    // Get node count for term.
+    $query->addExpression('(SELECT COUNT(1) FROM taxonomy_index i WHERE i.tid = t.tid)', 'node_count');
+    // Parent term name.
+    $query->addExpression('IF(td.name IS NULL, \'\', td.name)', 'parent_term_name');
+    // Get child term count for term.
+    $query->addExpression('(SELECT COUNT(1) FROM taxonomy_term__parent h WHERE h.parent_target_id = t.tid)', 'term_child_count');
+    // Join alias.
+    $query->leftJoin('url_alias', 'ua', "ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))");
+    // Join on vocabulary of term.
+    $query->leftJoin('taxonomy_term_field_data', 'td', 'td.vid = t.vid');
+    // Parent information.
+    $query->leftJoin('taxonomy_term__parent', 'h', 'h.entity_id = t.tid');
+    $query->leftJoin('taxonomy_term_data', 'p', 'p.tid = h.parent_target_id');
 
     // Filter by vocabulary
     $machine_names = [];
@@ -195,36 +243,56 @@ class TermManagerTree {
       foreach ($vocabs as $name) {
         $machine_names[] = $this->termManagerMachineName($name);
       }
-      $query->condition('v.machine_name', $machine_names, 'IN');
+      $query->condition('t.vid', $machine_names, 'IN');
+    } else {
+      drupal_set_message('is empty', 'error');
     }
 
-    // Join alias.
-    $query->leftJoin('url_alias', 'ua', "ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))");
-    $query->addField('ua', 'alias', 'path');
 
-    // TID and VID
-    $query->addField('v', 'vid', 'vid');
-    $query->addField('t', 'tid', 'tid');
-
-    // Get node count for term.
-    $query->addExpression('(SELECT COUNT(1) FROM taxonomy_index i WHERE i.tid = t.tid)', 'node_count');
-
-    // Get child term count for term.
-    $query->addExpression('(SELECT COUNT(1) FROM taxonomy_term_hierarchy h WHERE h.parent = t.tid)', 'term_child_count');
-
-    // Parent term name.
-    $query->addExpression('IF(p.name IS NULL, \'\', p.name)', 'parent_term_name');
-
-    // Join on vocabulary of term.
-    $query->leftJoin('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
-
-    // Parent information.
-    $query->leftJoin('taxonomy_term_hierarchy', 'h', 'h.tid = t.tid');
-    $query->leftJoin('taxonomy_term_data', 'p', 'p.tid = h.parent');
-    $query->addField('p', 'tid', 'parent_tid');
 
     // Group by tid to get node counts for each term.
     $query->groupBy('t.tid');
+    $query->groupBy('t.vid');
+    $query->groupBy('td.name');
+    $query->groupBy('ua.alias');
+    $query->groupBy('td.vid');
+    $query->groupBy('p.tid');
+
+    //echo $query->__toString() . "\n";
+
+/**
+
+    "SELECT t.vid AS vocabulary_name, td.name AS term_name, ua.alias AS path, td.vid AS vid, t.tid AS tid, p.tid AS parent_tid, (SELECT COUNT(1)
+     FROM taxonomy_index i
+     WHERE i.tid = t.tid) AS node_count, (SELECT COUNT(1)
+     FROM taxonomy_term__parent h
+     WHERE h.parent_target_id = t.tid) AS term_child_count, IF(td.name IS NULL, '', td.name) AS parent_term_name
+     FROM taxonomy_term_data t
+     LEFT OUTER JOIN url_alias ua ON ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))
+     LEFT OUTER JOIN taxonomy_term_field_data td ON td.vid = t.vid
+     LEFT OUTER JOIN taxonomy_term__parent h ON h.entity_id = t.tid
+     LEFT OUTER JOIN taxonomy_term_data p ON p.tid = h.parent_target_id
+     GROUP BY t.tid"
+ */
+
+
+    /**
+     *
+     SELECT t.vid AS vocabulary_name, td.name AS term_name, ua.alias AS path, td.vid AS vid, t.tid AS tid, p.tid AS parent_tid, (SELECT COUNT(1)
+     FROM taxonomy_index i
+     WHERE i.tid = t.tid) AS node_count, IF(td.name IS NULL, '', td.name) AS parent_term_name, (SELECT COUNT(1)
+     FROM taxonomy_term__parent h
+     WHERE h.parent_target_id = t.tid) AS term_child_count
+     FROM {taxonomy_term_data} t
+     LEFT OUTER JOIN {url_alias} ua ON ua.source = CONCAT('taxonomy/term/', CAST(t.tid AS CHAR))
+     LEFT OUTER JOIN {taxonomy_term_field_data} td ON td.vid = t.vid
+     LEFT OUTER JOIN {taxonomy_term__parent} h ON h.entity_id = t.tid
+     LEFT OUTER JOIN {taxonomy_term_data} p ON p.tid = h.parent_target_id
+     GROUP BY t.tid
+     */
+
+
+
 
     return $query;
   }
@@ -275,6 +343,9 @@ class TermManagerTree {
    *   array containing vocabulary
    */
   public function getVocabulary($vocabulary_name) {
+
+    return \Drupal\taxonomy\Entity\Vocabulary::load($vocabulary_name);
+
     // Return static if possible.
     $vocabulary = &drupal_static(__FUNCTION__ . $vocabulary_name, FALSE);
     if ($vocabulary !== FALSE) {
@@ -288,6 +359,8 @@ class TermManagerTree {
     ));
     $query->condition('tv.name', $vocabulary_name, '=');
     return $query->execute()->fetchObject();
+
+
   }
 
 
@@ -355,21 +428,10 @@ class TermManagerTree {
    * CSV/TSV files should always have these columns.
    */
   public function defaultColumns() {
-    return array(
-      'vocabulary_name',
-      'term_name',
-      'tid',
-      'path',
-      'node_count',
-      'term_child_count',
-      'parent_term_name',
-      'action',
-      'target_term_name',
-      'target_tid',
-      'target_vocabulary_name',
-      'target_field',
-      'new_name',
-      'redirect',
-    );
+    return [
+      'node',
+      'field',
+      'value',
+    ];
   }
 }

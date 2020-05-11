@@ -113,7 +113,8 @@ class TermManager extends FormBase {
       $container->get('dennis_term_manager.service'),
       $container->get('dennis_term_manager.dry_run'),
       $container->get('dennis_term_manager.progess_list'),
-      $container->get('dennis_term_manager.progress_item')
+      $container->get('dennis_term_manager.progress_item'),
+      $container->get('dennis_term_manager.progress_batch')
     );
   }
 
@@ -165,12 +166,16 @@ class TermManager extends FormBase {
     $location = $this->termManagerService->getFilesDir();
 
     $form['csv_file'] = [
-      '#title' => t('Import'),
       '#type' => 'managed_file',
-      '#description' => t('The CSV file to be processed.'),
-      '#upload_validators' => ['file_validate_extensions' => ['csv tsv']],
+      '#title' => $this->t('The CSV file to be processed'),
+      '#required' => FALSE,
       '#upload_location' => $location,
+      '#default_value' => '',
+      '#upload_validators' => [
+        'file_validate_extensions' => ['csv'],
+      ]
     ];
+
 
     $form['buttons']['submit'] = [
       '#type' => 'submit',
@@ -195,8 +200,8 @@ class TermManager extends FormBase {
    * @throws \Exception
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    // Load the file.
-    $file = File::load($form_state->getValue('csv_file'));
+
+    $file = File::load($form_state->getValue('csv_file')[0]);
     if (!$file) {
       $this->messenger->addError('Please upload the CSV/TSV file first.');
     }
@@ -225,9 +230,9 @@ class TermManager extends FormBase {
       $this->termManagerService->fileUsage->add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
     }
     else {
-      throw new FileWriteException(t('!file_name cannot be saved', array(
+      throw new FileWriteException(t('!file_name cannot be saved', [
         '!file_name' => $file->uri,
-      )));
+      ]));
     }
     return $file;
   }

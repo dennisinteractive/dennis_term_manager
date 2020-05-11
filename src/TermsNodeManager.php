@@ -2,6 +2,7 @@
 
 namespace Drupal\dennis_term_manager;
 
+use Drupal\Component\Datetime\Time;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandler;
@@ -24,6 +25,11 @@ class TermsNodeManager {
   protected $connection;
 
   /**
+   * @var Time
+   */
+  protected $time;
+
+  /**
    * @var EntityTypeManager
    */
   protected $entityTypeManager;
@@ -39,22 +45,25 @@ class TermsNodeManager {
   protected $moduleHandler;
 
 
-  protected static $MODULES = ['rules_scheduler', 'scheduler'];
+  protected static $MODULES = ['scheduler'];
 
 
   /**
    * TermsNodeManager constructor.
    *
    * @param Connection $connection
+   * @param Time $time
    * @param EntityTypeManager $entityTypeManager
    * @param EntityFieldManager $entityFieldManager
    * @param ModuleHandler $moduleHandler
    */
   public function __construct(Connection $connection,
+                              Time $time,
                               EntityTypeManager $entityTypeManager,
                               EntityFieldManager $entityFieldManager,
                               ModuleHandler $moduleHandler) {
     $this->connection = $connection;
+    $this->time = $time;
     $this->entityTypeManager = $entityTypeManager;
     $this->entityFieldManager = $entityFieldManager;
     $this->moduleHandler = $moduleHandler;
@@ -63,45 +72,41 @@ class TermsNodeManager {
   /**
    * Helper to retrieve nodes that are not published and scheduled to be published.
    *
-   * Since we use the taxonomy_index table on _dennis_term_manager_get_associated_nodes(),
-   * it will only return nodes that are published. This is a workaround to get the unpublished
-   * nodes that are scheduled to be published.
-   *
    * @return array
-   *   List of nodes.
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getScheduledNodes() {
-    $nodes = [];
+    $nids = [];
     foreach (self::$MODULES as $name) {
       // Check if the module is enabled.
       if ($this->moduleHandler->moduleExists($name)) {
-        $query = $this->connection->select('node', 'n');
-        $query->fields('n', array(
-          'nid',
-        ));
-        $query->condition('n.status', 0, '=');
 
         switch ($name) {
-          case 'rules_scheduler':
-            // Check if field exists, as rule_scheduler could be enabled but not setup.
-            $map = $this->entityFieldManager->getFieldMap();
-            if (!empty($map['field_schedule_publish']['bundles']['node'])) {
-              // Inner join node that are scheduled to be published.
-              $query->innerJoin('field_data_field_schedule_publish', 's', 's.entity_id = n.nid');
-              $query->condition('s.field_schedule_publish_value', 1, '=');
-              $nodes = array_merge($nodes, $query->execute()->fetchCol('nid'));
-            }
-            break;
 
           case 'scheduler':
-            // Inner join node that are scheduled to be published.
-            $query->innerJoin('scheduler', 's', 's.nid = n.nid AND s.publish_on > 0');
-            $nodes = array_merge($nodes, $query->execute()->fetchCol('nid'));
+            $action = 'publish';
+
+            $scheduler_enabled_types = array_keys(_scheduler_get_scheduler_enabled_node_types($action));
+            if (!empty($scheduler_enabled_types)) {
+              $query = $this->entityTypeManager->getStorage('node')->getQuery()
+                ->exists('publish_on')
+                ->condition('publish_on', $this->time->getRequestTime(), '<=')
+                ->condition('type', $scheduler_enabled_types, 'IN')
+                ->latestRevision()
+                ->sort('publish_on')
+                ->sort('nid');
+              // Disable access checks for this query.
+              // @see https://www.drupal.org/node/2700209
+              $query->accessCheck(FALSE);
+              $nids = $query->execute();
+            }
             break;
         }
       }
     }
-    return array_unique($nodes);
+
+    return array_unique($nids);
   }
 
 

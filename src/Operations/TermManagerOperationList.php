@@ -35,9 +35,8 @@ class TermManagerOperationList implements \Iterator, \Countable {
   /**
    * Add OperationItem to List.
    *
-   * @param TermManagerOperationItem $operationItem
    */
-  public function add(TermManagerOperationItem $operationItem) {
+  public function add($operationItem) {
     if (!empty($operationItem->error)) {
       $this->errorList[] = array(
         'vocabulary_name' => $operationItem->vocabulary_name,

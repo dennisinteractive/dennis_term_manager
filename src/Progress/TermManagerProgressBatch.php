@@ -2,13 +2,11 @@
 
 namespace Drupal\dennis_term_manager\Progress;
 
-use Drupal\Component\Datetime\Time;
+use Drupal\file\Entity\File;
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Messenger\Messenger;
-use Drupal\dennis_term_manager\TermsNodeManager;
-use Drupal\dennis_term_manager\TermManagerService;
 use Drupal\dennis_term_manager\DryRun\TermManagerDryRun;
-use Drupal\dennis_term_manager\Operations\TermManagerOperationList;
-use Drupal\dennis_term_manager\Operations\TermManagerOperationItem;
+
 
 
 /**
@@ -24,145 +22,129 @@ class TermManagerProgressBatch {
   protected $messenger;
 
   /**
-   * @var Time
-   */
-  protected $time;
-
-  /**
-   * @var TermManagerService
-   */
-  protected $termManagerService;
-
-  /**
    * @var TermManagerDryRun
    */
   protected $termManagerDryRun;
 
   /**
-   * @var TermManagerOperationList
+   * Batch Builder.
+   *
+   * @var \Drupal\Core\Batch\BatchBuilder
    */
-  protected $operationList;
+  protected $batchBuilder;
 
-  /**
-   * @var TermManagerOperationItem
-   */
-  protected $operationsItem;
 
-  /**
-   * @var TermManagerProgressItem
-   */
-  protected $termManagerProgressItem;
-
-  /**
-   * @var TermsNodeManager
-   */
-  protected $termsNodeManager;
+  // Elements per operation.
+  const LIMIT = 1;
 
   /**
    * TermManagerProgressBatch constructor.
    *
    * @param Messenger $messenger
-   * @param Time $time
-   * @param TermManagerService $termManagerService
    * @param TermManagerDryRun $termManagerDryRun
-   * @param TermManagerProgressItem $termManagerProgressItem
-   * @param TermsNodeManager $termsNodeManager
    */
   public function __construct(Messenger $messenger,
-                              Time $time,
-                              TermManagerService $termManagerService,
-                              TermManagerDryRun $termManagerDryRun,
-                              TermManagerProgressItem $termManagerProgressItem,
-                              TermsNodeManager $termsNodeManager) {
+                              TermManagerDryRun $termManagerDryRun) {
     $this->messenger = $messenger;
-    $this->time = $time;
-    $this->termManagerService = $termManagerService;
     $this->termManagerDryRun = $termManagerDryRun;
-    $this->termManagerProgressItem = $termManagerProgressItem;
-    $this->termsNodeManager = $termsNodeManager;
-    $this->operationList = new TermManagerOperationList();
+    $this->batchBuilder = new BatchBuilder();
   }
 
   /**
    * Prepare a batch definition that will process the file rows.
    *
-   * @param $file
+   * @param File $file
    * @return array
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
-   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
-   * @throws \Drupal\Core\Entity\EntityStorageException
-   * @throws \Exception
    */
-  public function batchInit($file) {
+  public function batchInit(File $file) {
     // Dry Run to validate and get operation list.
-    $this->termManagerDryRun->execute($file->uri);
-
-    $operation_list = $this->termManagerDryRun->getOperationList();
-
-    // Prevent batch if there are no operation items.
-    if (count($operation_list) == 0) {
-      $this->messenger->addError('There were no valid operations');
-      return;
-    }
-
-    if ($operation_list->getErrorList()) {
-      // Halt batch.
-      return;
-    }
-    // Create file for reporting error.
-    // - Use the same file name and change extenstion.
-    $date = date('Y-m-d_H-i-s', $this->time->getRequestTime());
-    $report_file_name = preg_replace("/[.](.*)/", "-" . $date . "-report.txt", $file->uri);
-    if (!$report_file = $this->termManagerService->openReport($report_file_name)) {
-      return;
-    }
-
-    // Add file in progress.
-    /** @var \Drupal\dennis_term_manager\Progress\TermManagerProgressItem $progress_item */
-    $progress_item = $this->termManagerProgressItem;
-    $progress_item->init($file->fid);
-    $progress_item->setReportFid($report_file->fid);
-    $progress_item->setOffsetQueueId();
-    $progress_item->save();
-    // Get a list of nodes that are not published but are scheduled to be published.
-    $unpublished_sheduled_nodes = $this->termsNodeManager->getScheduledNodes();
-    // Get list of tids vs nodes. This is used to queue nodes that have any of the tids used by actions.
-    $extra_nodes = $this->termsNodeManager->listNodeTids($unpublished_sheduled_nodes);
-    // Add each operation to the batch.
-    $operations = [];
-    foreach ($operation_list as $i => $operationItem) {
-
-      $options = [
-        'operation_item' => $operationItem,
-        'report_fid' => $report_file->fid,
-        'row' => $i,
-        'extra_nodes' => $extra_nodes,
-      ];
-
-      $operations[] = [
-        'dennis_term_manager_queue_operation',
-        [$options],
-      ];
-    }
-
-    // Set final queue operation.
-    $operations[] = [
-      'dennis_term_manager_queue_operation_complete',
-      [
-        [
-          'fid' => $file->fid,
-          'report_fid' => $report_file->fid,
-        ]
-      ],
-    ];
-
-    return [
-      'operations' => $operations,
-      //'finished' => 'batch_dennis_term_manager_finished',
-      'title' => t('Processing operations'),
-      'init_message' => t('Process is starting.'),
-      'progress_message' => t('Processed @current out of @total steps.'),
-      'error_message' => t('Batch has encountered an error.'),
-    ];
+    $term_data = $this->termManagerDryRun->execute($file);
+    $batchProcessCallback = 'Drupal\dennis_term_manager\Progress\TermManagerProgressBatch::dennis_term_manager_queue_operation';
+    $finishCallback = 'Drupal\dennis_term_manager\Progress\TermManagerProgressBatch::finished';
+    $this->batchBuilder
+      ->setTitle(t('Processing'))
+      ->setInitMessage(t('Initializing.'))
+      ->setProgressMessage(t('Completed @current of @total.'))
+      ->setErrorMessage(t('An error has occurred.'))
+      ->setFinishCallback($finishCallback);
+    // Batch the update to ensure it does not timeout.
+    $this->batchBuilder->addOperation($batchProcessCallback , [
+        $term_data,
+      ]
+    );
+    return $this->batchBuilder->toArray();
   }
+
+  /**
+   * Process operations and pass each to cron queue.
+   */
+  public static function dennis_term_manager_queue_operation($terms, &$context) {
+// Drush issue https://github.com/drush-ops/drush/issues/1930
+    if (is_object($context) && $context instanceof \DrushBatchContext) {
+      return;
+    }
+    // Set default progress values.
+    if (!isset($context['sandbox']['progress'])) {
+      $context['sandbox']['progress'] = 0;
+      $context['sandbox']['max'] = count($terms);
+    }
+    // Save items to array which will be changed during processing.
+    if (empty($context['sandbox']['items'])) {
+      $context['sandbox']['items'] = $terms;
+    }
+    $counter = 0;
+
+    if (!empty($context['sandbox']['items'])) {
+      // Remove already processed items.
+      if ($context['sandbox']['progress'] != 0) {
+        array_splice($context['sandbox']['items'], 0, self::LIMIT);
+      }
+      foreach ($context['sandbox']['items'] as $term) {
+        if ($counter != self::LIMIT) {
+          self::updateTerms($term);
+          $counter++;
+          $context['sandbox']['progress']++;
+          $context['message'] = t('Now :op index page :progress of :count', [
+            ':op' => 'updating',
+            ':progress' => $context['sandbox']['progress'],
+            ':count' => $context['sandbox']['max'],
+          ]);
+          // Increment total processed item values. Will be used in finished
+          // callback.
+          $context['results']['processed'] = $context['sandbox']['progress'];
+        }
+      }
+    }
+    // If not finished all tasks, we count percentage of process. 1 = 100%.
+    if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
+      $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
+    }
+  }
+
+  /**
+   * @param $success
+   * @param $results
+   * @param $operations
+   */
+  public static function finished($success, $results, $operations) {
+    if (!empty($results)) {
+      \Drupal::messenger()->addStatus(
+        'Number of terms affected by batch: @count',
+        [
+          '@count' => $results['processed']
+        ]
+      );
+    }
+  }
+
+
+  /**
+   * @param array $term
+   */
+  protected static function updateTerms( array $term) {
+    \Drupal::service('dennis_term_manager.operation_item')->init($term);
+  }
+
+
+
 }

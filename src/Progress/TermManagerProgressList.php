@@ -65,14 +65,16 @@ class TermManagerProgressList implements \Iterator, \Countable {
 
     $in_progress =  $this->configFactory->get('dennis_term_manager')->get('in_progress', []);
 
-    foreach (array_keys($in_progress) as $fid) {
-      try {
-        $progress_item = $this->termManagerProgressItem;
-        $progress_item->init($fid);
-        $this->progressList[] = $progress_item;
-      }
-      catch (\Exception $e) {
-        $this->messenger->addMessage($e->getMessage());
+    if (!empty($in_progress)) {
+      foreach (array_keys($in_progress) as $fid) {
+        try {
+          $progress_item = $this->termManagerProgressItem;
+          $progress_item->init($fid);
+          $this->progressList[] = $progress_item;
+        }
+        catch (\Exception $e) {
+          $this->messenger->addMessage($e->getMessage());
+        }
       }
     }
   }

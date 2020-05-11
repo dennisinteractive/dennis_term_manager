@@ -43,55 +43,18 @@ class TermManagerItem {
           throw new \InvalidArgumentException(t('!value is not a valid action', ['!value' => $value]));
         }
         break;
-      case 'redirect':
-        // Array of allowed redirect values.
-        $allowed_redirect_values = [
-          '301',
-          'y',
-          'n',
-        ];
-
-        // Lowercase incoming values.
-        $value = strtolower($value);
-
-        // Convert 'y' and empty values to 301 by default.
-        if ($value == 'y' || empty($value)) {
-          $value = '301';
-        }
-
-        // Error if the redirect value is not valid.
-        if (!in_array($value, $allowed_redirect_values)) {
-           throw new \InvalidArgumentException(t('!value is not a valid redirect value. The following values are allowed: !allowed', [
-            '!value' => $value,
-            '!allowed' => '"' . implode('", "', $allowed_redirect_values) . '"',
-           ]));
-        }
-        $this->data[$key] = $value;
-        break;
-      case 'vocabulary_name':
-      case 'term_name':
-      case 'node_count':
-      case 'path':
-      case 'term_child_count':
-      case 'parent_term_name':
-      case 'target_term_name':
-      case 'target_vocabulary_name':
-      case 'target_field':
-      case 'new_name':
-      case 'description':
-      case 'error':
-      case 'tid':
-      case 'vid':
-      case 'target_tid':
-      case 'target_vid':
-      case 'parent_tid':
-      case 'locked':
+      case 'node':
+      case 'field':
+      case 'value':
         break;
       default:
-        throw new \InvalidArgumentException(t('!key is not a valid TermManagerItem property', ['!key' => $key]));
+       // throw new \InvalidArgumentException(t('@key is not a valid TermManagerItem property', ['@key' => $key]));
+        self::$DENNIS_TERM_MANAGER_ACTION_CREATE;
     }
     $this->data[$key] = $value;
   }
+
+
 
   /**
    * Getter.

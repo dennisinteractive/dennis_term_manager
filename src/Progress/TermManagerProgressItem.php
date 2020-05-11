@@ -123,7 +123,7 @@ class TermManagerProgressItem {
     $in_progress = $this->configFactory->get('dennis_term_manager')->get('in_progress', []);
     if (isset($in_progress[$this->fid])) {
       unset($in_progress[$this->fid]);
-      $this->configFactory->get('dennis_term_manager')->set('in_progress', $in_progress);
+      $this->configFactory->getEditable('dennis_term_manager')->set('in_progress', $in_progress);
     }
     else {
       throw new \InvalidArgumentException(t('File !fid does not exist', ['!fid' => $this->fid]));
@@ -139,7 +139,7 @@ class TermManagerProgressItem {
     foreach ($this->data as $key => $value) {
       $in_progress[$this->fid][$key] = $value;
     }
-    $this->configFactory->get('dennis_term_manager')->set('in_progress', $in_progress);
+    $this->configFactory->getEditable('dennis_term_manager')->set('in_progress', $in_progress);
   }
 
   /**

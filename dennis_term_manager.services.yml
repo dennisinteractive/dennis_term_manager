@@ -4,14 +4,15 @@ services:
     arguments:
       - '@file.usage'
       - '@file_system'
-      - '@logger.factory'
       - '@messenger'
+      - '@logger.factory'
       - '@datetime.time'
       - '@dennis_term_manager.tree'
   dennis_term_manager.node_manager:
     class: Drupal\dennis_term_manager\TermsNodeManager
     arguments:
       - '@database'
+      - '@datetime.time'
       - '@entity_type.manager'
       - '@entity_field.manager'
       - '@module_handler'
@@ -21,11 +22,11 @@ services:
       - '@messenger'
       - '@dennis_term_manager.tree'
       - '@dennis_term_manager.service'
-      - '@dennis_term_manager.dry_run.process'
   dennis_term_manager.dry_run.process:
     class: Drupal\dennis_term_manager\DryRun\TermManagerDryRunProcess
     arguments:
-    - '@dennis_term_manager.tree'
+      - '@entity_type.manager'
+      - '@dennis_term_manager.tree'
   dennis_term_manager.progess_list:
     class: Drupal\dennis_term_manager\Progress\TermManagerProgressList
     arguments:
@@ -42,16 +43,21 @@ services:
     class: Drupal\dennis_term_manager\Progress\TermManagerProgressBatch
     arguments:
       - '@messenger'
-      - '@datetime.time'
-      - '@dennis_term_manager.service'
       - '@dennis_term_manager.dry_run'
-      - '@dennis_term_manager.progress_item'
-      - '@dennis_term_manager.node_manager'
+  dennis_term_manager.operation_item:
+    class: Drupal\dennis_term_manager\Operations\TermManagerOperationItem
+    arguments:
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@entity_type.bundle.info'
+      - '@logger.factory'
   dennis_term_manager.tree:
     class: Drupal\dennis_term_manager\TermManagerTree
     arguments:
       - '@database'
       - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@entity_type.bundle.info'
 
 
 

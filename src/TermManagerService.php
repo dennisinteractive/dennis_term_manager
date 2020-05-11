@@ -2,8 +2,12 @@
 
 namespace Drupal\dennis_term_manager;
 
+use Drupal\Core\Url;
+use Drupal\Core\Link;
+use Drupal\file\Entity\File;
 use Drupal\Core\File\FileSystem;
 use Drupal\Component\Datetime\Time;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 Use Drupal\Core\File\FileSystemInterface;
@@ -15,6 +19,9 @@ use Drupal\file\FileUsage\DatabaseFileUsageBackend;
  * @package Drupal\dennis_term_manager
  */
 class TermManagerService {
+
+
+  use StringTranslationTrait;
 
   /**
    * @var \Drupal\file\FileUsage\DatabaseFileUsageBackend
@@ -90,17 +97,15 @@ class TermManagerService {
     else {
       $location = self::$DENNIS_TERM_MANAGER_PUBLIC_FOLDER;
       // Warn user that files will be publicly accessible.
-      $config_link = l(
-        'Please configure the private file system path to store report privately',
-        'admin/config/media/file-system'
-      );
-      $warning_message = t('Files will be stored in the public file directory. !config_link', array('!config_link' => $config_link));
+      $config_link = Link::fromTextAndUrl($this->t('Please configure the private file system path to store report privately'),
+        Url::fromUri('internal:/admin/config/media/file-system'))->toString();
+      $warning_message = $this->t('Files will be stored in the public file directory. @config_link', ['@config_link' => $config_link]);
 
       $this->messenger->addWarning($warning_message);
     }
 
     // Test if folder exists and try to create it if necessary.
-    if (!is_dir($location) && !$this->fileSystem->mkdir($location, NULL, TRUE)) {
+    if (!is_dir($location) && !$this->fileSystem->mkdir($location, 0766, TRUE)) {
       $this->logger->warning('The directory %directory does not exist and could not be created.', ['%directory' => $location]);
     }
     if (is_dir($location) && !is_writable($location) && !$this->fileSystem->chmod($location)) {
@@ -113,42 +118,38 @@ class TermManagerService {
       return $location;
     }
 
-    throw new \Exception(t('Error trying to copy files to !name folder. Make sure the folder exists and you have writting permission.', array(
-      '!name' => $location,
-    )));
+    throw new \Exception($this->t('Error trying to copy files to @name folder. Make sure the folder exists and you have writting permission.', [
+      '@name' => $location,
+    ]));
   }
 
   /**
    * Output queue items as CSV.
    *
-   * @param $file_path
-   * @param $delimiter
-   */
-
-  /**
-   * @param $file_path
+   * @param File $file_path
+   * @param $operation_list
    * @param $delimiter
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  public function outputCSV($file_path, $delimiter) {
+  public function outputCSV(File $file_path, $operation_list, $delimiter) {
     // Output dry run taxonomy.
     $date = date('Y-m-d_H-i-s', $this->time->getRequestTime());
-    $file_name = preg_replace("/[.](.*)/", "-" . $date . "-errors.$1", $file_path);
+    $file_name = $file_path->getFileUri();
 
     // Create managed file and open for writing.
     if (!$file = $this->openReport($file_name)) {
       return;
     }
 
-    $fp = fopen($file->uri, 'w');
+    $fp = fopen($file->getFileUri(), 'w');
 
     // Add Headings.
     $columns = array_merge($this->termManagerTree->defaultColumns(), ['error']);
     fputcsv($fp, $columns, $delimiter, '"');
 
     // Output resulting taxonomy.
-    foreach ($this->operationList as $item) {
-      $row = array();
+    foreach ($operation_list as $item) {
+      $row = [];
       foreach ($columns as $key) {
         $row[] = $item->{$key};
       }
@@ -156,7 +157,7 @@ class TermManagerService {
     }
     fclose($fp);
     // Clear stat cache to get correct filesize.
-    clearstatcache(FALSE, $file->uri);
+    clearstatcache(FALSE, $file->getFileUri());
     // Save managed file.
     $file->save();
   }
