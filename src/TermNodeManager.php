@@ -64,7 +64,7 @@ class TermNodeManager implements TermNodeManagerInterface {
         if ($field_info->getCardinality() == 1) {
           $node->set($term_data['field'], ['target_id' => $term->id()]);
         } else {
-          if (!$this->checkExistingTermInNode($node, $term, $term_data)) {
+          if (!$this->checkExistingTermInNode($node, $term->id(), $term_data['field'])) {
             $node->get($term_data['field'])->appendItem(['target_id' => $term->id()]);
           }
         }
@@ -76,16 +76,18 @@ class TermNodeManager implements TermNodeManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function checkExistingTermInNode(EntityInterface $node, Term $term, array $term_data) {
+  public function checkExistingTermInNode(EntityInterface $node, $tid, $field) {
     $existing_values = [];
-    $field_values = $node->get($term_data['field'])->getValue();
-    if (!empty($field_values)) {
-      foreach($field_values as $value) {
-        $existing_values[] = $value['target_id'];
-      }
-      if (!empty($existing_values)) {
-        if (in_array ($term->id(), $existing_values)) {
-          return TRUE;
+    if ($node->hasField($field)) {
+      $field_values = $node->get($field)->getValue();
+      if (!empty($field_values)) {
+        foreach ($field_values as $value) {
+          $existing_values[] = $value['target_id'];
+        }
+        if (!empty($existing_values)) {
+          if (in_array($tid, $existing_values)) {
+            return TRUE;
+          }
         }
       }
     }

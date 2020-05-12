@@ -41,11 +41,11 @@ interface TermNodeManagerInterface {
    * Check if the node has an existing value of the given term.
    *
    * @param $node
-   * @param $term
-   * @param $term_data
+   * @param $tid
+   * @param $field
    * @return bool
    */
-  public function checkExistingTermInNode(EntityInterface $node, Term $term, array $term_data);
+  public function checkExistingTermInNode(EntityInterface $node, $tid, $field);
 
 
   /**
