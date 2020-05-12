@@ -46,15 +46,14 @@ class TermManager implements TermManagerInterface {
    * @throws InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function getTermFromNodeField(FieldConfig $node_config, array $term_data) {
-    if (isset($term_data)
-      && isset($term_data['field'])
+  public function getTermFromNodeField(FieldConfig $node_config, $field, $value) {
+    if (isset($field)
       && isset($node_config)
-      && $term_data['field'] == $node_config->getName()
+      && $field == $node_config->getName()
       && $node_config->getType() == 'entity_reference') {
       $target_bundles = $node_config->getSettings()['handler_settings']['target_bundles'];
       $vocab = $target_bundles[key($target_bundles)];
-      return $this->getTerm($term_data['value'], $vocab);
+      return $this->getTerm($value, $vocab);
     }
   }
 

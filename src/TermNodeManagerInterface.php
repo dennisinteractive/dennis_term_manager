@@ -2,8 +2,7 @@
 
 namespace Drupal\dennis_term_manager;
 
-use \Drupal\taxonomy\Entity\Term;
-use Drupal\field\Entity\FieldConfig;
+
 use \Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -18,22 +17,22 @@ interface TermNodeManagerInterface {
   /**
    * Get the field settings for the given node.
    *
-   * @param $term
+   * @param $field_name
    * @return FieldStorageConfig
    */
-  public function getFieldSettings($term);
+  public function getFieldSettings($field_name);
 
   /**
    * Update the node with the given term.
    *
    * @param EntityInterface $node
-   * @param FieldConfig $node_config
    * @param FieldStorageConfig $field_info
+   * @param array $node_fields
    * @param array $term_data
    */
   public function updateNode(EntityInterface $node,
-                             FieldConfig $node_config,
                              FieldStorageConfig $field_info,
+                             array $node_fields,
                              array $term_data);
 
 
@@ -45,7 +44,18 @@ interface TermNodeManagerInterface {
    * @param $field
    * @return bool
    */
-  public function checkExistingTermInNode(EntityInterface $node, $tid, $field);
+  public function checkExistingTermInField(EntityInterface $node, $tid, $field);
+
+
+  /**
+   * Check for the existence of the term on primary fields
+   *
+   * @param EntityInterface $node
+   * @param array $node_fields
+   * @param $tid
+   * @return bool
+   */
+  public function checkPrimaryEntityFields(EntityInterface $node, array $node_fields, $tid);
 
 
   /**
@@ -53,5 +63,6 @@ interface TermNodeManagerInterface {
    * @return \Drupal\Core\Entity\EntityInterface|null
    */
   public function checkNodeStatus(array $term_data);
+
 
 }

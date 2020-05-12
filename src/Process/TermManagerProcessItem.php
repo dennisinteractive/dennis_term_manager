@@ -2,16 +2,11 @@
 
 namespace Drupal\dennis_term_manager\Process;
 
-use Drupal\field\Entity\FieldConfig;
-use \Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Entity\EntityFieldManager;
-use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Core\Entity\EntityStorageException;
 use Drupal\dennis_term_manager\TermManagerInterface;
 use Drupal\dennis_term_manager\TermNodeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 
 /**
  * Class TermManagerProcessItem
@@ -75,21 +70,13 @@ class TermManagerProcessItem  {
    */
   public function init(array $term) {
     if ( isset($term['node']) && isset($term['field']) && isset($term['value'])) {
-
-      if ($term['node'] == 507865) {
-
-
-      if ($field_info = $this->termNodeManager->getFieldSettings($term)) {
+      if ($field_info = $this->termNodeManager->getFieldSettings($term['field'])) {
         if ($node = $this->termNodeManager->checkNodeStatus($term)) {
-          /**  @var \Drupal\Core\Field\BaseFieldDefinition $node_field */
           if ($node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle())) {
-            $this->termNodeManager->updateNode($node, $node_field[$term['field']], $field_info, $term);
+            $this->termNodeManager->updateNode($node, $field_info, $node_field, $term);
           }
         }
       }
-    }
-
-
     }
   }
 }

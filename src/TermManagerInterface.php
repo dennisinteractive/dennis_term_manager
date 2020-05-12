@@ -11,12 +11,16 @@ use Drupal\field\Entity\FieldConfig;
  */
 interface TermManagerInterface {
 
+
   /**
+   * Get a term of the given entity reference field
+   *
    * @param FieldConfig $node_config
-   * @param array $term_data
+   * @param $field
+   * @param $value
    * @return \Drupal\taxonomy\Entity\Term
    */
-  public function getTermFromNodeField(FieldConfig $node_config, array $term_data);
+  public function getTermFromNodeField(FieldConfig $node_config, $field, $value);
 
   /**
    * Get a new or existing term
