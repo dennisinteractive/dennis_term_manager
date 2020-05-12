@@ -2,16 +2,12 @@
 
 namespace Drupal\dennis_term_manager\Operations;
 
-
 /**
- * @file TermManagerOperationList
+ * Class TermManagerOperationList
+ *
+ * @package Drupal\dennis_term_manager\Operations
  */
-class TermManagerOperationList implements \Iterator, \Countable {
-  /**
-   * Iterator position.
-   * @var integer
-   */
-  private $position = 0;
+class TermManagerOperationList  {
 
   /**
    * List of OperationItem.
@@ -29,83 +25,11 @@ class TermManagerOperationList implements \Iterator, \Countable {
    * Initialize iterator.
    */
   public function __construct() {
-    $this->position = 0;
-  }
-
-  /**
-   * Add OperationItem to List.
-   *
-   */
-  public function add($operationItem) {
-    if (!empty($operationItem->error)) {
-      $this->errorList[] = array(
-        'vocabulary_name' => $operationItem->vocabulary_name,
-        'term_name' => $operationItem->term_name,
-        'message' => $operationItem->error,
-      );
-    }
-    $this->operationList[] = $operationItem;
-  }
-
-  /**
-   * Return array of operation items.
-   */
-  public function getItems() {
-    return $this->operationList;
-  }
-
-  /**
-   * Return array of errors.
-   */
-  public function getErrorList() {
-    return $this->errorList;
-  }
-
-  /**
-   * Iterator::rewind().
-   */
-  public function rewind() {
-    $this->position = 0;
-  }
-
-  /**
-   * Iterator::current().
-   */
-  public function current() {
-    return $this->operationList[$this->position];
-  }
-
-  /**
-   * Iterator::key().
-   */
-  public function key() {
-    return $this->position;
-  }
-
-  /**
-   * Iterator::next().
-   */
-  public function next() {
-    ++$this->position;
-  }
-
-  /**
-   * Iterator::valid().
-   */
-  function valid() {
-    return isset($this->operationList[$this->position]);
-  }
-
-  /**
-   * Countable::count().
-   */
-  function count() {
-    return count($this->operationList);
   }
 
 
   /**
-   * Helper to count delimiters and see what is the mostly used.
+   * Count delimiters and see what is the mostly used.
    *
    * @param $str
    * @param null $delimiter
@@ -134,9 +58,9 @@ class TermManagerOperationList implements \Iterator, \Countable {
   }
 
   /**
-   * Helper to return list of delimiters.
+   * Return list of delimiters.
    */
-  public function getDelimiters() {
+  protected function getDelimiters() {
     return [
       'comma' => ",",
       'semicolon' => ";",

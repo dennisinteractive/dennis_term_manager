@@ -1,20 +1,20 @@
 <?php
 
-namespace Drupal\dennis_term_manager\Progress;
+namespace Drupal\dennis_term_manager\Process;
 
+use Drupal\Core\Url;
+use Drupal\Core\Link;
 use Drupal\file\Entity\File;
 use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Messenger\Messenger;
-use Drupal\dennis_term_manager\DryRun\TermManagerDryRun;
-
-
+use Drupal\dennis_term_manager\Operations\TermManagerBuildInterface;
 
 /**
- * Class TermManagerProgressBatch
+ * Class TermManagerProcessBatch
  *
- * @package Drupal\dennis_term_manager\Progress
+ * @package Drupal\dennis_term_manager\Process
  */
-class TermManagerProgressBatch {
+class TermManagerProcessBatch {
 
   /**
    * @var \Drupal\Core\Messenger\Messenger
@@ -22,45 +22,39 @@ class TermManagerProgressBatch {
   protected $messenger;
 
   /**
-   * @var TermManagerDryRun
+   * @var TermManagerBuildInterface
    */
-  protected $termManagerDryRun;
+  protected $termManagerBuild;
 
   /**
-   * Batch Builder.
-   *
    * @var \Drupal\Core\Batch\BatchBuilder
    */
   protected $batchBuilder;
-
 
   // Elements per operation.
   const LIMIT = 1;
 
   /**
-   * TermManagerProgressBatch constructor.
+   * TermManagerProcessBatch constructor.
    *
    * @param Messenger $messenger
-   * @param TermManagerDryRun $termManagerDryRun
+   * @param TermManagerBuildInterface $termManagerBuild
    */
   public function __construct(Messenger $messenger,
-                              TermManagerDryRun $termManagerDryRun) {
+                              TermManagerBuildInterface $termManagerBuild) {
     $this->messenger = $messenger;
-    $this->termManagerDryRun = $termManagerDryRun;
+    $this->termManagerBuild = $termManagerBuild;
     $this->batchBuilder = new BatchBuilder();
   }
 
   /**
-   * Prepare a batch definition that will process the file rows.
-   *
-   * @param File $file
-   * @return array
+   * {@inheritdoc}
    */
   public function batchInit(File $file) {
     // Dry Run to validate and get operation list.
-    $term_data = $this->termManagerDryRun->execute($file);
-    $batchProcessCallback = 'Drupal\dennis_term_manager\Progress\TermManagerProgressBatch::dennis_term_manager_queue_operation';
-    $finishCallback = 'Drupal\dennis_term_manager\Progress\TermManagerProgressBatch::finished';
+    $term_data = $this->termManagerBuild->execute($file);
+    $batchProcessCallback = 'Drupal\dennis_term_manager\Process\TermManagerProcessBatch::termManagerQueueOperation';
+    $finishCallback = 'Drupal\dennis_term_manager\Process\TermManagerProcessBatch::finished';
     $this->batchBuilder
       ->setTitle(t('Processing'))
       ->setInitMessage(t('Initializing.'))
@@ -69,6 +63,7 @@ class TermManagerProgressBatch {
       ->setFinishCallback($finishCallback);
     // Batch the update to ensure it does not timeout.
     $this->batchBuilder->addOperation($batchProcessCallback , [
+        $file,
         $term_data,
       ]
     );
@@ -76,10 +71,10 @@ class TermManagerProgressBatch {
   }
 
   /**
-   * Process operations and pass each to cron queue.
+   * {@inheritdoc}
    */
-  public static function dennis_term_manager_queue_operation($terms, &$context) {
-// Drush issue https://github.com/drush-ops/drush/issues/1930
+  public static function termManagerQueueOperation(File $file, array $terms, &$context) {
+    // Drush issue https://github.com/drush-ops/drush/issues/1930
     if (is_object($context) && $context instanceof \DrushBatchContext) {
       return;
     }
@@ -101,7 +96,7 @@ class TermManagerProgressBatch {
       }
       foreach ($context['sandbox']['items'] as $term) {
         if ($counter != self::LIMIT) {
-          self::updateTerms($term);
+          \Drupal::service('dennis_term_manager.process_item')->init($term);
           $counter++;
           $context['sandbox']['progress']++;
           $context['message'] = t('Now :op index page :progress of :count', [
@@ -119,32 +114,27 @@ class TermManagerProgressBatch {
     if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
       $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
     }
+    $context['results']['file'] = $file->getFileUri();
   }
 
   /**
-   * @param $success
-   * @param $results
-   * @param $operations
+   * {@inheritdoc}
    */
   public static function finished($success, $results, $operations) {
     if (!empty($results)) {
-      \Drupal::messenger()->addStatus(
+      \Drupal::messenger()->addStatus(t(
         'Number of terms affected by batch: @count',
         [
           '@count' => $results['processed']
-        ]
+        ])
+      );
+
+      \Drupal::messenger()->addStatus(t(
+          'Number of terms affected by batch: @count',
+          [
+            '@count' => $results['processed']
+          ])
       );
     }
   }
-
-
-  /**
-   * @param array $term
-   */
-  protected static function updateTerms( array $term) {
-    \Drupal::service('dennis_term_manager.operation_item')->init($term);
-  }
-
-
-
 }

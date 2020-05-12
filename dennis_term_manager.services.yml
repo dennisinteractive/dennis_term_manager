@@ -1,65 +1,36 @@
 services:
-  dennis_term_manager.service:
-    class: Drupal\dennis_term_manager\TermManagerService
+  dennis_term_manager.terms:
+    class: Drupal\dennis_term_manager\TermManager
     arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+  dennis_term_manager.terms_nodes:
+    class: Drupal\dennis_term_manager\TermNodeManager
+    arguments:
+      - '@entity_type.manager'
+      - '@dennis_term_manager.terms'
+  dennis_term_manager.file_system:
+    class: Drupal\dennis_term_manager\FileSystem\TermManagerFileSystem
+    arguments:
+      - '@database'
       - '@file.usage'
       - '@file_system'
-      - '@messenger'
       - '@logger.factory'
-      - '@datetime.time'
-      - '@dennis_term_manager.tree'
-  dennis_term_manager.node_manager:
-    class: Drupal\dennis_term_manager\TermsNodeManager
-    arguments:
-      - '@database'
-      - '@datetime.time'
-      - '@entity_type.manager'
-      - '@entity_field.manager'
-      - '@module_handler'
-  dennis_term_manager.dry_run:
-    class: Drupal\dennis_term_manager\DryRun\TermManagerDryRun
+  dennis_term_manager.build:
+    class: Drupal\dennis_term_manager\Operations\TermManagerBuild
     arguments:
       - '@messenger'
-      - '@dennis_term_manager.tree'
-      - '@dennis_term_manager.service'
-  dennis_term_manager.dry_run.process:
-    class: Drupal\dennis_term_manager\DryRun\TermManagerDryRunProcess
-    arguments:
-      - '@entity_type.manager'
-      - '@dennis_term_manager.tree'
-  dennis_term_manager.progess_list:
-    class: Drupal\dennis_term_manager\Progress\TermManagerProgressList
-    arguments:
-      - '@config.factory'
-      - '@messenger'
-      - '@dennis_term_manager.progress_item'
-  dennis_term_manager.progress_item:
-    class: Drupal\dennis_term_manager\Progress\TermManagerProgressItem
-    arguments:
-      - '@database'
-      - '@messenger'
-      - '@config.factory'
-  dennis_term_manager.progress_batch:
-    class: Drupal\dennis_term_manager\Progress\TermManagerProgressBatch
+  dennis_term_manager.process_batch:
+    class: Drupal\dennis_term_manager\Process\TermManagerProcessBatch
     arguments:
       - '@messenger'
-      - '@dennis_term_manager.dry_run'
-  dennis_term_manager.operation_item:
-    class: Drupal\dennis_term_manager\Operations\TermManagerOperationItem
+      - '@dennis_term_manager.build'
+  dennis_term_manager.process_item:
+    class: Drupal\dennis_term_manager\Process\TermManagerProcessItem
     arguments:
       - '@entity_type.manager'
       - '@entity_field.manager'
-      - '@entity_type.bundle.info'
+      - '@dennis_term_manager.terms'
+      - '@dennis_term_manager.terms_nodes'
       - '@logger.factory'
-  dennis_term_manager.tree:
-    class: Drupal\dennis_term_manager\TermManagerTree
-    arguments:
-      - '@database'
-      - '@entity_type.manager'
-      - '@entity_field.manager'
-      - '@entity_type.bundle.info'
-
-
-
-
 
