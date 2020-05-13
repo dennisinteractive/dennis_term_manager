@@ -18,7 +18,7 @@ interface TermManagerInterface {
    * @param FieldConfig $node_config
    * @param $field
    * @param $value
-   * @return \Drupal\taxonomy\Entity\Term
+   * @return \Drupal\Core\Entity\EntityInterface|\Drupal\taxonomy\Entity\Term|mixed
    */
   public function getTermFromNodeField(FieldConfig $node_config, $field, $value);
 

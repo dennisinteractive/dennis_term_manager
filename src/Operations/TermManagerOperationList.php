@@ -21,12 +21,6 @@ class TermManagerOperationList  {
    */
   protected $errorList = [];
 
-  /**
-   * Initialize iterator.
-   */
-  public function __construct() {
-  }
-
 
   /**
    * Count delimiters and see what is the mostly used.

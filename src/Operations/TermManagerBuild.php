@@ -49,6 +49,7 @@ class TermManagerBuild implements termManagerBuildInterface {
     ini_set('auto_detect_line_endings',TRUE);
 
     if (($handle = fopen($file_path->getFileUri(), "r")) !== FALSE) {
+
       $delimiter = $this->operationList->detectDelimiter(file_get_contents($file_path->getFileUri()));
       $heading_row = fgetcsv($handle, 1000, $delimiter);
       $columns = array_flip($heading_row);

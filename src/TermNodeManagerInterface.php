@@ -2,7 +2,6 @@
 
 namespace Drupal\dennis_term_manager;
 
-
 use \Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -63,6 +62,5 @@ interface TermNodeManagerInterface {
    * @return \Drupal\Core\Entity\EntityInterface|null
    */
   public function checkNodeStatus(array $term_data);
-
 
 }

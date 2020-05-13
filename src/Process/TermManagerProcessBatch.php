@@ -2,8 +2,6 @@
 
 namespace Drupal\dennis_term_manager\Process;
 
-use Drupal\Core\Url;
-use Drupal\Core\Link;
 use Drupal\file\Entity\File;
 use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Messenger\Messenger;
@@ -53,6 +51,7 @@ class TermManagerProcessBatch {
   public function batchInit(File $file) {
     // Dry Run to validate and get operation list.
     $term_data = $this->termManagerBuild->execute($file);
+
     $batchProcessCallback = 'Drupal\dennis_term_manager\Process\TermManagerProcessBatch::termManagerQueueOperation';
     $finishCallback = 'Drupal\dennis_term_manager\Process\TermManagerProcessBatch::finished';
     $this->batchBuilder

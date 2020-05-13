@@ -101,7 +101,7 @@ class TermNodeManager implements TermNodeManagerInterface {
   public function checkPrimaryEntityFields(EntityInterface $node, array $node_fields, $tid) {
     foreach ($node_fields as $field) {
       if($this->checkNodeFieldName($field->getName(), 'field')) {
-        /** @var \Drupal\field\Entity\FieldStorageConfig $field_settings */
+        /** @var \Drupal\field\Entity\FieldStorageConfig $node_field */
         if ($node_field = $this->getFieldSettings($field->getName())) {
           if ($node_field->getCardinality() == 1) {
             if ($check_field_tid = $node->get($field->getName())->getString()) {
@@ -136,7 +136,7 @@ class TermNodeManager implements TermNodeManagerInterface {
    * @param $needle
    * @return bool
    */
-  protected function checkNodeFieldName($string, $needle) {
+  public function checkNodeFieldName($string, $needle) {
     $len = strlen($needle);
     return (substr($string, 0, $len) === $needle);
   }
