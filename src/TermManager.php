@@ -5,6 +5,7 @@ namespace Drupal\dennis_term_manager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 
 /**
@@ -13,6 +14,8 @@ use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
  * @package Drupal\dennis_term_manager
  */
 class TermManager implements TermManagerInterface {
+
+  use StringTranslationTrait;
 
   /**
    * @var EntityTypeManager
@@ -73,8 +76,9 @@ class TermManager implements TermManagerInterface {
         ]
       )) {
         return reset($terms);
+      } else {
+        $this->logger->warning($this->t('No term with the name @term_name was found', ['@term_name' => $term_name]));
       }
     }
   }
-
 }
