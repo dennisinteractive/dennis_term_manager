@@ -98,7 +98,7 @@ class TermManagerProcessBatch {
           \Drupal::service('dennis_term_manager.process_item')->init($term);
           $counter++;
           $context['sandbox']['progress']++;
-          $context['message'] = t('Now :op index page :progress of :count', [
+          $context['message'] = t('Now :op nodes :progress of :count', [
             ':op' => 'updating',
             ':progress' => $context['sandbox']['progress'],
             ':count' => $context['sandbox']['max'],
