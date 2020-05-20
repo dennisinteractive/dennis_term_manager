@@ -57,22 +57,27 @@ class TermNodeManager implements TermNodeManagerInterface {
                              FieldStorageConfig $field_info,
                              array $node_fields,
                              array $term_data) {
+    $updated = FALSE;
     if ($node->hasField($term_data['field'])) {
       if ($term = $this->termManager->getTermFromNodeField($node_fields[$term_data['field']], $term_data['field'], $term_data['value'])) {
         if ($field_info->getCardinality() == 1) {
           $node->set($term_data['field'], ['target_id' => $term->id()]);
+          $node->save();
+          $updated = TRUE;
         } else {
           // Check the term oes not all ready exist on the multi field.
           if (!$this->checkExistingTermInField($node, $term->id(), $term_data['field'])) {
             // Check the term does not already exist on a primary field.
             if (!$this->checkPrimaryEntityFields($node, $node_fields, $term->id())) {
               $node->get($term_data['field'])->appendItem(['target_id' => $term->id()]);
+              $node->save();
+              $updated = TRUE;
             }
           }
         }
-        $node->save();
       }
     }
+    return $updated;
   }
 
   /**

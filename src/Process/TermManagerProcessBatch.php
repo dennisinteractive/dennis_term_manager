@@ -57,7 +57,7 @@ class TermManagerProcessBatch {
     $this->batchBuilder
       ->setTitle(t('Processing'))
       ->setInitMessage(t('Initializing.'))
-      ->setProgressMessage(t('Completed @current of @total.'))
+      ->setProgressMessage(t(''))
       ->setErrorMessage(t('An error has occurred.'))
       ->setFinishCallback($finishCallback);
     // Batch the update to ensure it does not timeout.
@@ -93,19 +93,21 @@ class TermManagerProcessBatch {
       if ($context['sandbox']['progress'] != 0) {
         array_splice($context['sandbox']['items'], 0, self::LIMIT);
       }
+      $process_items = \Drupal::service('dennis_term_manager.process_item');
       foreach ($context['sandbox']['items'] as $term) {
         if ($counter != self::LIMIT) {
-          \Drupal::service('dennis_term_manager.process_item')->init($term);
-          $counter++;
+          if ($process_items->init($term)) {
+            $counter++;
+            $context['results']['success']++;
+          }
           $context['sandbox']['progress']++;
-          $context['message'] = t('Now :op nodes :progress of :count', [
-            ':op' => 'updating',
-            ':progress' => $context['sandbox']['progress'],
-            ':count' => $context['sandbox']['max'],
-          ]);
-          // Increment total processed item values. Will be used in finished
-          // callback.
-          $context['results']['processed'] = $context['sandbox']['progress'];
+          if ($context['sandbox']['progress'] <= $context['sandbox']['max']) {
+            $context['message'] = t('Now :op item :progress of :count', [
+              ':op' => 'processing',
+              ':progress' => $context['sandbox']['progress'],
+              ':count' => $context['sandbox']['max'],
+            ]);
+          }
         }
       }
     }
@@ -122,17 +124,10 @@ class TermManagerProcessBatch {
   public static function finished($success, $results, $operations) {
     if (!empty($results)) {
       \Drupal::messenger()->addStatus(t(
-        'Number of terms affected by batch: @count',
+        'Number of nodes updated by batch: @count',
         [
-          '@count' => $results['processed']
+          '@count' => $results['success']
         ])
-      );
-
-      \Drupal::messenger()->addStatus(t(
-          'Number of terms affected by batch: @count',
-          [
-            '@count' => $results['processed']
-          ])
       );
     }
   }

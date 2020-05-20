@@ -73,7 +73,9 @@ class TermManagerProcessItem  {
       if ($field_info = $this->termNodeManager->getFieldSettings($term['field'])) {
         if ($node = $this->termNodeManager->checkNodeStatus($term)) {
           if ($node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle())) {
-            $this->termNodeManager->updateNode($node, $field_info, $node_field, $term);
+            if ($this->termNodeManager->updateNode($node, $field_info, $node_field, $term)) {
+              return TRUE;
+            }
           }
         }
       }
