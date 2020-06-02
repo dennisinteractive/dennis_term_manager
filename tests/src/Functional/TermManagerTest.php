@@ -55,7 +55,7 @@ class TermManagerTest extends TermManagerTestBase {
     $this->assertEquals(NULL, $this->termNodeManager->checkNodeStatus($this->term_data[2]));
     $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(),'field_categories'));
     $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
-    // Save the node width product
+    // Save the node with category
     $this->node->get($this->term_data[1]['field'])->appendItem(['target_id' => $this->cat1->id()]);
     $field_info = $this->termNodeManager->getFieldSettings($this->term_data[0]['field']);
     $node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle());

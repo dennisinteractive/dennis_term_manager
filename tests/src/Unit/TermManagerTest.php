@@ -40,8 +40,8 @@ class TermManagerTest extends TermManagerTestBase {
    * @covers \Drupal\dennis_term_manager\TermNodeManager::checkNodeFieldName
    */
   public function testCheckNodeFieldName() {
-    $this->assertEquals(TRUE, $this->termNodeManager->checkNodeFieldName('field_primary_product', 'field'));
-    $this->assertEquals(FALSE, $this->termNodeManager->checkNodeFieldName('primary_product', 'field'));
+    $this->assertEquals(TRUE, $this->termNodeManager->checkNodeFieldName('field_primary_category', 'field'));
+    $this->assertEquals(FALSE, $this->termNodeManager->checkNodeFieldName('primary_category', 'field'));
   }
 
   /**
