@@ -32,7 +32,7 @@ abstract class TermManagerTestBase extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['content_moderation', 'polaris_drupal_content_api', 'polaris_drupal_product'];
+  public static $modules = ['content_moderation', 'polaris_drupal_content_api'];
 
   /**
    * {@inheritdoc}

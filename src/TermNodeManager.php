@@ -65,7 +65,7 @@ class TermNodeManager implements TermNodeManagerInterface {
           $node->save();
           $updated = TRUE;
         } else {
-          // Check the term oes not all ready exist on the multi field.
+          // Check the term does not all ready exist on the multi field.
           if (!$this->checkExistingTermInField($node, $term->id(), $term_data['field'])) {
             // Check the term does not already exist on a primary field.
             if (!$this->checkPrimaryEntityFields($node, $node_fields, $term->id())) {

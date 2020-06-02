@@ -53,20 +53,21 @@ class TermManagerTest extends TermManagerTestBase {
     $node = $this->termNodeManager->checkNodeStatus($this->term_data[0]);
     $this->assertInstanceOf('\Drupal\Core\Entity\EntityInterface', $node);
     $this->assertEquals(NULL, $this->termNodeManager->checkNodeStatus($this->term_data[2]));
-    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->product1->id(),'field_product'));
-    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->product2->id(),'field_product'));
+    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(),'field_categories'));
+    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
     // Save the node width product
-    $this->node->get($this->term_data[1]['field'])->appendItem(['target_id' => $this->product1->id()]);
+    $this->node->get($this->term_data[1]['field'])->appendItem(['target_id' => $this->cat1->id()]);
     $field_info = $this->termNodeManager->getFieldSettings($this->term_data[0]['field']);
     $node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle());
-    $this->termNodeManager->updateNode($node, $field_info, $node_field, $this->term_data[0]);
+    $this->assertEquals(FALSE, $this->termNodeManager->updateNode($node, $field_info, $node_field, $this->term_data[0]));
 
-    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->product1->id(),'field_product'));
-    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->product2->id(),'field_product'));
-    $this->assertEquals(TRUE, $this->termNodeManager->checkPrimaryEntityFields($this->node, $this->node_fields, $this->product1->id()));
-    $this->assertEquals(NULL, $this->termNodeManager->checkPrimaryEntityFields($this->node, $this->node_fields, $this->product2->id()));
+    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(),'field_categories'));
+    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
+    $this->assertEquals(TRUE, $this->termNodeManager->checkPrimaryEntityFields($this->node, $this->node_fields, $this->cat1->id()));
+    $this->assertEquals(NULL, $this->termNodeManager->checkPrimaryEntityFields($this->node, $this->node_fields, $this->cat2->id()));
     $field_info1 = $this->termNodeManager->getFieldSettings($this->term_data[1]['field']);
-    $this->termNodeManager->updateNode($node, $field_info1, $node_field, $this->term_data[1]);
-    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->product2->id(),'field_product'));
+    $this->node->get($this->term_data[2]['field'])->appendItem(['target_id' => $this->cat2->id()]);
+    $this->assertEquals(TRUE, $this->termNodeManager->updateNode($node, $field_info1, $node_field, $this->term_data[1]));
+    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
   }
 }

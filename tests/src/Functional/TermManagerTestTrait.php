@@ -20,17 +20,17 @@ trait TermManagerTestTrait {
   /**
    * @var
    */
-  protected $product1;
+  protected $cat1;
 
   /**
    * @var
    */
-  protected $product2;
+  protected $cat2;
 
   /**
    * @var string
    */
-  protected static $vocab_name = 'product';
+  protected static $vocab_name = 'category';
 
 
   /**
@@ -38,14 +38,14 @@ trait TermManagerTestTrait {
    */
   protected function createArticleContent() {
     $vocabulary = Vocabulary::load(self::$vocab_name);
-    $this->product1 = $this->createTerm($vocabulary, ['name' => $this->createTestCSVData()[0]['value']]);
-    $this->product2 = $this->createTerm($vocabulary, ['name' => $this->createTestCSVData()[1]['value']]);
+    $this->cat1 = $this->createTerm($vocabulary, ['name' => $this->createTestCSVData()[0]['value']]);
+    $this->cat2 = $this->createTerm($vocabulary, ['name' => $this->createTestCSVData()[1]['value']]);
     // Create the article.
     $this->node = $this->createNode(
       [
         'type' => 'article',
         'title' => 'Test Article',
-        'field_primary_product' => $this->product1,
+        'field_primary_category' => $this->cat1,
       ]
     );
   }
@@ -76,9 +76,9 @@ trait TermManagerTestTrait {
    */
   public function createTestCSVData() {
     return [
-      ['node' => 1, 'field' => 'field_product', 'value' => 'just eat'],
-      ['node' => 1, 'field' => 'field_product', 'value' => 'scottish mortgage investment trust'],
-      ['node' => 2, 'field' => 'field_product', 'value' => 'this node does not exist'],
+      ['node' => 1, 'field' => 'field_categories', 'value' => 'just eat'],
+      ['node' => 1, 'field' => 'field_categories', 'value' => 'scottish mortgage investment trust'],
+      ['node' => 2, 'field' => 'field_categories', 'value' => 'this node does not exist'],
     ];
   }
 }
