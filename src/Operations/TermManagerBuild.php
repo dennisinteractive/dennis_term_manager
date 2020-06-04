@@ -12,7 +12,7 @@ use Drupal\Core\Messenger\Messenger;
  *
  * @package Drupal\dennis_term_manager\Operations
  */
-class TermManagerBuild implements termManagerBuildInterface {
+class TermManagerBuild implements TermManagerBuildInterface {
 
   /**
    * @var \Drupal\Core\Messenger\Messenger
