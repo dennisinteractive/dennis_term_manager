@@ -1,0 +1,36 @@
+services:
+  dennis_term_manager.terms:
+    class: Drupal\dennis_term_manager\TermManager
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+  dennis_term_manager.terms_nodes:
+    class: Drupal\dennis_term_manager\TermNodeManager
+    arguments:
+      - '@entity_type.manager'
+      - '@dennis_term_manager.terms'
+  dennis_term_manager.file_system:
+    class: Drupal\dennis_term_manager\FileSystem\TermManagerFileSystem
+    arguments:
+      - '@database'
+      - '@file.usage'
+      - '@file_system'
+      - '@logger.factory'
+  dennis_term_manager.build:
+    class: Drupal\dennis_term_manager\Operations\TermManagerBuild
+    arguments:
+      - '@messenger'
+  dennis_term_manager.process_batch:
+    class: Drupal\dennis_term_manager\Process\TermManagerProcessBatch
+    arguments:
+      - '@messenger'
+      - '@dennis_term_manager.build'
+  dennis_term_manager.process_item:
+    class: Drupal\dennis_term_manager\Process\TermManagerProcessItem
+    arguments:
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@dennis_term_manager.terms'
+      - '@dennis_term_manager.terms_nodes'
+      - '@logger.factory'
+

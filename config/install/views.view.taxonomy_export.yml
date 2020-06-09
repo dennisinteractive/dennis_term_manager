@@ -13,6 +13,9 @@ dependencies:
     - taxonomy
     - user
     - views_data_export
+  enforced:
+    module:
+      - dennis_term_manager
 id: taxonomy_export
 label: 'Taxonomy Export'
 module: views
@@ -684,13 +687,13 @@ display:
     position: 2
     display_options:
       display_extenders: {  }
-      path: admin/structure/taxonomy/export
+      path: admin/structure/taxonomy/term_manager/export
       menu:
         type: normal
         title: Export
         description: ''
         expanded: false
-        parent: entity.taxonomy_vocabulary.collection
+        parent: dennis_term_manager
         weight: -3
         context: '0'
         menu_name: admin
