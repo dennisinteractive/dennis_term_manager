@@ -2,13 +2,14 @@
 
 namespace Drupal\dennis_term_manager\FileSystem;
 
-use Drupal\file\Entity\File;
-use Drupal\Core\File\FileSystem;
+use Drupal\Component\FileSecurity\FileSecurity;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\File\Exception\FileWriteException;
-use Drupal\file\FileUsage\DatabaseFileUsageBackend;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\file\Entity\File;
+use Drupal\file\FileUsage\DatabaseFileUsageBackend;
 
 
 /**
@@ -21,6 +22,15 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
 
   use StringTranslationTrait;
 
+  public static $DENNIS_TERM_MANAGER_PRIVATE_FOLDER = 'private://term_manager';
+
+  public static $DENNIS_TERM_MANAGER_PUBLIC_FOLDER = 'public://term_manager';
+
+  /**
+   * @var \Drupal\file\FileUsage\DatabaseFileUsageBackend
+   */
+  public $fileUsage;
+
   /**
    * The database connection.
    *
@@ -29,12 +39,7 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
   protected $connection;
 
   /**
-   * @var \Drupal\file\FileUsage\DatabaseFileUsageBackend
-   */
-  public $fileUsage;
-
-  /**
-   * @var FileSystem
+   * @var FileSystemInterface
    */
   protected $fileSystem;
 
@@ -45,22 +50,17 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
    */
   protected $logger;
 
-
-  public static $DENNIS_TERM_MANAGER_PRIVATE_FOLDER = 'private://term_manager';
-
-  public static $DENNIS_TERM_MANAGER_PUBLIC_FOLDER = 'public://term_manager';
-
   /**
    * TermManagerFileSystem constructor.
    *
    * @param Connection $connection
    * @param DatabaseFileUsageBackend $fileUsage
-   * @param FileSystem $fileSystem
+   * @param FileSystemInterface $fileSystem
    * @param LoggerChannelFactoryInterface $loggerFactory
    */
   public function __construct(Connection $connection,
                               DatabaseFileUsageBackend $fileUsage,
-                              FileSystem $fileSystem,
+                              FileSystemInterface $fileSystem,
                               LoggerChannelFactoryInterface $loggerFactory) {
     $this->connection = $connection;
     $this->fileUsage = $fileUsage;
@@ -71,7 +71,7 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
   /**
    * {@inheritdoc}
    */
-  public function getFilesDir() {
+  public function getFilesDir(): string {
     // Store CSV/TSV files and reports in private file location if available.
     if ($this->fileSystem->realpath("private://")) {
       $location = self::$DENNIS_TERM_MANAGER_PRIVATE_FOLDER;
@@ -90,7 +90,7 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
     }
     elseif (is_dir($location)) {
       // Create private .htaccess file.
-      \Drupal\Component\FileSecurity\FileSecurity::writeHtaccess($location);
+      FileSecurity::writeHtaccess($location);
       return $location;
     }
 
@@ -108,7 +108,7 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
     $query->join('file_usage', 'fu', "fm.fid = fu.fid");
     return $query->condition('fu.module', 'dennis_term_manager')
       ->orderBy('fu.fid', 'DESC')
-      ->range(0,1)
+      ->range(0, 1)
       ->execute()
       ->fetchCol();
   }
@@ -116,7 +116,7 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
   /**
    * {@inheritdoc}
    */
-  public function saveFile(File $file) {
+  public function saveFile(File $file): File {
     if (is_object($file)) {
       $this->fileUsage->add($file, 'dennis_term_manager', 'dennis_term_manager_csv_file', 1);
     }
@@ -127,4 +127,5 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
     }
     return $file;
   }
+
 }
