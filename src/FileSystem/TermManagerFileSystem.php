@@ -5,7 +5,6 @@ namespace Drupal\dennis_term_manager\FileSystem;
 use Drupal\Component\FileSecurity\FileSecurity;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\File\Exception\FileWriteException;
-use Drupal\Core\File\FileSystem;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -40,7 +39,7 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
   protected $connection;
 
   /**
-   * @var FileSystem
+   * @var FileSystemInterface
    */
   protected $fileSystem;
 
