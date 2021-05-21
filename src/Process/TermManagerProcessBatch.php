@@ -87,6 +87,9 @@ class TermManagerProcessBatch {
       $context['sandbox']['items'] = $terms;
     }
     $counter = 0;
+    if (!isset($context['results']['success'])) {
+      $context['results']['success'] = 0;
+    }
 
     if (!empty($context['sandbox']['items'])) {
       // Remove already processed items.
@@ -97,7 +100,6 @@ class TermManagerProcessBatch {
       foreach ($context['sandbox']['items'] as $term) {
         if ($counter != self::LIMIT) {
           if ($process_items->init($term)) {
-            $counter++;
             $context['results']['success']++;
           }
           $context['sandbox']['progress']++;
@@ -108,6 +110,7 @@ class TermManagerProcessBatch {
               ':count' => $context['sandbox']['max'],
             ]);
           }
+          $counter++;
         }
       }
     }
@@ -122,7 +125,7 @@ class TermManagerProcessBatch {
    * {@inheritdoc}
    */
   public static function finished($success, $results, $operations) {
-    if (!empty($results)) {
+    if (!empty($results) && (isset($results['success']))) {
       \Drupal::messenger()->addStatus(t(
         'Number of nodes updated by batch: @count',
         [

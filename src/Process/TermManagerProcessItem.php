@@ -80,5 +80,6 @@ class TermManagerProcessItem  {
         }
       }
     }
+    return FALSE;
   }
 }
