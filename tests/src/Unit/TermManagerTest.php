@@ -14,6 +14,7 @@ use Drupal\dennis_term_manager\Operations\TermManagerBuild;
  * @package Drupal\Tests\dennis_term_manager\Unit
  *
  * @group polaris
+ * @group dennis_term_manager
  */
 class TermManagerTest extends TermManagerTestBase {
 
@@ -27,7 +28,7 @@ class TermManagerTest extends TermManagerTestBase {
    */
   protected $termManagerBuild;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->setConstructorArguments();
     $this->termNodeManager = new TermNodeManager($this->entityTypeManager, $this->termManager);

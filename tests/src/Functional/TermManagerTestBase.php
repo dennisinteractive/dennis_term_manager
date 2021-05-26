@@ -32,7 +32,7 @@ abstract class TermManagerTestBase extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['content_moderation', 'polaris_drupal_content_api'];
+  protected static $modules = ['content_moderation', 'polaris_drupal_content_api'];
 
   /**
    * {@inheritdoc}
@@ -102,7 +102,7 @@ abstract class TermManagerTestBase extends BrowserTestBase {
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->state = \Drupal::state();
     $this->state->set('polaris_drupal_content_api_disable', TRUE);

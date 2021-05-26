@@ -8,6 +8,7 @@ namespace Drupal\Tests\dennis_term_manager\Functional;
  * @package Drupal\Tests\dennis_term_manager\Functional
  *
  * @group polaris
+ * @group dennis_term_manager
  */
 class TermManagerTest extends TermManagerTestBase {
 
@@ -27,7 +28,7 @@ class TermManagerTest extends TermManagerTestBase {
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->createArticleContent();
     $this->term_data = $this->createTestCSVData();
