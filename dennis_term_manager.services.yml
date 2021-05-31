@@ -33,4 +33,3 @@ services:
       - '@dennis_term_manager.terms'
       - '@dennis_term_manager.terms_nodes'
       - '@logger.factory'
-
