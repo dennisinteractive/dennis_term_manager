@@ -3,7 +3,7 @@
 namespace Drupal\Tests\dennis_term_manager\Functional;
 
 /**
- * Class TermManagerTest
+ * Class TermManagerTest.
  *
  * @package Drupal\Tests\dennis_term_manager\Functional
  *
@@ -13,18 +13,23 @@ namespace Drupal\Tests\dennis_term_manager\Functional;
 class TermManagerTest extends TermManagerTestBase {
 
   /**
-   * @var
+   * Node field definitions.
+   *
+   * @var \Drupal\Core\Field\FieldDefinitionInterface[]
    */
+  // phpcs:ignore
   protected $node_fields;
 
   /**
-   * @var
+   * Test term data instances.
+   *
+   * @var \Drupal\taxonomy\TermInterface[]
    */
+  // phpcs:ignore
   protected $term_data;
 
-
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
@@ -36,13 +41,15 @@ class TermManagerTest extends TermManagerTestBase {
   }
 
   /**
+   * Tests term manager.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function testTermManager() {
 
-   // Drupal\dennis_term_manager\FileSystem\TermManagerFileSystem
+    // Drupal\dennis_term_manager\FileSystem\TermManagerFileSystem.
     $this->assertEquals("private://term_manager", $this->termManagerFileSystem->getFilesDir());
 
     // \Drupal\dennis_term_manager\TermNodeManager
@@ -54,21 +61,22 @@ class TermManagerTest extends TermManagerTestBase {
     $node = $this->termNodeManager->checkNodeStatus($this->term_data[0]);
     $this->assertInstanceOf('\Drupal\Core\Entity\EntityInterface', $node);
     $this->assertEquals(NULL, $this->termNodeManager->checkNodeStatus($this->term_data[2]));
-    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(),'field_categories'));
-    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
-    // Save the node with category
+    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(), 'field_categories'));
+    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(), 'field_categories'));
+    // Save the node with category.
     $this->node->get($this->term_data[1]['field'])->appendItem(['target_id' => $this->cat1->id()]);
     $field_info = $this->termNodeManager->getFieldSettings($this->term_data[0]['field']);
     $node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle());
     $this->assertEquals(FALSE, $this->termNodeManager->updateNode($node, $field_info, $node_field, $this->term_data[0]));
 
-    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(),'field_categories'));
-    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
+    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat1->id(), 'field_categories'));
+    $this->assertEquals(NULL, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(), 'field_categories'));
     $this->assertEquals(TRUE, $this->termNodeManager->checkPrimaryEntityFields($this->node, $this->node_fields, $this->cat1->id()));
     $this->assertEquals(NULL, $this->termNodeManager->checkPrimaryEntityFields($this->node, $this->node_fields, $this->cat2->id()));
     $field_info1 = $this->termNodeManager->getFieldSettings($this->term_data[1]['field']);
     $this->node->get($this->term_data[2]['field'])->appendItem(['target_id' => $this->cat2->id()]);
     $this->assertEquals(TRUE, $this->termNodeManager->updateNode($node, $field_info1, $node_field, $this->term_data[1]));
-    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(),'field_categories'));
+    $this->assertEquals(TRUE, $this->termNodeManager->checkExistingTermInField($this->node, $this->cat2->id(), 'field_categories'));
   }
+
 }

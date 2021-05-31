@@ -1,15 +1,12 @@
 <?php
 
-
 namespace Drupal\Tests\dennis_term_manager\Unit;
-
 
 use Drupal\dennis_term_manager\TermNodeManager;
 use Drupal\dennis_term_manager\Operations\TermManagerBuild;
 
-
 /**
- * Class TermManagerTest
+ * Class TermManagerTest.
  *
  * @package Drupal\Tests\dennis_term_manager\Unit
  *
@@ -19,15 +16,22 @@ use Drupal\dennis_term_manager\Operations\TermManagerBuild;
 class TermManagerTest extends TermManagerTestBase {
 
   /**
+   * Term node manager.
+   *
    * @var \Drupal\dennis_term_manager\TermNodeManager
    */
   protected $termNodeManager;
 
   /**
+   * Term manager build.
+   *
    * @var \Drupal\dennis_term_manager\Operations\TermManagerBuild
    */
   protected $termManagerBuild;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->setConstructorArguments();
@@ -64,6 +68,7 @@ class TermManagerTest extends TermManagerTestBase {
    * @covers \Drupal\dennis_term_manager\Operations\TermManagerOperationList::detectDelimiter
    */
   public function testDetectDelimiter() {
-    $this->assertEquals( ',', $this->operationsList->detectDelimiter(self::$csvString));
+    $this->assertEquals(',', $this->operationsList->detectDelimiter(self::$csvString));
   }
+
 }
