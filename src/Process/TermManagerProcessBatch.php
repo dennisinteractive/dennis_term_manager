@@ -8,23 +8,31 @@ use Drupal\Core\Messenger\Messenger;
 use Drupal\dennis_term_manager\Operations\TermManagerBuildInterface;
 
 /**
- * Class TermManagerProcessBatch
+ * Class TermManagerProcessBatch.
+ *
+ * Term Manager Process Batch service.
  *
  * @package Drupal\dennis_term_manager\Process
  */
 class TermManagerProcessBatch {
 
   /**
+   * Messenger service.
+   *
    * @var \Drupal\Core\Messenger\Messenger
    */
   protected $messenger;
 
   /**
-   * @var TermManagerBuildInterface
+   * Term Manager Build instance.
+   *
+   * @var \Drupal\dennis_term_manager\Operations\TermManagerBuildInterface
    */
   protected $termManagerBuild;
 
   /**
+   * Batch builder.
+   *
    * @var \Drupal\Core\Batch\BatchBuilder
    */
   protected $batchBuilder;
@@ -35,8 +43,10 @@ class TermManagerProcessBatch {
   /**
    * TermManagerProcessBatch constructor.
    *
-   * @param Messenger $messenger
-   * @param TermManagerBuildInterface $termManagerBuild
+   * @param \Drupal\Core\Messenger\Messenger $messenger
+   *   Messenger service.
+   * @param \Drupal\dennis_term_manager\Operations\TermManagerBuildInterface $termManagerBuild
+   *   Term Manager Build instance.
    */
   public function __construct(Messenger $messenger,
                               TermManagerBuildInterface $termManagerBuild) {
@@ -57,14 +67,14 @@ class TermManagerProcessBatch {
     $this->batchBuilder
       ->setTitle(t('Processing'))
       ->setInitMessage(t('Initializing.'))
-      ->setProgressMessage(t(''))
+      ->setProgressMessage('')
       ->setErrorMessage(t('An error has occurred.'))
       ->setFinishCallback($finishCallback);
     // Batch the update to ensure it does not timeout.
-    $this->batchBuilder->addOperation($batchProcessCallback , [
-        $file,
-        $term_data,
-      ]
+    $this->batchBuilder->addOperation($batchProcessCallback, [
+      $file,
+      $term_data,
+    ]
     );
     return $this->batchBuilder->toArray();
   }
@@ -129,9 +139,10 @@ class TermManagerProcessBatch {
       \Drupal::messenger()->addStatus(t(
         'Number of nodes updated by batch: @count',
         [
-          '@count' => $results['success']
+          '@count' => $results['success'],
         ])
       );
     }
   }
+
 }

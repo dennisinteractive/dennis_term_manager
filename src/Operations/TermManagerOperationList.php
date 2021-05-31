@@ -3,31 +3,36 @@
 namespace Drupal\dennis_term_manager\Operations;
 
 /**
- * Class TermManagerOperationList
+ * Class TermManagerOperationList.
  *
  * @package Drupal\dennis_term_manager\Operations
  */
-class TermManagerOperationList  {
+class TermManagerOperationList {
 
   /**
    * List of OperationItem.
+   *
    * @var array
    */
   protected $operationList = [];
 
   /**
    * List of errors.
+   *
    * @var array
    */
   protected $errorList = [];
 
-
   /**
    * Count delimiters and see what is the mostly used.
    *
-   * @param $str
-   * @param null $delimiter
+   * @param string $str
+   *   Input string.
+   * @param string|null $delimiter
+   *   Predefined delimiter. Empty by the default.
+   *
    * @return mixed|null
+   *   Detected delimiter based on the content of the input string.
    */
   public function detectDelimiter($str, $delimiter = NULL) {
     // Get number of rows.
@@ -64,4 +69,5 @@ class TermManagerOperationList  {
       'space' => " ",
     ];
   }
+
 }
