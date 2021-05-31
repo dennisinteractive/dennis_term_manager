@@ -20,6 +20,12 @@ jobs:
             composer update --profile -vvv --with-dependencies drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager:dev-${CIRCLE_BRANCH}
 
       - run:
+          name: PHPCS checks
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/phpcs -n --colors --standard=../vendor/drupal/coder/coder_sniffer/Drupal modules/contrib/dennis_term_manager
+
+      - run:
           name: Install profile
           command: cd /var/www/polaris/web && sh profiles/polaris/scripts/install.sh
 
@@ -70,6 +76,12 @@ jobs:
             echo [INFO] Requiring branch dev-${CIRCLE_BRANCH}
             cd /var/www/polaris && composer require drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager
             composer require --update-with-dependencies drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager:dev-${CIRCLE_BRANCH}
+
+      - run:
+          name: PHPCS checks
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/phpcs -n --colors --standard=../vendor/drupal/coder/coder_sniffer/Drupal modules/contrib/dennis_term_manager
 
       - run:
           name: Install profile
