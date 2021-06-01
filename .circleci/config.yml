@@ -40,7 +40,7 @@ jobs:
           name: Run tests
           command: |
             cd /var/www/polaris/web
-            sudo -u www-data ../vendor/bin/phpunit -c ../ modules/contrib/dennis_term_manager/tests/src/Functional/ --group dennis_term_manager
+            sudo -u www-data ../vendor/bin/phpunit -c ../ modules/contrib/dennis_term_manager/tests/src/ --group dennis_term_manager
 
       - store_artifacts:
           path: /var/www/polaris/web/sites/default/files/simpletest
@@ -98,7 +98,7 @@ jobs:
           name: Run tests
           command: |
             cd /var/www/polaris/web
-            sudo -u www-data ../vendor/bin/phpunit -c ../ modules/contrib/dennis_term_manager/tests/src/Functional/ --group dennis_term_manager
+            sudo -u www-data ../vendor/bin/phpunit -c ../ modules/contrib/dennis_term_manager/tests/src/ --group dennis_term_manager
 
       - store_artifacts:
           path: /var/www/polaris/web/sites/default/files/simpletest
