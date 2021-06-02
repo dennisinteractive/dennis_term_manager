@@ -33,4 +33,7 @@ services:
       - '@dennis_term_manager.terms'
       - '@dennis_term_manager.terms_nodes'
       - '@logger.factory'
+  dennis_term_manager.export:
+      class: Drupal\dennis_term_manager\Operations\TermManagerExport
+      arguments: {}
 

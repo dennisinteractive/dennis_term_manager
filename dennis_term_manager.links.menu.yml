@@ -10,5 +10,11 @@ dennis_term_manager.term_manager_form:
   description: 'Term Manager Form.'
   parent: dennis_term_manager
   weight: -1
+dennis_term_manager.term_manager_form_export:
+  title: 'Export'
+  route_name: dennis_term_manager.term_manager_form_export
+  description: 'Term Manager Export Form.'
+  parent: dennis_term_manager
+  weight: -2
 
 

@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Remove export view. Replaced by form.
+ */
+function dennis_term_manager_update_8001() {
+  $config_factory = Drupal::configFactory();
+
+  $export_view = $config_factory->getEditable('views.view.taxonomy_export');
+  $export_view->delete();
+}
