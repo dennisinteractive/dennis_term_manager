@@ -11,22 +11,24 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\file\Entity\File;
 use Drupal\file\FileUsage\DatabaseFileUsageBackend;
 
-
 /**
- * Class TermManagerFileSystem
+ * Class TermManagerFileSystem.
  *
  * @package Drupal\dennis_term_manager
  */
 class TermManagerFileSystem implements TermManagerFileSystemInterface {
 
-
   use StringTranslationTrait;
 
+  // phpcs:ignore
   public static $DENNIS_TERM_MANAGER_PRIVATE_FOLDER = 'private://term_manager';
 
+  // phpcs:ignore
   public static $DENNIS_TERM_MANAGER_PUBLIC_FOLDER = 'public://term_manager';
 
   /**
+   * File usage service.
+   *
    * @var \Drupal\file\FileUsage\DatabaseFileUsageBackend
    */
   public $fileUsage;
@@ -39,7 +41,9 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
   protected $connection;
 
   /**
-   * @var FileSystemInterface
+   * File system service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
    */
   protected $fileSystem;
 
@@ -53,10 +57,14 @@ class TermManagerFileSystem implements TermManagerFileSystemInterface {
   /**
    * TermManagerFileSystem constructor.
    *
-   * @param Connection $connection
-   * @param DatabaseFileUsageBackend $fileUsage
-   * @param FileSystemInterface $fileSystem
-   * @param LoggerChannelFactoryInterface $loggerFactory
+   * @param \Drupal\Core\Database\Connection $connection
+   *   Database connection instance.
+   * @param \Drupal\file\FileUsage\DatabaseFileUsageBackend $fileUsage
+   *   File usage service.
+   * @param \Drupal\Core\File\FileSystemInterface $fileSystem
+   *   File system service.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   Logger factory.
    */
   public function __construct(Connection $connection,
                               DatabaseFileUsageBackend $fileUsage,

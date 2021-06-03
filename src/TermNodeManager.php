@@ -5,22 +5,24 @@ namespace Drupal\dennis_term_manager;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Core\Entity\EntityStorageException;
-use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 
 /**
- * Class TermNodeManager
+ * Class TermNodeManager.
  *
  * @package Drupal\dennis_term_manager
  */
 class TermNodeManager implements TermNodeManagerInterface {
 
   /**
-   * @var EntityTypeManager
+   * Entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManager
    */
   protected $entityTypeManager;
 
   /**
+   * Term manager.
+   *
    * @var TermManagerInterface
    */
   protected $termManager;
@@ -28,8 +30,10 @@ class TermNodeManager implements TermNodeManagerInterface {
   /**
    * TermManagerProcessItem constructor.
    *
-   * @param EntityTypeManager $entityTypeManager
+   * @param \Drupal\Core\Entity\EntityTypeManager $entityTypeManager
+   *   Entity type manager.
    * @param TermManagerInterface $termManager
+   *   Term manager.
    */
   public function __construct(EntityTypeManager $entityTypeManager,
                               TermManagerInterface $termManager) {
@@ -51,7 +55,7 @@ class TermNodeManager implements TermNodeManagerInterface {
   /**
    * {@inheritdoc}
    *
-   * @throws EntityStorageException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function updateNode(EntityInterface $node,
                              FieldStorageConfig $field_info,
@@ -64,7 +68,8 @@ class TermNodeManager implements TermNodeManagerInterface {
           $node->set($term_data['field'], ['target_id' => $term->id()]);
           $node->save();
           $updated = TRUE;
-        } else {
+        }
+        else {
           // Check the term does not all ready exist on the multi field.
           if (!$this->checkExistingTermInField($node, $term->id(), $term_data['field'])) {
             // Check the term does not already exist on a primary field.
@@ -105,44 +110,47 @@ class TermNodeManager implements TermNodeManagerInterface {
    */
   public function checkPrimaryEntityFields(EntityInterface $node, array $node_fields, $tid) {
     foreach ($node_fields as $field) {
-      if($this->checkNodeFieldName($field->getName(), 'field')) {
-        /** @var \Drupal\field\Entity\FieldStorageConfig $node_field */
-        if ($node_field = $this->getFieldSettings($field->getName())) {
-          if ($node_field->getCardinality() == 1) {
-            if ($check_field_tid = $node->get($field->getName())->getString()) {
-              if ($tid == $check_field_tid) {
-                return TRUE;
-              }
-            }
-          }
-        }
+      /** @var \Drupal\field\Entity\FieldStorageConfig $node_field */
+      if (
+        $this->checkNodeFieldName($field->getName(), 'field')
+        && ($node_field = $this->getFieldSettings($field->getName()))
+        && ($node_field->getCardinality() == 1)
+        && ($check_field_tid = $node->get($field->getName())->getString())
+        && $tid == $check_field_tid
+      ) {
+        return TRUE;
       }
     }
+    return NULL;
   }
 
   /**
    * {@inheritdoc}
    *
-   * @throws InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function checkNodeStatus(array $term_data) {
-    if (isset($term_data['node'])) {
-      if ($node = $this->entityTypeManager->getStorage('node')->load($term_data['node'])) {
-        return $node;
-      }
+    if (isset($term_data['node']) && $node = $this->entityTypeManager->getStorage('node')->load($term_data['node'])) {
+      return $node;
     }
+    return NULL;
   }
 
   /**
    * Compare the beginning of a string with a given needle.
    *
-   * @param $string
-   * @param $needle
+   * @param string $string
+   *   Actual string.
+   * @param string $needle
+   *   Expected needle string.
+   *
    * @return bool
+   *   True if the given string matching the needle or the needle is the prefix
+   *   for the given string. False - otherwise.
    */
   public function checkNodeFieldName($string, $needle) {
-    $len = strlen($needle);
-    return (substr($string, 0, $len) === $needle);
+    return strpos($string, $needle) === 0;
   }
+
 }

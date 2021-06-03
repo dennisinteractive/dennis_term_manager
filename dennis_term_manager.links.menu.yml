@@ -10,5 +10,3 @@ dennis_term_manager.term_manager_form:
   description: 'Term Manager Form.'
   parent: dennis_term_manager
   weight: -1
-
-

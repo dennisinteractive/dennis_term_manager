@@ -6,32 +6,40 @@ use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
- * Trait TermManagerTestTrait
+ * Trait TermManagerTestTrait.
  *
  * @package Drupal\Tests\dennis_term_manager\Functional
  */
 trait TermManagerTestTrait {
 
   /**
-   * @var \Drupal\Core\Entity\ContentEntityInterface $entity
+   * Node instance.
+   *
+   * @var \Drupal\Core\Entity\ContentEntityInterface
    */
   protected $node;
 
   /**
-   * @var
+   * Term instance 1.
+   *
+   * @var \Drupal\taxonomy\TermInterface
    */
   protected $cat1;
 
   /**
-   * @var
+   * Term instance 2.
+   *
+   * @var \Drupal\taxonomy\TermInterface
    */
   protected $cat2;
 
   /**
+   * Vocabulary name.
+   *
    * @var string
    */
+  // phpcs:ignore
   protected static $vocab_name = 'category';
-
 
   /**
    * Create an article for testing.
@@ -52,11 +60,13 @@ trait TermManagerTestTrait {
 
   /**
    * Returns a new vocabulary.
-   * @param $vid
+   *
+   * @param string $vid
    *   Vocabulary vid.
-   * @return \Drupal\taxonomy\VocabularyInterface
+   *
+   * @return \Drupal\taxonomy\VocabularyInterface|\Drupal\Core\Entity\EntityInterface|Vocabulary
    *   A vocabulary used for testing.
-   * @return \Drupal\Core\Entity\EntityInterface|Vocabulary
+   *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function createCustomVocabulary($vid) {
@@ -72,13 +82,30 @@ trait TermManagerTestTrait {
   }
 
   /**
-   * @return array
+   * Create test CSV data.
+   *
+   * @return array[]
+   *   Test data.
    */
+  // phpcs:ignore
   public function createTestCSVData() {
     return [
-      ['node' => 1, 'field' => 'field_categories', 'value' => 'just eat'],
-      ['node' => 1, 'field' => 'field_categories', 'value' => 'scottish mortgage investment trust'],
-      ['node' => 2, 'field' => 'field_categories', 'value' => 'this node does not exist'],
+      [
+        'node' => 1,
+        'field' => 'field_categories',
+        'value' => 'just eat',
+      ],
+      [
+        'node' => 1,
+        'field' => 'field_categories',
+        'value' => 'scottish mortgage investment trust',
+      ],
+      [
+        'node' => 2,
+        'field' => 'field_categories',
+        'value' => 'this node does not exist',
+      ],
     ];
   }
+
 }

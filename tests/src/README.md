@@ -11,4 +11,3 @@
 ### Run the test
 From within the `web` directory:
 `../vendor/bin/phpunit -c core modules/contrib/dennis_term_manager/tests/src/  @group polaris`
-

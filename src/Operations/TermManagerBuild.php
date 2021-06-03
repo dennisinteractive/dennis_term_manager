@@ -1,26 +1,27 @@
 <?php
 
-
 namespace Drupal\dennis_term_manager\Operations;
 
 use Drupal\file\Entity\File;
 use Drupal\Core\Messenger\Messenger;
 
-
 /**
- * Class TermManagerBuild
+ * Class TermManagerBuild.
  *
  * @package Drupal\dennis_term_manager\Operations
  */
 class TermManagerBuild implements TermManagerBuildInterface {
 
   /**
+   * Messenger service.
+   *
    * @var \Drupal\Core\Messenger\Messenger
    */
   protected $messenger;
 
   /**
    * List of operations.
+   *
    * @var TermManagerOperationList
    */
   protected $operationList;
@@ -28,7 +29,8 @@ class TermManagerBuild implements TermManagerBuildInterface {
   /**
    * TermManagerBuild constructor.
    *
-   * @param Messenger $messenger
+   * @param \Drupal\Core\Messenger\Messenger $messenger
+   *   Messenger service.
    */
   public function __construct(Messenger $messenger) {
     $this->messenger = $messenger;
@@ -46,7 +48,7 @@ class TermManagerBuild implements TermManagerBuildInterface {
     $term_data = [];
 
     // Detect line endings.
-    ini_set('auto_detect_line_endings',TRUE);
+    ini_set('auto_detect_line_endings', TRUE);
 
     if (($handle = fopen($file_path->getFileUri(), "r")) !== FALSE) {
 
@@ -86,4 +88,5 @@ class TermManagerBuild implements TermManagerBuildInterface {
       'value',
     ];
   }
+
 }

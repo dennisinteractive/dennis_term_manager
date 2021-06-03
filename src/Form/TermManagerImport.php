@@ -12,33 +12,42 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\dennis_term_manager\Process\TermManagerProcessBatch;
 
 /**
- * Class TermManagerImport
+ * Class TermManagerImport.
  *
  * @package Drupal\dennis_term_manager\Form
  */
 class TermManagerImport extends FormBase {
 
   /**
+   * Messenger service.
+   *
    * @var \Drupal\Core\Messenger\Messenger
    */
   protected $messenger;
 
   /**
-   * @var TermManagerFileSystemInterface
+   * Term manager file system.
+   *
+   * @var \Drupal\dennis_term_manager\FileSystem\TermManagerFileSystemInterface
    */
   protected $termManagerFileSystem;
 
   /**
-   * @var TermManagerProcessBatch
+   * Term manager process batch.
+   *
+   * @var \Drupal\dennis_term_manager\Process\TermManagerProcessBatch
    */
   protected $termManagerProcessBatch;
 
   /**
    * TermManagerImport constructor.
    *
-   * @param Messenger $messenger
-   * @param TermManagerFileSystemInterface $termManagerFileSystem
-   * @param TermManagerProcessBatch $termManagerProcessBatch
+   * @param \Drupal\Core\Messenger\Messenger $messenger
+   *   Messenger.
+   * @param \Drupal\dennis_term_manager\FileSystem\TermManagerFileSystemInterface $termManagerFileSystem
+   *   Term manager file system.
+   * @param \Drupal\dennis_term_manager\Process\TermManagerProcessBatch $termManagerProcessBatch
+   *   Term manager process batch.
    */
   public function __construct(Messenger $messenger,
                               TermManagerFileSystemInterface $termManagerFileSystem,
@@ -92,7 +101,7 @@ class TermManagerImport extends FormBase {
       '#default_value' => '',
       '#upload_validators' => [
         'file_validate_extensions' => ['csv'],
-      ]
+      ],
     ];
 
     $form['buttons']['submit'] = [
@@ -137,4 +146,5 @@ class TermManagerImport extends FormBase {
       }
     }
   }
+
 }

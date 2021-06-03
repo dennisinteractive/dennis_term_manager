@@ -9,19 +9,23 @@ use Drupal\dennis_term_manager\TermNodeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
 /**
- * Class TermManagerProcessItem
+ * Class TermManagerProcessItem.
  *
  * @package Drupal\dennis_term_manager\Process
  */
-class TermManagerProcessItem  {
+class TermManagerProcessItem {
 
   /**
-   * @var EntityTypeManager
+   * Entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManager
    */
   protected $entityTypeManager;
 
   /**
-   * @var EntityFieldManager
+   * Entity field manager.
+   *
+   * @var \Drupal\Core\Entity\EntityFieldManager
    */
   protected $entityFieldManager;
 
@@ -33,23 +37,32 @@ class TermManagerProcessItem  {
   protected $logger;
 
   /**
-   * @var TermManagerInterface
+   * Term manager.
+   *
+   * @var \Drupal\dennis_term_manager\TermManagerInterface
    */
   protected $termManager;
 
   /**
-   * @var TermNodeManagerInterface
+   * Term node manager.
+   *
+   * @var \Drupal\dennis_term_manager\TermNodeManagerInterface
    */
   protected $termNodeManager;
 
   /**
    * TermManagerProcessItem constructor.
    *
-   * @param EntityTypeManager $entityTypeManager
-   * @param EntityFieldManager $entityFieldManager
-   * @param TermManagerInterface $termManager
-   * @param TermNodeManagerInterface $termNodeManager
-   * @param LoggerChannelFactoryInterface $loggerFactory
+   * @param \Drupal\Core\Entity\EntityTypeManager $entityTypeManager
+   *   Entity type manager.
+   * @param \Drupal\Core\Entity\EntityFieldManager $entityFieldManager
+   *   Entity field manager.
+   * @param \Drupal\dennis_term_manager\TermManagerInterface $termManager
+   *   Term manager.
+   * @param \Drupal\dennis_term_manager\TermNodeManagerInterface $termNodeManager
+   *   Term node manager.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   Logger factory.
    */
   public function __construct(EntityTypeManager $entityTypeManager,
                               EntityFieldManager $entityFieldManager,
@@ -67,19 +80,14 @@ class TermManagerProcessItem  {
    * Initiate the updating of terms and nodes.
    *
    * @param array $term
+   *   Nodes to proceed.
    */
   public function init(array $term) {
-    if ( isset($term['node']) && isset($term['field']) && isset($term['value'])) {
-      if ($field_info = $this->termNodeManager->getFieldSettings($term['field'])) {
-        if ($node = $this->termNodeManager->checkNodeStatus($term)) {
-          if ($node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle())) {
-            if ($this->termNodeManager->updateNode($node, $field_info, $node_field, $term)) {
-              return TRUE;
-            }
-          }
-        }
-      }
-    }
-    return FALSE;
+    return isset($term['node'], $term['field'], $term['value'])
+      && ($field_info = $this->termNodeManager->getFieldSettings($term['field']))
+      && ($node = $this->termNodeManager->checkNodeStatus($term))
+      && ($node_field = $this->entityFieldManager->getFieldDefinitions('node', $node->bundle()))
+      && $this->termNodeManager->updateNode($node, $field_info, $node_field, $term);
   }
+
 }
