@@ -7,7 +7,11 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\dennis_term_manager\Operations\TermManagerExportInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-
+/**
+ * Class TermManagerExport
+ *
+ * @package Drupal\dennis_term_manager\Form
+ */
 class TermManagerExport extends FormBase {
 
   /**
@@ -21,13 +25,19 @@ class TermManagerExport extends FormBase {
    * TermManagerExport constructor.
    *
    * @param \Drupal\dennis_term_manager\Operations\TermManagerExportInterface $termManagerExport
+   *   The Term Manager Export
    */
   public function __construct(TermManagerExportInterface $termManagerExport) {
     $this->termManagerExport = $termManagerExport;
   }
 
   /**
-   * {@inheritdoc}
+   * Create the container.
+   *
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
+   *   The Container
+   *
+   * @return static
    */
   public static function create(ContainerInterface $container) {
     // Instantiates this form class.
@@ -37,14 +47,23 @@ class TermManagerExport extends FormBase {
   }
 
   /**
-   * @inheritDoc
+   * The form id
+   *
+   * @return string
    */
   public function getFormId() {
     return 'term_manager_export';
   }
 
   /**
-   * @inheritDoc
+   * The form.
+   *
+   * @param array $form
+   *   The form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The Form State Interface.
+   *
+   * @return array
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['download']['download'] = [
@@ -57,7 +76,12 @@ class TermManagerExport extends FormBase {
   }
 
   /**
-   * @inheritDoc
+   * The submit handler.
+   *
+   * @param array $form
+   *   The form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The Form State Interface.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->termManagerExport->export();
