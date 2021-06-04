@@ -45,13 +45,13 @@ class TermManagerExport implements TermManagerExportInterface {
     }
 
     // Open the stream.
-    $out = fopen('php://output', 'w');
-
-    // Send correct header to download file.
-    header('Content-Disposition: attachment; filename=' . $file_name . ';');
-
-    // Start the file.
-    fputcsv($out, $columns, $delimiter, '"');
+//    $out = fopen('php://output', 'w');
+//
+//    // Send correct header to download file.
+//    header('Content-Disposition: attachment; filename=' . $file_name . ';');
+//
+//    // Start the file.
+//    fputcsv($out, $columns, $delimiter, '"');
 
     // Populate the file.
     while ($row = $result->fetchObject()) {
@@ -79,11 +79,11 @@ class TermManagerExport implements TermManagerExportInterface {
         }
 
       }
-      fputcsv($out, $row_data, $delimiter, '"');
+//      fputcsv($out, $row_data, $delimiter, '"');
     }
 
     // Close the stream.
-    fclose($out);
+//    fclose($out);
   }
 
   /**
@@ -91,7 +91,7 @@ class TermManagerExport implements TermManagerExportInterface {
    *
    * @return \Drupal\Core\Database\Query\SelectInterface
    */
-  protected function query() {
+  public function query() {
     $query = $this->connection->select('taxonomy_term_field_data', 't');
 
     // Term vocabulary and name.
@@ -132,7 +132,7 @@ class TermManagerExport implements TermManagerExportInterface {
    *
    * @return array
    */
-  protected function getColumns() {
+  public function getColumns() {
     return [
       'vocabulary_name',
       'term_name',
@@ -152,7 +152,7 @@ class TermManagerExport implements TermManagerExportInterface {
    *
    * @return string
    */
-  protected function getIndexPage($row) {
+  public function getIndexPage($row) {
     switch ($row->index_page) {
       case '1':
         $value = 'Y';
@@ -170,7 +170,7 @@ class TermManagerExport implements TermManagerExportInterface {
    *
    * @return mixed
    */
-  protected function getNodeCountWithChildren($tid) {
+  public function getNodeCountWithChildren($tid) {
     $query = $this->connection->select('taxonomy_index', 'ti');
     $query->addField('ti', 'nid', 'nid');
     $query->leftJoin('node', 'n', 'n.type != \'gallery\'');

@@ -3,7 +3,6 @@
 
 namespace Drupal\Tests\dennis_term_manager\Unit;
 
-
 use Drupal\dennis_term_manager\TermNodeManager;
 use Drupal\dennis_term_manager\Operations\TermManagerBuild;
 
