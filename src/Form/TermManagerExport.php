@@ -47,7 +47,7 @@ class TermManagerExport extends FormBase {
    * @inheritDoc
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['buttons']['submit'] = [
+    $form['download']['download'] = [
       '#type' => 'submit',
       '#value' => t('Export'),
       '#suffix' => '<span> ' . t('Click the "Export" button to create the csv.') . '</span>',
