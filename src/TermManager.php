@@ -6,10 +6,9 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 
 /**
- * Class TermManager
+ * Class TermManager.
  *
  * @package Drupal\dennis_term_manager
  */
@@ -18,7 +17,9 @@ class TermManager implements TermManagerInterface {
   use StringTranslationTrait;
 
   /**
-   * @var EntityTypeManager
+   * Entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManager
    */
   protected $entityTypeManager;
 
@@ -32,8 +33,10 @@ class TermManager implements TermManagerInterface {
   /**
    * TermManager constructor.
    *
-   * @param EntityTypeManager $entityTypeManager
-   * @param LoggerChannelFactoryInterface $loggerFactory
+   * @param \Drupal\Core\Entity\EntityTypeManager $entityTypeManager
+   *   Entity type manager.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   Logger factory.
    */
   public function __construct(EntityTypeManager $entityTypeManager,
                               LoggerChannelFactoryInterface $loggerFactory) {
@@ -45,14 +48,13 @@ class TermManager implements TermManagerInterface {
   /**
    * {@inheritdoc}
    *
-   * @throws InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getTermFromNodeField(FieldConfig $node_config, $field, $value) {
-    if (isset($field)
-      && isset($node_config)
+    if (isset($field, $node_config)
       && $field == $node_config->getName()
-      && $node_config->getType() == 'entity_reference') {
+      && $node_config->getType() === 'entity_reference') {
       $target_bundles = $node_config->getSettings()['handler_settings']['target_bundles'];
       $vocab = $target_bundles[key($target_bundles)];
       if ($term = $this->getTerm($value, $vocab)) {
@@ -64,7 +66,7 @@ class TermManager implements TermManagerInterface {
   /**
    * {@inheritdoc}
    *
-   * @throws InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getTerm($term_name, $vocab_name) {
@@ -76,9 +78,11 @@ class TermManager implements TermManagerInterface {
         ]
       )) {
         return reset($terms);
-      } else {
+      }
+      else {
         $this->logger->warning($this->t('No term with the name @term_name was found', ['@term_name' => $term_name]));
       }
     }
   }
+
 }

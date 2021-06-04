@@ -37,5 +37,3 @@ services:
     class: Drupal\dennis_term_manager\Operations\TermManagerExport
     arguments:
       - '@database'
-
-

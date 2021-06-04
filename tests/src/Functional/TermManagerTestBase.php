@@ -11,10 +11,8 @@ use Drupal\dennis_term_manager\FileSystem\TermManagerFileSystem;
 use Drupal\dennis_term_manager\TermManager;
 use Drupal\dennis_term_manager\TermNodeManager;
 
-
 /**
  * Article tests.
- *
  */
 abstract class TermManagerTestBase extends BrowserTestBase {
 
@@ -32,7 +30,10 @@ abstract class TermManagerTestBase extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['content_moderation', 'polaris_drupal_content_api'];
+  protected static $modules = [
+    'content_moderation',
+    'polaris_drupal_content_api',
+  ];
 
   /**
    * {@inheritdoc}
@@ -40,69 +41,91 @@ abstract class TermManagerTestBase extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
+   * State service.
+   *
    * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
   /**
+   * Workflow entity instance.
+   *
    * @var \Drupal\workflows\Entity\Workflow
    */
   protected $workflow;
 
   /**
+   * Entity type manager.
+   *
    * @var \Drupal\Core\Entity\EntityTypeManager
    */
   protected $entityTypeManager;
 
   /**
+   * Entity field manager.
+   *
    * @var \Drupal\Core\Entity\EntityFieldManager
    */
   protected $entityFieldManager;
 
   /**
+   * Term node manager.
+   *
    * @var \Drupal\dennis_term_manager\TermNodeManager
    */
   protected $termNodeManager;
 
   /**
+   * Term manager file system.
+   *
    * @var \Drupal\dennis_term_manager\FileSystem\TermManagerFileSystem
    */
   protected $termManagerFileSystem;
 
   /**
+   * Term manager service.
+   *
    * @var \Drupal\dennis_term_manager\TermManager
    */
   protected $termManager;
 
 
   /**
+   * Logger service.
+   *
    * @var \Drupal\Core\Logger\LoggerChannelFactory
    */
   protected $logger;
 
   /**
+   * Database connection instance.
+   *
    * @var \Drupal\Core\Database\Connection
    */
   protected $database;
 
 
   /**
+   * File usage service.
+   *
    * @var \Drupal\file\FileUsage\DatabaseFileUsageBackend
    */
   protected $fileUsage;
 
 
   /**
+   * File system service.
+   *
    * @var \Drupal\Core\File\FileSystem
    */
   protected $fileSystem;
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->state = \Drupal::state();
     $this->state->set('polaris_drupal_content_api_disable', TRUE);
@@ -113,9 +136,8 @@ abstract class TermManagerTestBase extends BrowserTestBase {
     $this->termNodeManager = new TermNodeManager($this->entityTypeManager, $this->termManager);
   }
 
-
   /**
-   * set the arguments to use.
+   * Set the arguments to use.
    */
   public function setConstructorArguments() {
     $this->entityTypeManager = \Drupal::service('entity_type.manager');
@@ -132,7 +154,7 @@ abstract class TermManagerTestBase extends BrowserTestBase {
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
   public function tearDown() {
     $this->state->set('polaris_drupal_content_api_disable', FALSE);
@@ -140,6 +162,8 @@ abstract class TermManagerTestBase extends BrowserTestBase {
   }
 
   /**
+   * Set content moderation workflow.
+   *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   protected function setContentModerationWorkflow() {
@@ -147,4 +171,5 @@ abstract class TermManagerTestBase extends BrowserTestBase {
     $this->workflow->getTypePlugin()->addEntityTypeAndBundle('node', 'article');
     $this->workflow->save();
   }
+
 }

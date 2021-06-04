@@ -1,0 +1,129 @@
+# PHP CircleCI 2.0 configuration file
+version: 2
+jobs:
+  build:
+    docker:
+      - image: dennisdigital/drupalci:8-php7.4-apache-interactive
+    steps:
+      - checkout
+
+      - run:
+          name: Build
+          command: |
+            if [ -z "${PACKAGIST_TOKEN}" ]; then echo "Env variable PACKAGIST_TOKEN missing, get a token from packagist.org"; exit 1; fi
+            composer config --global --auth http-basic.repo.packagist.com dennisdigital ${PACKAGIST_TOKEN}
+            composer create-project dennisdigital/polaris-drupal-project:3.x-dev /var/www/polaris --stability dev --no-interaction --no-install --profile -vvv
+            echo [INFO] Requiring branch dev-${CIRCLE_BRANCH}, mirroring the new packages if required
+            cd /var/www/polaris
+            composer require --profile --no-update -vvv drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager:dev-${CIRCLE_BRANCH}
+            echo [INFO] Updating testing package and it dependencies
+            composer update --profile -vvv --with-dependencies drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager:dev-${CIRCLE_BRANCH}
+
+      - run:
+          name: PHPCS checks
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/phpcs -n --colors --extensions=php,module,inc,install,yml,profile,theme,css,txt,md --standard=../vendor/drupal/coder/coder_sniffer/Drupal modules/contrib/dennis_term_manager
+
+      - run:
+          name: Install profile
+          command: cd /var/www/polaris/web && sh profiles/polaris/scripts/install.sh
+
+      - run:
+          name: Deprecation checks
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/drush en upgrade_status dennis_term_manager -y
+            sudo -u www-data ../vendor/bin/drush upgrade_status:analyze dennis_term_manager
+
+      - run:
+          name: Run tests
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/phpunit -c ../ modules/contrib/dennis_term_manager/tests/src/ --group dennis_term_manager
+
+      - store_artifacts:
+          path: /var/www/polaris/web/sites/default/files/simpletest
+          destination: /tmp/results/simpletest
+
+      - store_artifacts:
+          path: /var/www/polaris/web/sites/simpletest/browser_output
+          destination: /tmp/results/simpletest/browser_output
+
+      - store_artifacts:
+          path: /var/www/polaris/web/sites/default/files/behat-verbose
+          destination: /tmp/results/behat-verbose
+
+      - store_artifacts:
+          path: /var/log/messages
+          destination: /tmp/results/logs
+
+      - store_test_results:
+          path: /tmp/results
+
+  build_next:
+    docker:
+      - image: dennisdigital/drupalci:9-php7.4-apache-interactive
+    steps:
+      - checkout
+
+      - run:
+          name: Build
+          command: |
+            if [ -z "${PACKAGIST_TOKEN}" ]; then echo "Env variable PACKAGIST_TOKEN missing, get a token from packagist.org"; exit 1; fi
+            composer config --global --auth http-basic.repo.packagist.com dennisdigital ${PACKAGIST_TOKEN}
+            composer create-project dennisdigital/polaris-drupal-project:4.x-dev /var/www/polaris --stability dev --no-interaction
+            echo [INFO] Requiring branch dev-${CIRCLE_BRANCH}
+            cd /var/www/polaris && composer require drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager
+            composer require --update-with-dependencies drupal/upgrade_status:^3.0 dennisdigital/dennis_term_manager:dev-${CIRCLE_BRANCH}
+
+      - run:
+          name: PHPCS checks
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/phpcs -n --colors --extensions=php,module,inc,install,yml,profile,theme,css,txt,md --standard=../vendor/drupal/coder/coder_sniffer/Drupal modules/contrib/dennis_term_manager
+
+      - run:
+          name: Install profile
+          command: cd /var/www/polaris/web && sh profiles/polaris/scripts/install.sh
+
+      - run:
+          name: Deprecation checks
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/drush en upgrade_status dennis_term_manager -y
+            sudo -u www-data ../vendor/bin/drush upgrade_status:analyze dennis_term_manager
+
+      - run:
+          name: Run tests
+          command: |
+            cd /var/www/polaris/web
+            sudo -u www-data ../vendor/bin/phpunit -c ../ modules/contrib/dennis_term_manager/tests/src/ --group dennis_term_manager
+
+      - store_artifacts:
+          path: /var/www/polaris/web/sites/default/files/simpletest
+          destination: /tmp/results/simpletest
+
+      - store_artifacts:
+          path: /var/www/polaris/web/sites/simpletest/browser_output
+          destination: /tmp/results/simpletest/browser_output
+
+      - store_artifacts:
+          path: /var/www/polaris/web/sites/default/files/behat-verbose
+          destination: /tmp/results/behat-verbose
+
+      - store_artifacts:
+          path: /var/log/messages
+          destination: /tmp/results/logs
+
+      - store_test_results:
+          path: /tmp/results
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          context: packagist
+      - build_next:
+          context: packagist

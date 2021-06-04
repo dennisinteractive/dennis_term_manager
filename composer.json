@@ -1,12 +1,14 @@
 {
-  "name": "dennisdigital/dennis_term_manager",
-  "type": "drupal-module",
-  "description": "Term manager",
-  "keywords": ["Drupal"],
-  "license": "GPL-2.0+",
-  "homepage": "https://github.com/dennisinteractive/dennis_term_manager",
-  "minimum-stability": "dev",
-  "require": {
-    "drupal/views_data_export": "^1.0@beta"
-  }
+    "name": "dennisdigital/dennis_term_manager",
+    "type": "drupal-module",
+    "description": "Term manager",
+    "keywords": [
+        "Drupal"
+    ],
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://github.com/dennisinteractive/dennis_term_manager",
+    "minimum-stability": "dev",
+    "require": {
+        "drupal/views_data_export": "^1.0@beta"
+    }
 }
