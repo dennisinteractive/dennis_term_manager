@@ -45,13 +45,13 @@ class TermManagerExport implements TermManagerExportInterface {
     }
 
     // Open the stream.
-//    $out = fopen('php://output', 'w');
-//
-//    // Send correct header to download file.
-//    header('Content-Disposition: attachment; filename=' . $file_name . ';');
-//
-//    // Start the file.
-//    fputcsv($out, $columns, $delimiter, '"');
+    $out = fopen('php://output', 'w');
+
+    // Send correct header to download file.
+    header('Content-Disposition: attachment; filename=' . $file_name . ';');
+
+    // Start the file.
+    fputcsv($out, $columns, $delimiter, '"');
 
     // Populate the file.
     while ($row = $result->fetchObject()) {
@@ -79,11 +79,11 @@ class TermManagerExport implements TermManagerExportInterface {
         }
 
       }
-//      fputcsv($out, $row_data, $delimiter, '"');
+      fputcsv($out, $row_data, $delimiter, '"');
     }
 
     // Close the stream.
-//    fclose($out);
+    fclose($out);
   }
 
   /**
