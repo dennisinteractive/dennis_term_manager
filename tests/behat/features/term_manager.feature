@@ -15,7 +15,8 @@ Feature: Term Manager
     And I click "Export"
     And I should be on "/admin/structure/taxonomy/term_manager/export"
     Then the response status code should be 200
-    And I should see an ".view-taxonomy-export" element
+    And I should see an "form.term-manager-export" element
+    And I should see "Click the \"Export\" button to create the csv."
     And I am on "/admin/structure/taxonomy/term_manager"
     And I click "Import"
     And I should be on "/admin/structure/taxonomy/term_manager/import"
