@@ -5,7 +5,7 @@ namespace Drupal\dennis_term_manager\Operations;
 use Drupal\Core\Database\Connection;
 
 /**
- * Class TermManagerExport
+ * Class TermManagerExport.
  *
  * @package Drupal\dennis_term_manager\Operations
  */
@@ -22,6 +22,7 @@ class TermManagerExport implements TermManagerExportInterface {
    * TermManagerExport constructor.
    *
    * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection.
    */
   public function __construct(Connection $connection) {
     $this->connection = $connection;
@@ -64,15 +65,18 @@ class TermManagerExport implements TermManagerExportInterface {
             $value = $this->getIndexPage($row);
             $row_data[] = isset($value) ? $value : '';
             break;
+
           case 'node_count':
             $node_count = $row->{$column};
             $row_data[] = isset($row->{$column}) ? $row->{$column} : '';
             break;
+
           case 'node_count_with_children':
             $count = $this->getNodeCountWithChildren($row->tid);
             $value = $node_count + $count;
             $row_data[] = isset($value) ? $value : '';
             break;
+
           default:
             $row_data[] = isset($row->{$column}) ? $row->{$column} : '';
             break;
@@ -87,9 +91,7 @@ class TermManagerExport implements TermManagerExportInterface {
   }
 
   /**
-   * The query for the term export.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
+   * {@inheritdoc}
    */
   public function query() {
     $query = $this->connection->select('taxonomy_term_field_data', 't');
@@ -120,7 +122,7 @@ class TermManagerExport implements TermManagerExportInterface {
     $query->leftJoin('taxonomy_term__field_index_page', 'i', 'i.entity_id = t.tid');
     $query->addField('i', 'field_index_page_value', 'index_page');
 
-    // Primary article
+    // Primary article.
     $query->leftJoin('taxonomy_term__field_primary_article', 'pa', 'pa.entity_id = t.tid');
     $query->addField('pa', 'field_primary_article_target_id', 'primary_article_nid');
 
@@ -128,9 +130,7 @@ class TermManagerExport implements TermManagerExportInterface {
   }
 
   /**
-   * The columns for the CSV.
-   *
-   * @return array
+   * {@inheritdoc}
    */
   public function getColumns() {
     return [
@@ -147,16 +147,14 @@ class TermManagerExport implements TermManagerExportInterface {
   }
 
   /**
-   * @param $row
-   *   The data from the row.
-   *
-   * @return string
+   * {@inheritdoc}
    */
   public function getIndexPage($row) {
     switch ($row->index_page) {
       case '1':
         $value = 'Y';
         break;
+
       default:
         $value = 'N';
         break;
@@ -165,10 +163,7 @@ class TermManagerExport implements TermManagerExportInterface {
   }
 
   /**
-   * @param $tid
-   *   The term id.
-   *
-   * @return mixed
+   * {@inheritdoc}
    */
   public function getNodeCountWithChildren($tid) {
     $query = $this->connection->select('taxonomy_index', 'ti');

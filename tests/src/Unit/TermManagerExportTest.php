@@ -6,7 +6,7 @@ use Drupal\dennis_term_manager\Operations\TermManagerExport;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Class TermManagerExportTest
+ * Class TermManagerExportTest.
  *
  * @package Drupal\Tests\dennis_term_manager\Unit
  * @coversDefaultClass Drupal\dennis_term_manager\Operations\TermManagerExport
@@ -16,11 +16,15 @@ use Drupal\Tests\UnitTestCase;
 class TermManagerExportTest extends UnitTestCase {
 
   /**
+   * The Term Manager Export.
+   *
    * @var \Drupal\dennis_term_manager\Operations\TermManagerExport
    */
   protected $termManagerExport;
 
   /**
+   * The Database Connection.
+   *
    * @var \Drupal\Core\Database\Connection
    */
   protected $connection;
@@ -52,18 +56,18 @@ class TermManagerExportTest extends UnitTestCase {
    * @covers \Drupal\dennis_term_manager\Operations\TermManagerExport::getColumns()
    */
   public function testGetColumns() {
-   $columns = [
-     'vocabulary_name',
-     'term_name',
-     'tid',
-     'path',
-     'parent_term_name',
-     'index_page',
-     'primary_article_nid',
-     'node_count',
-     'node_count_with_children'
-   ];
-   $this->assertEquals($columns, $this->termManagerExport->getColumns());
+    $columns = [
+      'vocabulary_name',
+      'term_name',
+      'tid',
+      'path',
+      'parent_term_name',
+      'index_page',
+      'primary_article_nid',
+      'node_count',
+      'node_count_with_children',
+    ];
+    $this->assertEquals($columns, $this->termManagerExport->getColumns());
   }
 
   /**
@@ -94,7 +98,8 @@ class TermManagerExportTest extends UnitTestCase {
   /**
    * Get mock row.
    *
-   * @return \stdClass
+   * @return object
+   *   The row object.
    */
   public function getRow() {
     $row = new \stdClass();
