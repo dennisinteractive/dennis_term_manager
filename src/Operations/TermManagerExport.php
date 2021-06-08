@@ -34,7 +34,7 @@ class TermManagerExport implements TermManagerExportInterface {
   public function export() {
     // Do the query.
     $query = $this->query();
-    $result = $query->execute();
+    $result = $query->distinct()->execute();
 
     // Set the file information.
     $delimiter = ',';
@@ -45,11 +45,12 @@ class TermManagerExport implements TermManagerExportInterface {
       $columns = $this->getColumns();
     }
 
+    // Send correct header to download file.
+    header('Content-Type: application/csv');
+    header('Content-Disposition: attachment; filename=' . $file_name . ';');
+
     // Open the stream.
     $out = fopen('php://output', 'w');
-
-    // Send correct header to download file.
-    header('Content-Disposition: attachment; filename=' . $file_name . ';');
 
     // Start the file.
     fputcsv($out, $columns, $delimiter, '"');
@@ -88,6 +89,8 @@ class TermManagerExport implements TermManagerExportInterface {
 
     // Close the stream.
     fclose($out);
+    // Prevent other things getting added to the csv.
+    exit();
   }
 
   /**
@@ -115,7 +118,7 @@ class TermManagerExport implements TermManagerExportInterface {
 
     // Parent information.
     $query->leftJoin('taxonomy_term__parent', 'p', 'p.entity_id = t.tid');
-    $query->leftJoin('taxonomy_term_field_data', 'pd', 'pd.tid = p.entity_id');
+    $query->leftJoin('taxonomy_term_field_data', 'pd', 'pd.tid = p.parent_target_id');
     $query->addField('pd', 'name', 'parent_term_name');
 
     // Index page.
