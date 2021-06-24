@@ -4,11 +4,18 @@ dennis_term_manager:
     _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
     _title: 'Term Manager'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'access term manager'
 dennis_term_manager.term_manager_form:
   path: '/admin/structure/taxonomy/term_manager/import'
   defaults:
     _form: 'Drupal\dennis_term_manager\Form\TermManagerImport'
     _title: 'Import'
   requirements:
-    _permission: 'access write api queues'
+    _permission: 'access term manager'
+dennis_term_manager.term_manager_form_export:
+  path: '/admin/structure/taxonomy/term_manager/export'
+  defaults:
+    _form: 'Drupal\dennis_term_manager\Form\TermManagerExport'
+    _title: 'Export'
+  requirements:
+    _permission: 'access term manager'
