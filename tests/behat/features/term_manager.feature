@@ -7,19 +7,14 @@ Feature: Term Manager
   Scenario: Check that the pages load and the desired layout is shown
     Given I am logged in as a user with the "administrator" role
     And I am on "/admin/structure/taxonomy/term_manager"
-    Then the response status code should be 200
-    And I should see text matching "Export"
-    And I should see text matching "Import"
-    And I should see the link "Export"
-    And I should see the link "Import"
-    And I click "Export"
+    And should see "Export"
+    And should see "Import"
+    And I click "Term Manager Export Form."
     And I should be on "/admin/structure/taxonomy/term_manager/export"
-    Then the response status code should be 200
     And I should see an "form.term-manager-export" element
     And I should see "Click the \"Export\" button to create the csv."
     And I am on "/admin/structure/taxonomy/term_manager"
-    And I click "Import"
+    And I click "Term Manager Form."
     And I should be on "/admin/structure/taxonomy/term_manager/import"
-    Then the response status code should be 200
     And I should see an "#edit-csv-file-upload" element
     And I should see an "#edit-submit" element
